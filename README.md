@@ -7,6 +7,11 @@
  - gremlin [NEWS page](https://github.com/matthewwolak/gremlin/blob/master/NEWS.md)
 
 
+## Overview of main branches:
+  - `master` branch is the most recent production version (often the same as what is available from the [R CRAN mirrors](https://cran.r-project.org/))
+  - `devel` branch is a preview of the next release which *should* be functional and error/bug free, but proceed with caution
+  - `gremlinR` branch is a **pure R** implementation. This serves as a testing ground and as a learning tool to see what `gremlin` is doing 'under the hood' using just the R language. This may lag behind `devel` and `master`, but see the [NEWS page](https://github.com/matthewwolak/gremlin/blob/master/NEWS.md) for an overview of the most recent changes!
+
 ## To obtain gremlin:
 <!--
  - From [R](https://CRAN.R-project.org/):
