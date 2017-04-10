@@ -26,7 +26,11 @@
    - clone or download the latest development version here
    - install the latest development version directly in R using the `devtools` package [https://github.com/hadley/devtools](https://github.com/hadley/devtools):
    ```R
-   library(devtools); install_github("matthewwolak/gremlin")
+   library(devtools)
+   install_github("matthewwolak/gremlin")
+
+   # Or install a development or different branch (e.g., pure R branch below)
+   install_github("matthewwolak/gremlin", ref = "gremlinR")
    ```
 
 
