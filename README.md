@@ -33,4 +33,30 @@
    install_github("matthewwolak/gremlin", ref = "gremlinR")
    ```
 
+## Examples
 
+### `gremlinR`
+  - Estimating autosomal additive and dominance genetic variances
+```{R gremlinR_VaVd}
+library(gremlin)
+library(nadiv)  #<-- needed for creating inverse relatedness matrices
+
+tmpw <- warcolak[1:(72*10), ]  #<-- only use 10 units for poor young gremlin
+tmpw$ID <- as.factor(as.character(tmpw$ID))
+tmpw$IDD <- tmpw$ID
+Ainv <- makeAinv(tmpw[, 1:3])$Ainv
+Dinv <- makeD(tmpw[, 1:3])$Dinv
+  Dinv@Dimnames[[1]] <- as.character(tmpw$ID)
+
+nrow(tmpw)
+## Fixed effects of sex
+## ID = autosomal additive genetic variance term
+## IDD autosomal dominance genetic variance term
+system.time(grAD <- gremlinR(trait1 ~ sex-1,
+	random = ~ ID + IDD,
+	ginverse = list(ID = Ainv, IDD = Dinv),
+	data = tmpw,
+	maxit = 25, v = 2, vit = 1))
+
+summary(grAD)
+```
