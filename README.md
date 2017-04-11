@@ -25,6 +25,8 @@
  - From GitHub:
    - install the latest versions directly in R using the `devtools` package [https://github.com/hadley/devtools](https://github.com/hadley/devtools):
    ```
+   library(devtools)
+   
    # Install pure R branch
    install_github("matthewwolak/gremlin", ref = "gremlinR")
    ```
