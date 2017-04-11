@@ -23,12 +23,9 @@
    then select your favorite [CRAN mirror](https://CRAN.R-project.org/)
 -->   
  - From GitHub:
-   - install the latest development version directly in R using the `devtools` package [https://github.com/hadley/devtools](https://github.com/hadley/devtools):
-   ```R
-   library(devtools)
-   install_github("matthewwolak/gremlin")
-
-   # Or install a development or different branch (e.g., pure R branch below)
+   - install the latest versions directly in R using the `devtools` package [https://github.com/hadley/devtools](https://github.com/hadley/devtools):
+   ```
+   # Install pure R branch
    install_github("matthewwolak/gremlin", ref = "gremlinR")
    ```
 
@@ -36,7 +33,7 @@
 
 ### `gremlinR`
   - Estimating autosomal additive and dominance genetic variances
-```{R gremlinR_VaVd}
+```
 library(gremlin)
 library(nadiv)  #<-- needed for creating inverse relatedness matrices
 
