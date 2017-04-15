@@ -40,6 +40,7 @@ gremlinR <- function(formula, random = NULL, rcov = ~ units,
 
   stopifnot(inherits(formula, "formula"), length(formula) == 3L)
   mc <- as.list(match.call())
+  if(v > 0) cat("                          \t", format(Sys.time(), "%H:%M:%S"), "\n")
   m <- match(c("formula", "random", "rcov", "data", "subset", "ginverse", "na.action", "offset", "contrasts", "Xsparse"), names(mc), 0)
   mMmc <- as.call(c(quote(mkModMats), mc[m]))
   modMats <- eval(mMmc, parent.frame())
