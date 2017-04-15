@@ -472,7 +472,7 @@ if(Mout) return(as(drop0(rBind(cBind(D, RHSperm),
   vitseq <- seq(0, maxit, by = vit)
   for(i in 1:nrow(itMat)){
     if(v > 0 && i %in% vitseq){
-      cat("\t", i, "of max", maxit, "iterations\t",
+      cat("  ", i, "of max", maxit, "iterations\t",
 	format(Sys.time(), "%H:%M:%S"), "\n")
     }
     stItTime <- Sys.time()
@@ -491,6 +491,8 @@ if(i == 1) Cinv1 <- crossprod(Pc, Cinv) %*% Pc
       # wombat 2 (also Knight 2008 (eqn. 6.1) criteria
       cc[2] <- sqrt(sum((itMat[i, 1:lthetav] - itMat[(i-1), 1:lthetav])^2) / sum(itMat[i, 1:lthetav]^2)) < cctol[2]
     }
+
+
 
 
     if(!all(cc)){
@@ -550,6 +552,26 @@ stop("Not allowing `minqa::bobyqa()` right now")
     if(v > 0 && i %in% vitseq){
       cat("\t\tlL:", format(round(loglik, 6), nsmall = 6), "\t1 iteration:",
 	round(itTime, 2), units(itTime), "\n")
+      if(v > 1){
+#        cat("\t", colnames(itMat)[-match(c("loglik", "itTime"), colnames(itMat))], "\n", sep = "  ")
+#        cat("\t", round(itMat[i, -match(c("loglik", "itTime"), colnames(itMat))], 4))
+        cat("\n")
+        print(as.table(itMat[i, -match(c("loglik", "itTime"), colnames(itMat))]), digits = 4, zero.print = ".")
+        cat("\tConvergence crit:", cc, "\n")
+      }
+      if(v > 2){#algit[i] == "AI" && 
+        sgd <- matrix(NA, nrow = lthetav, ncol = lthetav+4)  #<-- `sgd` is summary.gremlinDeriv 
+          dimnames(sgd) <- list(row.names(dLdtheta), c("gradient", "", "AI", "", "AI-inv", rep("", lthetav-1)))
+        sgd[, 1] <- dLdtheta
+        AIinv <- if(algit[i] == "EM") AI else solve(AI)
+        for(rc in 1:lthetav){
+          sgd[rc, 3:(rc+2)] <- AI[rc, 1:rc]
+          sgd[rc, (4+rc):(4+lthetav)] <- AIinv[rc, rc:lthetav]   
+        }
+        cat("\tAI alpha", NA, "\n") #TODO add alpha/step-halving value
+        print(as.table(sgd), digits = 3, na.print = " | ", zero.print = ".")
+        cat("\n")
+      }  
     }
     units(itTime) <- "secs"
     itMat[i, ncol(itMat)] <- round(itTime, 1)
