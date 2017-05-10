@@ -230,7 +230,7 @@ if(Mout) return(as(drop0(rBind(cBind(D, RHSperm),
       sLc <<- update(sLc, C)
       #TODO see note/idea in "../myNotesInsights/invFromChol.Rmd"
       #TODO should update the permutation each iteration????
-      #Cinv <<- chol2inv(sLc)
+      #Cinv <<- chol2inv(sLc) # chol2inv gives Cinv in same permutation as C (not permutation of sLc)
       Cinv <<- solve(C)  #<-- XXX Faster than chol2inv(sLc) atleast for warcolak
 #      M <<- as(cBind(rBind(crossprod(Pc, C) %*% Pc, RHSperm),
 #	    tRHSD), "symmetricMatrix")
@@ -479,8 +479,6 @@ if(Mout) return(as(drop0(rBind(cBind(D, RHSperm),
     stItTime <- Sys.time()
     thetav <- sapply(theta, FUN = slot, name = "x")
     loglik <- reml(thetav, skel)
-#FIXME DELETE just to test AI gaussian Elim
-if(i == 1) Cinv1 <- crossprod(Pc, Cinv) %*% Pc
     itMat[i, -ncol(itMat)] <- c(thetav, sigma2e, tyPy, logDetC, loglik) 
     # 5c check convergence criteria
     ## Knight 2008 (ch. 6) says Searle et al. 1992 and Longford 1993 discuss diff types of converg. crit.
@@ -592,14 +590,13 @@ stop("Not allowing `minqa::bobyqa()` right now")
 
 
 #FIXME FIXME FIXME
-#FIXME DELETE `Cinv1`: now just to test AI gaussian Elim
 #TODO Make sln variances come from another source (elminate Cinv)
  return(structure(list(call = as.call(mc),
 		modMats = modMats,
 		itMat = itMat,
-		sln = cbind(Est = c(sln), Var = diag(Cinv) %*% Pc), #diag(crossprod(Pc, Cinv) %*% Pc)
+		sln = cbind(Est = c(sln), Var = diag(Cinv)),
 		AI = AI, dLdtheta = dLdtheta,
-		Cinv = Cinv1),
+		Cinv = Cinv),
 	class = "gremlin"))
 }
 
