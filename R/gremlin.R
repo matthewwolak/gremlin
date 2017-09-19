@@ -716,6 +716,7 @@ stop("Not allowing `minqa::bobyqa()` right now")
 
 
 
+################################################################################
 #' @describeIn gremlinR
 is.gremlin <- function(x) inherits(x, "gremlin")
 
