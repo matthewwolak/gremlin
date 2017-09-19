@@ -31,6 +31,7 @@ vech2matlist <- function(vech, skeleton){
 
  
 #############################################################
+
 gremlinR <- function(formula, random = NULL, rcov = ~ units,
 		data = NULL, ginverse = NULL,
 		Gstart = NULL, Rstart = NULL,
@@ -600,6 +601,16 @@ stop("Not allowing `minqa::bobyqa()` right now")
 	class = "gremlin"))
 }
 
+#############################
+# Separating and pre-allocating P and Vinv to sparse Matrix doesn't seem to make
+## much of a difference
+# Also changing ginverse elements to `dsCMatrix` doesn't speedup traces, since
+## they end up more or less as dense matrices but in dgCMatrix from the product
+#############################
+
+
+
+
 
 is.gremlin <- function(x) inherits(x, "gremlin")
 
@@ -612,21 +623,6 @@ is.gremlin <- function(x) inherits(x, "gremlin")
 
 
 
-
-
-
-################################################################################
-
-
-
-
-
-
-
-#############################
- # Separating and pre-allocating P and Vinv to sparse Matrix doesn't seem to make much of a difference
-# Also changing ginverse elements to `dsCMatrix` doesn't speedup traces, since they end up more or less as dense matrices but in dgCMatrix from the product
-#############################
 
 
 
