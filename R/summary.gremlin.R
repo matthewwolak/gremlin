@@ -1,6 +1,25 @@
 ################  Extract `logLik` and `AIC`/`AICc`    #############
 # Create S3methods that use generic in package `stats`
 ######   LOG-LIKELIHOOD   ######
+#' Methods to extract log-likelihood and information criterion of a gremlin
+#' model.
+#'
+#' Extracts the log-likelihood from a gremlin model fit.
+#' 
+#' @aliases logLik.gremlin
+#' @export
+#' @param object An object of \code{class} \sQuote{gremlin}.
+#' @param \dots Additional arguments to be passed to control the model fitting.
+#'
+#' @return A \code{numeric} value for the log-likelihood.
+#' @author \email{matthewwolak@gmail.com}
+#' @examples
+#' mod11 <- gremlinR(WWG11 ~ sex - 1,
+#'	random = ~ calf,
+#'	data = Mrode11,
+#'	Gstart = matrix(0.1), Rstart = matrix(0.4),
+#'	maxit = 50, v = 2, algit = "EM")
+#' logLik(mod11)
 logLik.gremlin <- function(object, ...){
   val <- object$itMat[nrow(object$itMat), "loglik"]
   #TODO attr(val, "nall") <- object$
@@ -11,7 +30,38 @@ logLik.gremlin <- function(object, ...){
 #TODO######   AIC    ############
 #TODO?######   BIC    ############
 
+
+
+
+
+
 ################################################################################
+#' Gremlin model summary.
+#'
+#' Summarize and print results of linear mixed model fitted with gremlin.
+#'
+#' @aliases summary.gremlin print.summary.gremlin
+#' @export
+#' @param object,x An object of \code{class} \sQuote{gremlin} or
+#'   \sQuote{summary.gremlin}.
+#' @param digits An \code{integer} used for number formatting with
+#'   \sQuote{signif()}. 
+#' @param \dots Additional arguments to be passed to control the output.
+#'
+#' @return A \code{list} of class \code{summary.gremlin} or a printed value
+#'   to the screen with no return values.
+#'   \describe{
+#'     \item{logLik }{Model log-likelihood.}}
+#'     \item{formulae }{Model fixed, random, and residual formulae.}
+#'     \item{varcompSummary }{Table of variance components and approximate standard errors (
+#'       calculated from the inverse of the average information matrix).}
+#'     \item{fxdSummary }{Table of fixed effects and standard errors (calculated from the
+#'       corresponding diagonal elements of the inverse of the coefficient
+#'       matrix).}
+#'   }
+#'
+#' @author \email{matthewwolak@gmail.com}
+#' @seealso \code{\link{gremlin}}
 summary.gremlin <- function(object, ...){
   nit <- nrow(object$itMat)
 
@@ -31,7 +81,14 @@ summary.gremlin <- function(object, ...){
 	class = c("summary.gremlin", "list")))
 } 
 
+
+
+
+
+
 ################################################################################
+#' @describeIn summary.gremlin Printing method for object of class
+#'   \code{summary.gremlin}. 
 print.summary.gremlin <- function(x, digits = max(3, getOption("digits") - 3), ...){
 #TODO calculate convergence criteria and print whether REML converged & if parameters changed by >XX%
   cat("\n log-likelihood:", round(x$logLik, digits))
