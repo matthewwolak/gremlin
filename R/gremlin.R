@@ -765,7 +765,7 @@ stop("Not allowing `minqa::bobyqa()` right now")
 
 
 ################################################################################
-#' @describeIn gremlinR
+#' @describeIn gremlinR Method to test if object is of class \code{gremlin}
 is.gremlin <- function(x) inherits(x, "gremlin")
 
 

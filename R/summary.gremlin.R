@@ -51,13 +51,14 @@ logLik.gremlin <- function(object, ...){
 #' @return A \code{list} of class \code{summary.gremlin} or a printed value
 #'   to the screen with no return values.
 #'   \describe{
-#'     \item{logLik }{Model log-likelihood.}}
+#'     \item{logLik }{Model log-likelihood.}
 #'     \item{formulae }{Model fixed, random, and residual formulae.}
-#'     \item{varcompSummary }{Table of variance components and approximate standard errors (
-#'       calculated from the inverse of the average information matrix).}
-#'     \item{fxdSummary }{Table of fixed effects and standard errors (calculated from the
-#'       corresponding diagonal elements of the inverse of the coefficient
+#'     \item{varcompSummary }{Table of variance components and approximate
+#'       standard errors (calculated from the inverse of the average information
 #'       matrix).}
+#'     \item{fxdSummary }{Table of fixed effects and standard errors (calculated
+#'       from the corresponding diagonal elements of the inverse of the
+#'       coefficient matrix).}
 #'   }
 #'
 #' @author \email{matthewwolak@gmail.com}
