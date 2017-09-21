@@ -21,7 +21,7 @@ tr <- function(X, ...){
 ###########
 # Default
 ###########
-#' @describeIn tr 
+#' @describeIn tr Default method
 tr.default <- function(X, ...){
   sum(diag(X))
 }
