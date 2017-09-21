@@ -27,7 +27,7 @@
 
 
 #XXX RANDOM EFFECTS MUST ALREADY BE FACTORS IN DATA!!!!
-#' @describeIn gremlinR Makes model matrices. 
+#' @describeIn gremlinR Generates model matrices. 
 mkModMats <- function(formula, random = NULL, rcov = ~ units,
 		data = NULL, subset = NULL,
 		ginverse = NULL,
