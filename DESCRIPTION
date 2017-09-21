@@ -18,4 +18,4 @@ Description: Fit linear mixed-effects models using restricted (or residual)
     Implements the average information algorithm as the main tool to maximize the
     restricted likelihood, but with other algorithms available.
 License: GPL-3
-RoxygenNote: 5.0.1
+RoxygenNote: 6.0.1
