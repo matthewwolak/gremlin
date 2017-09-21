@@ -13,7 +13,7 @@
 #' @param \dots Additional arguments.
 #'
 #' @return A \code{numeric} value for the sum of the diagonal elements.
-#' @author \email{matthewwolak@gmail.com}
+#' @author \email{matthewwolak@@gmail.com}
 tr <- function(X, ...){
   UseMethod("tr", X)
 }

@@ -12,7 +12,7 @@
 #' @param \dots Additional arguments to be passed to control the model fitting.
 #'
 #' @return A \code{numeric} value for the log-likelihood.
-#' @author \email{matthewwolak@gmail.com}
+#' @author \email{matthewwolak@@gmail.com}
 #' @examples
 #' mod11 <- gremlinR(WWG11 ~ sex - 1,
 #'	random = ~ calf,
@@ -61,7 +61,7 @@ logLik.gremlin <- function(object, ...){
 #'       coefficient matrix).}
 #'   }
 #'
-#' @author \email{matthewwolak@gmail.com}
+#' @author \email{matthewwolak@@gmail.com}
 #' @seealso \code{\link{gremlin}}
 summary.gremlin <- function(object, ...){
   nit <- nrow(object$itMat)
