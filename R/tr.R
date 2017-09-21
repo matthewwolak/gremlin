@@ -22,6 +22,7 @@ tr <- function(X, ...){
 # Default
 ###########
 #' @describeIn tr Default method
+#' @export
 tr.default <- function(X, ...){
   sum(diag(X))
 }
@@ -30,6 +31,7 @@ tr.default <- function(X, ...){
 # dgCMatrix
 ###########
 #' @describeIn tr Method for matrix \code{X} of class Matrix:::dgCMatrix
+#' @export
 tr.dgCMatrix <- function(X, ...){
   X <- forceSymmetric(X)
   if(X@uplo == "L"){
@@ -43,6 +45,7 @@ tr.dgCMatrix <- function(X, ...){
 # dsCMatrix
 ###########
 #' @describeIn tr Method for matrix \code{X} of class Matrix:::dsCMatrix
+#' @export
 tr.dsCMatrix <- function(X, ...){
   if(X@uplo == "L"){
     return(sum(X@x[(X@p[-(X@Dim[2L]+1)]+1)]))
