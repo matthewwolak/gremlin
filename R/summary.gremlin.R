@@ -97,6 +97,7 @@ summary.gremlin <- function(object, ...){
 #' @describeIn summary.gremlin Printing method for object of class
 #'   \code{summary.gremlin}.
 #' @export
+#' @method print summary.gremlin
 print.summary.gremlin <- function(x, digits = max(3, getOption("digits") - 3), ...){
 #TODO calculate convergence criteria and print whether REML converged & if parameters changed by >XX%
   cat("\n log-likelihood:", round(x$logLik, digits))
