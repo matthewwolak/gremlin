@@ -42,7 +42,6 @@ logLik.gremlin <- function(object, ...){
 #' Summarize and print results of linear mixed model fitted with gremlin.
 #'
 #' @aliases summary.gremlin print.summary.gremlin
-#' @export
 #' @param object,x An object of \code{class} \sQuote{gremlin} or
 #'   \sQuote{summary.gremlin}.
 #' @param digits An \code{integer} used for number formatting with
@@ -64,6 +63,8 @@ logLik.gremlin <- function(object, ...){
 #'
 #' @author \email{matthewwolak@@gmail.com}
 #' @seealso \code{\link{gremlin}}
+#' @export
+#' @importFrom base summary
 summary.gremlin <- function(object, ...){
   nit <- nrow(object$itMat)
 
