@@ -2,8 +2,8 @@
 % Please edit documentation in R/gremlin.R
 \docType{package}
 \name{gremlin-package}
-\alias{gremlin}
 \alias{gremlin-package}
+\alias{_PACKAGE}
 \title{Mixed-Effects REML incoporating Generalized Inverses}
 \description{
 Fit linear mixed-effects models using restricted (or residual) maximum

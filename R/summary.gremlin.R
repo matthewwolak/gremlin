@@ -20,7 +20,7 @@
 #'	maxit = 50, v = 2, algit = "EM")
 #' logLik(mod11)
 #' @export
-#' @import stats logLik
+#' @import stats
 logLik.gremlin <- function(object, ...){
   val <- object$itMat[nrow(object$itMat), "loglik"]
   #TODO attr(val, "nall") <- object$
