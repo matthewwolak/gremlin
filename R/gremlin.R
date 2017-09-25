@@ -12,6 +12,7 @@
 #' Meyer & Smith 1996). The average information algorithm combined with sparse
 #' matrix techniques can potentially make model fitting very efficient.
 #'
+#' @aliases gremlin-package
 #' @references
 #'   Mrode. 2005.
 #'   Meyer & Smith. 1996.
