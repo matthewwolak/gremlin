@@ -30,7 +30,7 @@
 ################################################################################
 #' @describeIn gremlinR Generates model matrices. 
 #' @export
-#' @import stats Matrix
+#' @import Matrix
 mkModMats <- function(formula, random = NULL, rcov = ~ units,
 		data = NULL, subset = NULL,
 		ginverse = NULL,
