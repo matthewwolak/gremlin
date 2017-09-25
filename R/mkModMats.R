@@ -31,6 +31,7 @@
 #' @describeIn gremlinR Generates model matrices. 
 #' @export
 #' @import Matrix
+#' @importFrom stats na.pass model.response model.matrix lm reformulate na.omit
 mkModMats <- function(formula, random = NULL, rcov = ~ units,
 		data = NULL, subset = NULL,
 		ginverse = NULL,
