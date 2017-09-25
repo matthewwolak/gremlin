@@ -64,7 +64,6 @@ logLik.gremlin <- function(object, ...){
 #' @author \email{matthewwolak@@gmail.com}
 #' @seealso \code{\link{gremlin}}
 #' @export
-#' @importFrom base summary
 summary.gremlin <- function(object, ...){
   nit <- nrow(object$itMat)
 
