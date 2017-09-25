@@ -7,7 +7,6 @@
 #' Extracts the log-likelihood from a gremlin model fit.
 #' 
 #' @aliases logLik.gremlin
-#' @export
 #' @param object An object of \code{class} \sQuote{gremlin}.
 #' @param \dots Additional arguments to be passed to control the model fitting.
 #'
@@ -20,6 +19,8 @@
 #'	Gstart = matrix(0.1), Rstart = matrix(0.4),
 #'	maxit = 50, v = 2, algit = "EM")
 #' logLik(mod11)
+#' @export
+#' @import stats logLik
 logLik.gremlin <- function(object, ...){
   val <- object$itMat[nrow(object$itMat), "loglik"]
   #TODO attr(val, "nall") <- object$

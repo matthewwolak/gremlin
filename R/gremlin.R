@@ -53,6 +53,7 @@
 #' @param x A \code{list} of starting parameters.
 #' @return A sparse \sQuote{dsCMatrix}
 #' @author \email{matthewwolak@@gmail.com}
+#' @import methods Matrix
 stTrans <- function(x){
   if(is.numeric(x) && !is.matrix(x)) x <- as.matrix(x)
   if(!isSymmetric(x)) stop(cat("Element", x, "must be a symmetric matrix or a number\n")) 
@@ -75,6 +76,7 @@ stTrans <- function(x){
 #' @param skeleton An example structure to map \code{vech} onto.
 #' @return A list of matrices of the same structure as \code{skeleton}.
 #' @author \email{matthewwolak@@gmail.com}
+#' @import Matrix
 vech2matlist <- function(vech, skeleton){
   newmatlist <- vector("list", length = length(skeleton))
   si <- 1
@@ -102,7 +104,6 @@ vech2matlist <- function(vech, skeleton){
 #' object is a fitted model.
 #'
 #' @aliases gremlin gremlinR is.gremlin mkModMats
-#' @export
 #' @param x An object of \code{class} \sQuote{gremlin}.
 #' @param formula A \code{formula} for the response variable and fixed effects.
 #' @param random A \code{formula} for the random effects.
@@ -186,6 +187,8 @@ vech2matlist <- function(vech, skeleton){
 #'
 #'   is(mod11)
 #' }
+#' @export
+#' @import stats utils methods Matrix 
 gremlinR <- function(formula, random = NULL, rcov = ~ units,
 		data = NULL, ginverse = NULL,
 		Gstart = NULL, Rstart = NULL,
