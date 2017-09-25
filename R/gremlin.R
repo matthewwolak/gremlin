@@ -1,3 +1,60 @@
+#' Mixed-Effects REML incoporating Generalized Inverses
+#'
+#' Fit linear mixed-effects models using restricted (or residual) maximum
+#' likelihood (REML) and with generalized inverse matrices to specify covariance
+#' structures for random effects. In particular, the package is suited to fit
+#' quantitative genetic mixed models, often referred to as 'animal models'.
+#' Implements the average information algorithm as the main tool to maximize the
+#' restricted likelihood, but with other algorithms available.
+#'
+#' The package also implements the average information algorithm to efficiently
+#' maximize the log-likelihood (Thompson & Johnson 1995; Gilmour et al. 1995;
+#' Meyer & Smith 1996). The average information algorithm combined with sparse
+#' matrix techniques can potentially make model fitting very efficient.
+#'
+#' @aliases gremlin-package
+#' @references
+#'   Mrode. 2005.
+#'   Meyer & Smith. 1996.
+#'   Gilmour et al. 1995.
+#'   Thompson & Johnson. 1995.
+#' @seealso \code{\link[MCMCglmm:MCMCglmm-package]{MCMCglmm}}
+#' @examples
+#' #TODO: simple examples of the most important functions
+#' \dontrun{
+#'   library(nadiv)
+#'   Ainv <- makeAinv(Mrode3[-c(1:2), 1:3])$Ainv
+#'   mod11 <- gremlinR(WWG11 ~ sex - 1,
+#'	random = ~ calf,
+#'	data = Mrode11,
+#'	ginverse = list(calf = Ainv),
+#'	Gstart = matrix(0.2), Rstart = matrix(0.4),
+#'	maxit = 10, v = 2, algit = "AI")
+#' }
+"_PACKAGE"
+
+
+
+
+
+
+
+
+
+
+
+
+
+################################################################################
+#' Transformation of starting parameters.
+#'
+#' Transform start parameters into format \code{gremlin} expects.
+#'
+#' @aliases stTrans
+#' @param x A \code{list} of starting parameters.
+#' @return A sparse \sQuote{dsCMatrix}
+#' @author \email{matthewwolak@@gmail.com}
+#' @import Matrix
 stTrans <- function(x){
   if(is.numeric(x) && !is.matrix(x)) x <- as.matrix(x)
   if(!isSymmetric(x)) stop(cat("Element", x, "must be a symmetric matrix or a number\n")) 
@@ -10,6 +67,17 @@ stTrans <- function(x){
 
 
 
+################################################################################
+#' Vector to list of matrices.
+#'
+#' Converts a vector of (co)variance parameters to a list of covariance matrices.
+#'
+#' @aliases vech2matlist
+#' @param vech A \code{vector} of (co)variance parameters.
+#' @param skeleton An example structure to map \code{vech} onto.
+#' @return A list of matrices of the same structure as \code{skeleton}.
+#' @author \email{matthewwolak@@gmail.com}
+#' @import Matrix
 vech2matlist <- function(vech, skeleton){
   newmatlist <- vector("list", length = length(skeleton))
   si <- 1
@@ -30,7 +98,101 @@ vech2matlist <- function(vech, skeleton){
 
 
  
-#############################################################
+################################################################################
+#' Mixed-effect modeling functions.
+#'
+#' Create and fit linear mixed-effect model (Gaussian data) or checking if an
+#' object is a fitted model.
+#'
+#' @aliases gremlin gremlinR is.gremlin mkModMats
+#' @param x An object of \code{class} \sQuote{gremlin}.
+#' @param formula A \code{formula} for the response variable and fixed effects.
+#' @param random A \code{formula} for the random effects.
+#' @param rcov A \code{formula} for the residual covariance structure.
+#' @param data A \code{data.frame} in which to look for the terms in
+#'   \code{formula}, \code{random}, and \code{rcov}.
+#' @param subset An expression for the subset of \code{data} to use.
+#' @param ginverse A \code{list} of (preferably sparse) inverse matrices that
+#'   are proportional to the covariance structure of the random effects.
+#'   The name of each element in the list should match a column in \code{data}
+#'   that is associated with a random term. All levels of the random term should
+#'   appear as \code{rownames} for the matrices.
+#' @param Gstart A \code{list} of starting (co)variance values for the the
+#'   G-structure or random terms.
+#' @param Rstart A \code{list} of starting (co)variance values for the
+#'   R-structure or residual terms.
+#' @param maxit An \code{integer} specifying the maximum number of likelihood
+#'   iterations.
+#' @param algit A \code{character} vector of length 1 or more or an expression
+#'   to be evaluated that specifies the algorithm to use for proposing
+#'   (co)variances in the next likelihood iteration.
+#' @param vit An \code{integer} value specifying the verbosity of screen output
+#'   on each iteration. A value of zero gives no iteration specific output and
+#'   larger values increase the amount of information printed on the screen.
+#' @param v An \code{integer} value specifying the verbosity of screen output
+#'   regarding the model fitting process. A value of zero gives no details and
+#'   larger values increase the amount of information printed on the screen.
+#' @param Mout A \code{logical} value that indicates if the model should quit
+#'   and return the mixed model array (or M-matrix) once it is formed.
+#' @param na.action What to do with NAs.
+#' @param offset Should an offset be specified.
+#' @param contrasts Specify the type of contrasts for the fixed effects.
+#' @param Xsparse Should sparse matrices be used for the fixed effects design
+#'   matrix.
+#' @param \dots Additional arguments to be passed to control the model fitting.
+#'
+#' @return A \code{list} of class \code{gremlin} or \code{gremlinModMats}:
+#'   \describe{
+#'     \item{call }{The model \code{call}.}
+#'     \item{modMats }{A \code{list} of the model matrices used to construct the
+#'       mixed model equations.}
+#'     \item{itMat }{A \code{matrix} of details about each iteration.}
+#'     \item{sln }{A two column \code{matrix} of solutions and their sampling
+#'       variances from the mixed model.}
+#'     \item{AI }{A \code{matrix} of values containing the Average Information
+#'       matrix, or second partial derivatives of the likelihood with respect to
+#'       the (co)variance components. The inverse of this matrix gives the
+#'       sampling variances of the (co)variance components.}
+#'     \item{dLdtheta }{A single column \code{matrix} of first derivatives of
+#'       the (co)variance parameters with respect to the log-Likelihood.}
+#'     \item{Cinv }{The inverse coefficient \code{matrix}, in sparse matrix
+#'       format, of the mixed model equations.}
+#'
+#'     \item{y }{The response vector.}
+#'     \item{ny }{The number of responses.}
+#'     \item{ncy }{The number of columns of the original response.}
+#'     \item{X }{ The fixed effects design matrix.}
+#'     \item{nb }{The number of columns in X.}
+#'     \item{Zr }{The residual design matrix.}
+#'     \item{Zg }{A list of the design matrices for each random term.}
+#'     \item{nG }{The number of parameters in the G structure.}
+#'     \item{listGinv }{A list of genearlized inverse matrices.}
+#'     \item{logDetG }{The log-determinants of the generalized inverse matrices
+#'       - necessary to calculate the log-likelihood.}
+#'   }
+#'
+#' @references
+#' Henderson
+#' Mrode. 2005.
+#' @author \email{matthewwolak@@gmail.com}
+#' @examples
+#' \dontrun{
+#'   library(nadiv)
+#'   Ainv <- makeAinv(Mrode3[-c(1:2), 1:3])$Ainv
+#'   mod11 <- gremlinR(WWG11 ~ sex - 1,
+#'   	random = ~ calf,
+#'   	data = Mrode11,
+#'   	ginverse = list(calf = Ainv),
+#'   	Gstart = matrix(0.2), Rstart = matrix(0.4),
+#'   	maxit = 10, v = 2, algit = "AI")
+#'
+#'   is(mod11)
+#' }
+#' @export
+#' @import Matrix
+#' @importFrom stats var
+#' @importFrom methods slot
+#' @importFrom methods as
 gremlinR <- function(formula, random = NULL, rcov = ~ units,
 		data = NULL, ginverse = NULL,
 		Gstart = NULL, Rstart = NULL,
@@ -40,6 +202,7 @@ gremlinR <- function(formula, random = NULL, rcov = ~ units,
 
   stopifnot(inherits(formula, "formula"), length(formula) == 3L)
   mc <- as.list(match.call())
+  if(v > 0) cat("          gremlin started:\t", format(Sys.time(), "%H:%M:%S"), "\n")
   m <- match(c("formula", "random", "rcov", "data", "subset", "ginverse", "na.action", "offset", "contrasts", "Xsparse"), names(mc), 0)
   mMmc <- as.call(c(quote(mkModMats), mc[m]))
   modMats <- eval(mMmc, parent.frame())
@@ -229,7 +392,7 @@ if(Mout) return(as(drop0(rBind(cBind(D, RHSperm),
       sLc <<- update(sLc, C)
       #TODO see note/idea in "../myNotesInsights/invFromChol.Rmd"
       #TODO should update the permutation each iteration????
-      #Cinv <<- chol2inv(sLc)
+      #Cinv <<- chol2inv(sLc) # chol2inv gives Cinv in same permutation as C (not permutation of sLc)
       Cinv <<- solve(C)  #<-- XXX Faster than chol2inv(sLc) atleast for warcolak
 #      M <<- as(cBind(rBind(crossprod(Pc, C) %*% Pc, RHSperm),
 #	    tRHSD), "symmetricMatrix")
@@ -472,14 +635,12 @@ if(Mout) return(as(drop0(rBind(cBind(D, RHSperm),
   vitseq <- seq(0, maxit, by = vit)
   for(i in 1:nrow(itMat)){
     if(v > 0 && i %in% vitseq){
-      cat("\t", i, "of max", maxit, "iterations\t",
+      cat("  ", i, "of max", maxit, "iterations\t",
 	format(Sys.time(), "%H:%M:%S"), "\n")
     }
     stItTime <- Sys.time()
     thetav <- sapply(theta, FUN = slot, name = "x")
     loglik <- reml(thetav, skel)
-#FIXME DELETE just to test AI gaussian Elim
-if(i == 1) Cinv1 <- crossprod(Pc, Cinv) %*% Pc
     itMat[i, -ncol(itMat)] <- c(thetav, sigma2e, tyPy, logDetC, loglik) 
     # 5c check convergence criteria
     ## Knight 2008 (ch. 6) says Searle et al. 1992 and Longford 1993 discuss diff types of converg. crit.
@@ -491,6 +652,8 @@ if(i == 1) Cinv1 <- crossprod(Pc, Cinv) %*% Pc
       # wombat 2 (also Knight 2008 (eqn. 6.1) criteria
       cc[2] <- sqrt(sum((itMat[i, 1:lthetav] - itMat[(i-1), 1:lthetav])^2) / sum(itMat[i, 1:lthetav]^2)) < cctol[2]
     }
+
+
 
 
     if(!all(cc)){
@@ -550,6 +713,26 @@ stop("Not allowing `minqa::bobyqa()` right now")
     if(v > 0 && i %in% vitseq){
       cat("\t\tlL:", format(round(loglik, 6), nsmall = 6), "\t1 iteration:",
 	round(itTime, 2), units(itTime), "\n")
+      if(v > 1){
+#        cat("\t", colnames(itMat)[-match(c("loglik", "itTime"), colnames(itMat))], "\n", sep = "  ")
+#        cat("\t", round(itMat[i, -match(c("loglik", "itTime"), colnames(itMat))], 4))
+        cat("\n")
+        print(as.table(itMat[i, -match(c("loglik", "itTime"), colnames(itMat))]), digits = 4, zero.print = ".")
+        cat("\tConvergence crit:", cc, "\n")
+      }
+      if(v > 2){#algit[i] == "AI" && 
+        sgd <- matrix(NA, nrow = lthetav, ncol = lthetav+4)  #<-- `sgd` is summary.gremlinDeriv 
+          dimnames(sgd) <- list(row.names(dLdtheta), c("gradient", "", "AI", "", "AI-inv", rep("", lthetav-1)))
+        sgd[, 1] <- dLdtheta
+        AIinv <- if(algit[i] == "EM") AI else solve(AI)
+        for(rc in 1:lthetav){
+          sgd[rc, 3:(rc+2)] <- AI[rc, 1:rc]
+          sgd[rc, (4+rc):(4+lthetav)] <- AIinv[rc, rc:lthetav]   
+        }
+        cat("\tAI alpha", NA, "\n") #TODO add alpha/step-halving value
+        print(as.table(sgd), digits = 3, na.print = " | ", zero.print = ".")
+        cat("\n")
+      }  
     }
     units(itTime) <- "secs"
     itMat[i, ncol(itMat)] <- round(itTime, 1)
@@ -569,19 +752,21 @@ stop("Not allowing `minqa::bobyqa()` right now")
 
 
 #FIXME FIXME FIXME
-#FIXME DELETE `Cinv1`: now just to test AI gaussian Elim
 #TODO Make sln variances come from another source (elminate Cinv)
  return(structure(list(call = as.call(mc),
 		modMats = modMats,
 		itMat = itMat,
-		sln = cbind(Est = c(sln), Var = diag(Cinv) %*% Pc), #diag(crossprod(Pc, Cinv) %*% Pc)
+		sln = cbind(Est = c(sln), Var = diag(Cinv)),
 		AI = AI, dLdtheta = dLdtheta,
-		Cinv = Cinv1),
+		Cinv = Cinv),
 	class = "gremlin"))
 }
-
-
-is.gremlin <- function(x) inherits(x, "gremlin")
+#############################
+# Separating and pre-allocating P and Vinv to sparse Matrix doesn't seem to make
+## much of a difference
+# Also changing ginverse elements to `dsCMatrix` doesn't speedup traces, since
+## they end up more or less as dense matrices but in dgCMatrix from the product
+#############################
 
 
 
@@ -596,6 +781,9 @@ is.gremlin <- function(x) inherits(x, "gremlin")
 
 
 ################################################################################
+#' @describeIn gremlinR Method to test if object is of class \code{gremlin}
+#' @export
+is.gremlin <- function(x) inherits(x, "gremlin")
 
 
 
@@ -603,10 +791,9 @@ is.gremlin <- function(x) inherits(x, "gremlin")
 
 
 
-#############################
- # Separating and pre-allocating P and Vinv to sparse Matrix doesn't seem to make much of a difference
-# Also changing ginverse elements to `dsCMatrix` doesn't speedup traces, since they end up more or less as dense matrices but in dgCMatrix from the product
-#############################
+
+
+
 
 
 
