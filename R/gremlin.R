@@ -54,7 +54,7 @@
 #' @param x A \code{list} of starting parameters.
 #' @return A sparse \sQuote{dsCMatrix}
 #' @author \email{matthewwolak@@gmail.com}
-#' @import methods Matrix
+#' @import Matrix
 stTrans <- function(x){
   if(is.numeric(x) && !is.matrix(x)) x <- as.matrix(x)
   if(!isSymmetric(x)) stop(cat("Element", x, "must be a symmetric matrix or a number\n")) 
@@ -189,7 +189,10 @@ vech2matlist <- function(vech, skeleton){
 #'   is(mod11)
 #' }
 #' @export
-#' @import stats utils methods Matrix 
+#' @import Matrix
+#' @importFrom stats var
+#' @importFrom methods slot
+#' @importFrom methods as
 gremlinR <- function(formula, random = NULL, rcov = ~ units,
 		data = NULL, ginverse = NULL,
 		Gstart = NULL, Rstart = NULL,
