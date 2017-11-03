@@ -239,10 +239,7 @@ if(length(sing.rm)){
         }
 
     }
-  } else{
-      Zg <- listGinv <- logDetG <- NULL
-      nG <- 0
-    }
+
 
 #FIXME better check for missing values or handling of missing values
 ## e.g., What does MCMCglmm do?
@@ -251,6 +248,13 @@ if(any(nrowZi != ny)){
   missingZi <- which(nrowZi != ny)
   stop(cat("Missing value(s) for", names(Zg)[missingZi], "\n"))
 }
+
+
+  } else{
+      Zg <- listGinv <- logDetG <- NULL
+      nG <- 0
+    }
+
 
  structure(list(y = y, ny = ny, ncy = ncy,
 	X = X, nb = ncol(X),
