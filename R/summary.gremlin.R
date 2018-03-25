@@ -70,9 +70,11 @@ summary.gremlin <- function(object, ...){
 
   formulae <- list(fxd = NULL, random = NULL) #FIXME need to combine G and R
 
-  varcompSummary <- cbind(Est = object$itMat[nit, 1:nrow(object$dLdtheta)],
-		SE = sqrt(diag(solve(object$AI))))
-  fxdSummary <- object$sln[1:object$modMats$nb, ]
+  varcompSummary <- cbind(Est = object$itMat[nit, 1:object$modMats$nG, drop = TRUE],
+		SE = NA)
+    dimnames(varcompSummary)[[1L]] <- dimnames(object$itMat[nit, 1:object$modMats$nG, drop = FALSE])[[2L]]
+    if(!is.null(object$AI)) varcompSummary$SE <- sqrt(diag(solve(object$AI)))
+  fxdSummary <- object$sln[1:object$modMats$nb, , drop = FALSE]
     fxdSummary[, 2] <- sqrt(fxdSummary[, 2])
     colnames(fxdSummary)[2L] <- "SE"
 	dimnames(fxdSummary)[[1L]] <- object$modMats$X@Dimnames[[2L]]

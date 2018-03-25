@@ -296,8 +296,10 @@ gremlinR <- function(formula, random = NULL, rcov = ~ units,
   
     ##1c Now make coefficient matrix of MME
     ##`sapply()` to invert G_i and multiply with ginverse element (e.g., I or Ginv)
-    C <- as(tWW + bdiag(c(zero,
+    if(modMats$nG > 0){
+      C <- as(tWW + bdiag(c(zero,
 	sapply(1:modMats$nG, FUN = function(u){kronecker(modMats$listGinv[[u]], solve(Ginv[[u]]))}))), "symmetricMatrix")
+    } else C <- as(tWW + diag(zero), "symmetricMatrix")
 
     ##1d Find best order of MMA/C/pivots!
     # Graser et al. 1987 (p1363) when singular C, |C| not invariant to order
@@ -355,7 +357,7 @@ if(Mout) return(as(drop0(rBind(cBind(D, RHSperm),
 #TODO put these with `mkModMats()` - need to figure out multivariate version/format
     nminffx <- modMats$ny - modMats$nb
     rfxlvls <- sapply(modMats$Zg, FUN = ncol)
-    nr <- sum(rfxlvls)
+    nr <- if(length(rfxlvls) == 0) 0 else sum(rfxlvls)
     nminfrfx <- nminffx - nr
     sln <- matrix(0, nrow = nrow(C), ncol = 1)
     r <- matrix(0, nrow = modMats$ny, ncol = 1)
@@ -386,8 +388,10 @@ if(Mout) return(as(drop0(rBind(cBind(D, RHSperm),
 
       ##1c Now make coefficient matrix of MME
       ##`sapply()` to invert G_i and multiply with ginverse element (e.g., I or Ginv)
-      C <<- as(tWW + bdiag(c(zero,
-	sapply(1:modMats$nG, FUN = function(u){kronecker(modMats$listGinv[[u]], solve(Ginv[[u]]))}))), "symmetricMatrix")
+      if(modMats$nG > 0){
+        C <<- as(tWW + bdiag(c(zero,
+	  sapply(1:modMats$nG, FUN = function(u){kronecker(modMats$listGinv[[u]], solve(Ginv[[u]]))}))), "symmetricMatrix")
+      } else C <<- as(tWW + diag(zero), "symmetricMatrix")
 
       sLc <<- update(sLc, C)
       #TODO see note/idea in "../myNotesInsights/invFromChol.Rmd"
@@ -423,7 +427,7 @@ if(Mout) return(as(drop0(rBind(cBind(D, RHSperm),
 
       # 'log(|G|)'
       #FIXME: Only works for independent random effects right now!
-      loglik <- -0.5 * (loglik + sum(sapply(seq(modMats$nG), FUN = function(x){rfxlvls[x] * log(as.vector(Ginv[[x]]*sigma2e))})) + rfxIncContrib2loglik)
+      loglik <- -0.5 * (loglik + if(modMats$nG == 0) 0 else sum(sapply(seq(modMats$nG), FUN = function(x){rfxlvls[x] * log(as.vector(Ginv[[x]]*sigma2e))})) + rfxIncContrib2loglik)
       # Below uses original starting value for residual variances - for agreement with WOMBAT
       #loglik <- -0.5 * (loglik + sum(sapply(seq(nG), FUN = function(x){rfxlvls[x] * log(as.vector(start$G[[x]]))})) + rfxIncContrib2loglik)
 
