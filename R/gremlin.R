@@ -749,8 +749,8 @@ stop("Not allowing `minqa::bobyqa()` right now")
   #################################### 
   itMat <- itMat[1:i, , drop = FALSE]
     rownames(itMat) <- paste(seq(i), algit[1:i], sep = "-")
-  if(all(is.na(AI))) AI <- NULL
-  if(all(is.na(dLdtheta))) dLdtheta <- NULL
+#FIXME delete step: might be useful to know dimensions  if(all(is.na(AI))) AI <- NULL
+#FIXME delete: useful to know dimensions, e.g., `summary.gremlin()`  if(all(is.na(dLdtheta))) dLdtheta <- NULL
 
 
 

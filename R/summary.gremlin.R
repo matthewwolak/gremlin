@@ -67,13 +67,13 @@ logLik.gremlin <- function(object, ...){
 #' @method summary gremlin
 summary.gremlin <- function(object, ...){
   nit <- nrow(object$itMat)
-
+  nvc <- nrow(object$dLdtheta)     # No. of (co)variance components
   formulae <- list(fxd = NULL, random = NULL) #FIXME need to combine G and R
 
-  varcompSummary <- cbind(Est = object$itMat[nit, 1:object$modMats$nG, drop = TRUE],
+  varcompSummary <- cbind(Est = object$itMat[nit, 1:nvc, drop = TRUE],
 		SE = NA)
-    dimnames(varcompSummary)[[1L]] <- dimnames(object$itMat[nit, 1:object$modMats$nG, drop = FALSE])[[2L]]
-    if(!is.null(object$AI)) varcompSummary$SE <- sqrt(diag(solve(object$AI)))
+    dimnames(varcompSummary)[[1L]] <- dimnames(object$itMat[nit, 1:nvc, drop = FALSE])[[2L]]
+    if(!is.null(object$AI)) varcompSummary[, "SE"] <- sqrt(diag(solve(object$AI)))
   fxdSummary <- object$sln[1:object$modMats$nb, , drop = FALSE]
     fxdSummary[, 2] <- sqrt(fxdSummary[, 2])
     colnames(fxdSummary)[2L] <- "SE"
