@@ -13,6 +13,10 @@
 #' matrix techniques can potentially make model fitting very efficient.
 #'
 #' @aliases gremlin-package
+#' @import Matrix
+#' @importFrom stats var
+#' @importFrom methods slot
+#' @importFrom methods as
 #' @references
 #'   Mrode. 2005.
 #'   Meyer & Smith. 1996.
@@ -54,7 +58,6 @@
 #' @param x A \code{list} of starting parameters.
 #' @return A sparse \sQuote{dsCMatrix}
 #' @author \email{matthewwolak@@gmail.com}
-#' @import Matrix
 stTrans <- function(x){
   if(is.numeric(x) && !is.matrix(x)) x <- as.matrix(x)
   if(!isSymmetric(x)) stop(cat("Element", x, "must be a symmetric matrix or a number\n")) 
@@ -77,7 +80,6 @@ stTrans <- function(x){
 #' @param skeleton An example structure to map \code{vech} onto.
 #' @return A list of matrices of the same structure as \code{skeleton}.
 #' @author \email{matthewwolak@@gmail.com}
-#' @import Matrix
 vech2matlist <- function(vech, skeleton){
   newmatlist <- vector("list", length = length(skeleton))
   si <- 1
@@ -189,10 +191,6 @@ vech2matlist <- function(vech, skeleton){
 #'   is(mod11)
 #' }
 #' @export
-#' @import Matrix
-#' @importFrom stats var
-#' @importFrom methods slot
-#' @importFrom methods as
 gremlinR <- function(formula, random = NULL, rcov = ~ units,
 		data = NULL, ginverse = NULL,
 		Gstart = NULL, Rstart = NULL,
