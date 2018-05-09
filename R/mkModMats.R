@@ -151,6 +151,9 @@ if(length(sing.rm)){
   # Check the ginverse
   ## taken from MCMCglmm.R
     if(!is.null(ginverse)){
+      if(!is.list(ginverse)){
+        stop("ginverse must be an object of class 'list'")
+      }
       for(i in 1:length(ginverse)){           
         if(is.null(rownames(ginverse[[i]]))){
           stop(paste(names(ginverse)[i], "ginverse must have non-null rownames"))
