@@ -13,6 +13,10 @@
 #' matrix techniques can potentially make model fitting very efficient.
 #'
 #' @aliases gremlin-package
+#' @import Matrix
+#' @importFrom stats var
+#' @importFrom methods slot
+#' @importFrom methods as
 #' @references
 #'   Mrode. 2005.
 #'   Meyer & Smith. 1996.
@@ -54,7 +58,6 @@
 #' @param x A \code{list} of starting parameters.
 #' @return A sparse \sQuote{dsCMatrix}
 #' @author \email{matthewwolak@@gmail.com}
-#' @import Matrix
 stTrans <- function(x){
   if(is.numeric(x) && !is.matrix(x)) x <- as.matrix(x)
   if(!isSymmetric(x)) stop(cat("Element", x, "must be a symmetric matrix or a number\n")) 
@@ -77,7 +80,6 @@ stTrans <- function(x){
 #' @param skeleton An example structure to map \code{vech} onto.
 #' @return A list of matrices of the same structure as \code{skeleton}.
 #' @author \email{matthewwolak@@gmail.com}
-#' @import Matrix
 vech2matlist <- function(vech, skeleton){
   newmatlist <- vector("list", length = length(skeleton))
   si <- 1
@@ -189,10 +191,6 @@ vech2matlist <- function(vech, skeleton){
 #'   is(mod11)
 #' }
 #' @export
-#' @import Matrix
-#' @importFrom stats var
-#' @importFrom methods slot
-#' @importFrom methods as
 gremlinR <- function(formula, random = NULL, rcov = ~ units,
 		data = NULL, ginverse = NULL,
 		Gstart = NULL, Rstart = NULL,
@@ -214,7 +212,10 @@ gremlinR <- function(formula, random = NULL, rcov = ~ units,
   if(is.null(mc$Rstart)) Rstart <- mc$Rstart <- matrix(0.5*var(modMats$y))
   if(is.null(mc$maxit) && is.null(maxit)) maxit <- 20 # FIXME will this ever happen
   if(is.null(mc$vit) && is.null(vit)) vit <- 20 #FIXME will this ever happen
-  if(is.null(mc$cctol)) cctol <- c(10^-5, 10^-8, NULL, NULL) else cctol <- eval(mc$cctol)
+  # Use WOMBAT's default values for convergence criteria
+  if(is.null(mc$cctol)){
+    cctol <- c(5*10^-4, 10^-8, 10^-3, NULL) # [1] for AI, alternatively 10^-5 (for EM)
+  } else cctol <- eval(mc$cctol)
 #TODO check on validity of inputted algorithms (format and matching to actual ones)
   if(is.null(mc$algit)) algit <- c(rep("EM", 2), rep("AI", max(0, maxit-2))) else algit <- eval(mc$algit)
   if(length(algit) == 1 && algit %in% c("EM", "AI", "bobyqa")) algit <- rep(algit, maxit)
@@ -649,18 +650,26 @@ if(Mout) return(as(drop0(rBind(cBind(D, RHSperm),
     # 5c check convergence criteria
     ## Knight 2008 (ch. 6) says Searle et al. 1992 and Longford 1993 discuss diff types of converg. crit.
     ## See Appendix 2 of WOMBAT help manual for 4 convergence criteria used
-    cc <- FALSE
+    cc <- rep(NA, 4)
     if(i > 1){
       # wombat 1
       cc[1] <- diff(itMat[c(i-1, i), "loglik"]) < cctol[1]
-      # wombat 2 (also Knight 2008 (eqn. 6.1) criteria
+      # wombat 2 (eqn. A.1) (also Knight 2008 (eqn. 6.1) criteria
       cc[2] <- sqrt(sum((itMat[i, 1:lthetav] - itMat[(i-1), 1:lthetav])^2) / sum(itMat[i, 1:lthetav]^2)) < cctol[2]
+      if(algit[i] == "AI"){
+        # wombat 3 (eqn. A.2): Norm of the gradient vector
+        # AI only
+        cc[3] <- sqrt(sum(dLdtheta * dLdtheta)) < cctol[3]
+        # wombat 4 (eqn A.3): Newton decrement (see Boyd & Vandenberghe 2004 cited in wombat)
+        # AI only
+#        cc[4] <- -1 * c(crossprod(dLdtheta, H) %*% dLdtheta)
+      }
     }
 
 
 
 
-    if(!all(cc)){
+    if(!all(cc, na.rm = TRUE)){
       if(algit[i] == "EM"){
         if(v > 1 && i %in% vitseq) cat("\t EM iteration\n")
         thetaout <- em(theta)
@@ -749,14 +758,15 @@ stop("Not allowing `minqa::bobyqa()` right now")
   #################################### 
   itMat <- itMat[1:i, , drop = FALSE]
     rownames(itMat) <- paste(seq(i), algit[1:i], sep = "-")
-  if(all(is.na(AI))) AI <- NULL
-  if(all(is.na(dLdtheta))) dLdtheta <- NULL
+  dimnames(AI) <- list(rownames(dLdtheta), rownames(dLdtheta))
+#FIXME delete step: might be useful to know dimensions  if(all(is.na(AI))) AI <- NULL
+#FIXME delete: useful to know dimensions, e.g., `summary.gremlin()`  if(all(is.na(dLdtheta))) dLdtheta <- NULL
 
 
 
 
 #FIXME FIXME FIXME
-#TODO Make sln variances come from another source (elminate Cinv)
+#TODO Make sln variances come from another source (eliminate Cinv)
  return(structure(list(call = as.call(mc),
 		modMats = modMats,
 		itMat = itMat,

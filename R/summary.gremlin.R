@@ -67,13 +67,18 @@ logLik.gremlin <- function(object, ...){
 #' @method summary gremlin
 summary.gremlin <- function(object, ...){
   nit <- nrow(object$itMat)
-
+  nvc <- nrow(object$dLdtheta)     # No. of (co)variance components
   formulae <- list(fxd = NULL, random = NULL) #FIXME need to combine G and R
 
-  varcompSummary <- cbind(Est = object$itMat[nit, 1:object$modMats$nG, drop = TRUE],
+  varcompSummary <- cbind(Est = object$itMat[nit, 1:nvc, drop = TRUE],
 		SE = NA)
-    dimnames(varcompSummary)[[1L]] <- dimnames(object$itMat[nit, 1:object$modMats$nG, drop = FALSE])[[2L]]
-    if(!is.null(object$AI)) varcompSummary$SE <- sqrt(diag(solve(object$AI)))
+    dimnames(varcompSummary)[[1L]] <- dimnames(object$itMat[nit, 1:nvc, drop = FALSE])[[2L]]
+    if(!is.null(object$AI)){
+      invAI <- solve(object$AI)
+      varcompSummary[, "SE"] <- sqrt(diag(invAI))
+      varcompSampCor <- cov2cor(invAI)
+    } else varcompSampCor <- AI
+
   fxdSummary <- object$sln[1:object$modMats$nb, , drop = FALSE]
     fxdSummary[, 2] <- sqrt(fxdSummary[, 2])
     colnames(fxdSummary)[2L] <- "SE"
@@ -82,6 +87,7 @@ summary.gremlin <- function(object, ...){
  return(structure(list(logLik = logLik(object),
 		formulae = formulae,
 		varcompSummary = varcompSummary,
+		varcompSampCor = varcompSampCor,
 		fxdSummary = fxdSummary),
 	class = c("summary.gremlin", "list")))
 } 
@@ -107,11 +113,14 @@ print.summary.gremlin <- function(x,
 ## also print if parameters changed by >XX%
   cat("\n log-likelihood:", round(x$logLik, digits))
   cat("\n Variance components:", paste(as.expression(x$formulae$random)), "\n\n")
-  print(as.data.frame(x$varcompSummary), digits = digits, ...)
+    print(as.data.frame(x$varcompSummary), digits = digits, ...)
+
+  cat("\n Variance component Sampling Correlations:\n\n")
+    print(as.data.frame(x$varcompSampCor), digits = digits, ...)
 
   cat("\n Fixed effects:", paste(as.expression(x$formulae$fxd)), "\n\n")
-  #See `printCoefmat()`
-  print(as.data.frame(x$fxdSummary), digits = digits, ...)
+    #See `printCoefmat()`
+    print(as.data.frame(x$fxdSummary), digits = digits, ...)
 
 }
 
