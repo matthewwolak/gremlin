@@ -115,7 +115,7 @@ print.summary.gremlin <- function(x,
   cat("\n Variance components:", paste(as.expression(x$formulae$random)), "\n\n")
     print(as.data.frame(x$varcompSummary), digits = digits, ...)
 
-  cat("\n Variance component Sampling Correlations:"\n\n")
+  cat("\n Variance component Sampling Correlations:\n\n")
     print(as.data.frame(x$varcompSampCorr), digits = digits, ...)
 
   cat("\n Fixed effects:", paste(as.expression(x$formulae$fxd)), "\n\n")
