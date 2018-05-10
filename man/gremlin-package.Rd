@@ -24,7 +24,7 @@ matrix techniques can potentially make model fitting very efficient.
 \dontrun{
   library(nadiv)
   Ainv <- makeAinv(Mrode3[-c(1:2), 1:3])$Ainv
-  mod11 <- gremlinR(WWG11 ~ sex - 1,
+  mod11 <- gremlin(WWG11 ~ sex - 1,
 random = ~ calf,
 data = Mrode11,
 ginverse = list(calf = Ainv),

@@ -811,7 +811,6 @@ stop("Not allowing `minqa::bobyqa()` right now")
 
 
 ################################################################################
-#' @aliases gremlinR gremlin
 #' @rdname gremlin
 #' @export
 gremlinR <- function(formula, random = NULL, rcov = ~ units,
@@ -1412,7 +1411,8 @@ stop("Not allowing `minqa::bobyqa()` right now")
 
 
 ################################################################################
-#' @describeIn gremlinR Method to test if object is of class \code{gremlin}
+#' @method is gremlin
+#' @rdname gremlin
 #' @export
 is.gremlin <- function(x) inherits(x, "gremlin")
 
