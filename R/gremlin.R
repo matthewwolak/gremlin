@@ -106,7 +106,7 @@ vech2matlist <- function(vech, skeleton){
 #' Create and fit linear mixed-effect model (Gaussian data) or checking if an
 #' object is a fitted model.
 #'
-#' @aliases gremlin gremlinR is.gremlin mkModMats
+#' @aliases gremlin
 #' @param x An object of \code{class} \sQuote{gremlin}.
 #' @param formula A \code{formula} for the response variable and fixed effects.
 #' @param random A \code{formula} for the random effects.
@@ -794,6 +794,19 @@ stop("Not allowing `minqa::bobyqa()` right now")
 # Also changing ginverse elements to `dsCMatrix` doesn't speedup traces, since
 ## they end up more or less as dense matrices but in dgCMatrix from the product
 #############################
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
