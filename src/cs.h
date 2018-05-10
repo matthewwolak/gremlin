@@ -23,6 +23,11 @@ extern "C" {
 #define CS_DATE "Sept 12, 2017"	    /* CSparse release date */
 #define CS_COPYRIGHT "Copyright (c) Timothy A. Davis, 2006"
 
+/* Class used in CSparse */
+#define csi int
+#ifndef csi
+#define csi int
+#endif
 
 /* --- primary CSparse routines and data structures ------------------------- */
 typedef struct cs_sparse    /* matrix in compressed-column or triplet form */
