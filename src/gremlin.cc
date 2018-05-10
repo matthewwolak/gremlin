@@ -2,4 +2,9 @@
 
 extern "C"{  
 void gremlin(
-)}
+	double *y
+){
+
+}
+}
+

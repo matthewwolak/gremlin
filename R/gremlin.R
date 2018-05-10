@@ -231,6 +231,7 @@ gremlin <- function(formula, random = NULL, rcov = ~ units,
   start <- list(G = Gstart, R = Rstart)
 #TODO change `R.` to `R1` that way will match G1, G2, etc. for >1 G sections
 ##XXX then change how find thetaGorR by grep or something like it versus strsplit on `.`
+browser()
   theta <- c(G = sapply(start$G, FUN = stTrans), R. = stTrans(start$R))
   thetaGorR <- sapply(strsplit(names(theta), ".", fixed = TRUE), FUN = "[[", i = 1)
 
