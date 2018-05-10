@@ -1,4 +1,4 @@
-#include "MCMCglmm.h"
+#include "gremlin.h"
 
 cs *cs_schur(const cs *A,  int split, const cs *beta){
 

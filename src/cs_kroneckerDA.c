@@ -1,4 +1,4 @@
-#include "MCMCglmm.h"
+#include "gremlin.h"
 
 cs *cs_kroneckerDA(double *D, int n, const cs *A){
 

@@ -1,4 +1,4 @@
-#include "MCMCglmm.h"
+#include "gremlin.h"
 
 cs *cs_kroneckerSI(const cs *A, int nI){
 

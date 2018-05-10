@@ -1,4 +1,4 @@
-#include "MCMCglmm.h"
+#include "gremlin.h"
 
 cs *cs_directsum(cs **KGinv, int nG, int nGR){
 

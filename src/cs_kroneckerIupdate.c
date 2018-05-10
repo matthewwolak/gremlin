@@ -1,4 +1,4 @@
-#include "MCMCglmm.h"
+#include "gremlin.h"
 
 void cs_kroneckerIupdate(const cs *A, int nI, const cs *C){
 

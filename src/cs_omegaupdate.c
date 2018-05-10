@@ -1,4 +1,4 @@
-#include "MCMCglmm.h"
+#include "gremlin.h"
 
 void cs_omegaupdate(cs **KGinv, int nG, cs *pvB, const cs *C){
 
