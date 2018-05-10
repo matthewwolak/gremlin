@@ -4,9 +4,6 @@
 \alias{gremlin}
 \alias{gremlinR}
 \alias{is.gremlin}
-\alias{mkModMats}
-\alias{gremlinR}
-\alias{is.gremlin}
 \title{Mixed-effect modeling functions.}
 \usage{
 gremlin(formula, random = NULL, rcov = ~units, data = NULL,
