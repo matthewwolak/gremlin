@@ -47,7 +47,7 @@ cs *cs_omega(cs **KGinv, int nG, cs *pvB);
 /* returns the direct sum of pvB KGinv[1] KGinv[2] ... KGinv[nG] */
 void cs_omegaupdate(cs **KGinv, int nG, cs *pvB, const cs *C);
 /* overwrites C with the direct sum of pvB KGinv[1] KGinv[2] ... KGinv[nG] */
-cs *cs_initialize(double *x, int *p, int *i, int n, int m, int nzmax);
+/* FIXME not used cs *cs_initialize(double *x, int *p, int *i, int n, int m, int nzmax); */
 /* allocate and fill a cs sparse matrix */
 cs *cs_schur(const cs *A,  int split, const cs *beta);
 /* forms the Schur complement for the dense mxm matrix: A_22-A_21%*%solve(A_11)%*%A_12 where submatrices are defined by split. Also overwrites beta_rr with A_21%*%solve(A_11) */
