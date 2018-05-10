@@ -42,7 +42,7 @@ Contents:
 --------------------------------------------------------------------------------
 
 README.txt      this file
-Source/         primary CSparse source files (C only, no MATLAB)
+../cs.c         primary CSparse source files (C only, no MATLAB) (moved from ./Source)
 
 --------------------------------------------------------------------------------
 ./Doc:          license and change log
@@ -52,7 +52,7 @@ ChangeLog       changes in CSparse since first release
 License.txt     license
 
 --------------------------------------------------------------------------------
-./Source:       Primary source code for CSparse
+../cs.c:       Primary source code for CSparse (moved from ./Source)
 --------------------------------------------------------------------------------
 
 cs_add.c        add sparse matrices
@@ -107,8 +107,4 @@ cs_updown.c     sparse rank-1 Cholesky update/downate
 cs_usolve.c     x=U\b
 cs_util.c       various utilities (allocate/free matrices, workspace, etc)
 cs_utsolve.c    x=U'\b
-Makefile        Makefile for CSparse
-README.txt      README file for CSparse
-
-
 
