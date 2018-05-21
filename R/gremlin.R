@@ -664,7 +664,7 @@ if(Mout) return(as(drop0(rBind(cBind(D, RHSperm),
         # AI only
 #        cc[4] <- -1 * c(crossprod(dLdtheta, H) %*% dLdtheta)
       }
-    }
+    } else cc[1] <- FALSE  #<-- ensures one of the EM/AI/etc algorithms used if i==1
 
 
 
