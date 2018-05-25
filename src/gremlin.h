@@ -8,9 +8,15 @@ extern "C" {
 #endif
 
 
-/*************************************************************/
-/* Below are functions from MCMCglmm-2.25 by Jarrod Hadfield */
-/*************************************************************/
+/* Expectation Algorithm: replaces elements in theta. Returns 1=success else 0 */
+csi cs_em(const cs *BLUXs, double *theta, csi nG, csi *rfxlvls, csi nb);
+
+
+
+
+/*******************************************************************/
+/* Below are functions from MCMCglmm-2.25 by Jarrod Hadfield       */
+/*******************************************************************/
 cs *cs_cbind(const cs *A, const cs *B);
 /* Returns the two matrices A and B column bound*/
 void cs_cov2cor(const cs *A);
@@ -31,18 +37,6 @@ cs *cs_kroneckerI(const cs *A, int nI);
 /* forms the kronecker product of the dense matrix A and an identity matrix with dimension nI*/
 void cs_kroneckerIupdate(const cs *A, int nI, const cs*C);
 /* overwrites C with the kronecker product of the dense matrix A and an identity matrix with dimension nI*/
-cs *cs_kroneckerSI(const cs *A, int nI);
-/* forms the kronecker product of the sparse matrix A and an identity matrix with dimension nI*/
-void cs_kroneckerSIupdate(const cs *A, int nI, const cs*C);
-/* overwrites C with the kronecker product of the sparse matrix A and an identity matrix with dimension nI*/
-cs *cs_kroneckerD(const cs *A, int nI, double *diag, int reciprocal);
-/* forms the kronecker product of the dense matrix A and a diagonal matrix with dimension nI and diag along the diagonal*/
-void cs_kroneckerDupdate(const cs *A, int nI, double *diag, const cs *C, int reciprocal);
-/* overwrites C with the kronecker product of the dense matrix A and a diagonal matrix with dimension nI and diag along the diagonal*/
-cs *cs_kroneckerDI(double *D, int n, int nI);
-/* forms the kronecker product of a diagonal matrix (with diagonal elements D) and a diagonal matrix of dimension nI*/
-cs *cs_kroneckerDA(double *D, int n, const cs *A);
-/* forms the kronecker product of a diagonal matrix (with diagonal elements D) and a sparse matrix A*/
 cs *cs_omega(cs **KGinv, int nG, cs *pvB);
 /* returns the direct sum of pvB KGinv[1] KGinv[2] ... KGinv[nG] */
 void cs_omegaupdate(cs **KGinv, int nG, cs *pvB, const cs *C);

@@ -13,6 +13,7 @@
 #' matrix techniques can potentially make model fitting very efficient.
 #'
 #' @aliases gremlin-package
+#' @useDynLib gremlin, .registration = TRUE
 #' @import Matrix
 #' @importFrom stats var
 #' @importFrom methods slot
@@ -225,7 +226,7 @@ gremlin <- function(formula, random = NULL, rcov = ~ units,
   } else cctol <- eval(mc$cctol)
 #TODO check on validity of inputted algorithms (format and matching to actual ones)
   if(is.null(mc$algit)) algit <- c(rep("EM", 2), rep("AI", max(0, maxit-2))) else algit <- eval(mc$algit)
-  if(length(algit) == 1 && algit %in% c("EM", "AI", "bobyqa")) algit <- rep(algit, maxit)
+  if(length(algit) == 1 && algit %in% c("EM", "AI")) algit <- rep(algit, maxit)
   if(is.null(mc$ezero)) ezero <- 1e-8 else ezero <- eval(mc$ezero)
 
   start <- list(G = Gstart, R = Rstart)
@@ -233,6 +234,7 @@ gremlin <- function(formula, random = NULL, rcov = ~ units,
 ##XXX then change how find thetaGorR by grep or something like it versus strsplit on `.`
   theta <- c(G = sapply(start$G, FUN = stTrans), R. = stTrans(start$R))
   thetaGorR <- sapply(strsplit(names(theta), ".", fixed = TRUE), FUN = "[[", i = 1)
+  gtheta <- lapply(theta, FUN = as, "dgCMatrix") #FIXME do this directly to begin with or just use dense matrices (class="matrix") instead
 
 #XXX Do above TODO sooner rather than later!
 
@@ -252,18 +254,20 @@ gremlin <- function(formula, random = NULL, rcov = ~ units,
   thetav <- sapply(theta, FUN = slot, name = "x")
   skel <- lapply(seq(length(theta)), FUN = function(i){mapply(slot, theta[i], c("i", "p", "Dim"))})
     names(skel) <- names(theta)
-  lthetav <- length(thetav)
-#FIXME figure out environments so all in the `with(modMats...)` environment is accessible outside of it
-## How to place these objects?
-#  with(modMats, {
+  p <- length(thetav)
 
 
 
 #FIXME make below uni=TRUE if R=I sigma2e
 #TODO put `uni` in `mkModMats()`
     if(modMats$ncy == 1) uni <- TRUE else stop("gremlin isn't old enough to play with multivariate models")
+#TODO once multivariate allowed: change cpp code/name from ugremlin
 #TODO is `start` even necessary any more? Can I just keep `Gstart` and `Rstart`
 
+
+
+
+#TODO Change `mkModMats()` to not even construct diagonal ginverse (see note elsewhwere)
 #FIXME: Add G to ginverse elements from `mkmod()` in c++ 
 ## to take advantage of cs_kroneckerAupdate and cs_kroneckerIupdate
 #FIXME: change G to cholesky of G with log(diagonals)
@@ -272,14 +276,6 @@ gremlin <- function(formula, random = NULL, rcov = ~ units,
 #### is it easier to do direct product of cholesky's than direct product then cholesky?
 #### If the latter then save the symbolic factorization and just do updates?
 
-
-
-
-
-
-    # Rand Fx incidence matrix part of 'log(|G|)'
-    #FIXME: Only works for independent random effects right now!
-    rfxIncContrib2loglik <- sum(unlist(modMats$logDetG))
 
     # 1 Create mixed model array (M) and coefficient matrix of MME (C)
     # quadratic at bottom-right (Meyer & Smith 1996, eqn 6)
@@ -290,23 +286,39 @@ gremlin <- function(formula, random = NULL, rcov = ~ units,
         W <- cBind(W, modMats$Zg[[g]])
       }
     }
+    # Rand Fx incidence matrix part of 'log(|G|)'
+    #FIXME: Only works for independent random effects right now!
+    rfxIncContrib2loglik <- sum(unlist(modMats$logDetG))
+    Bp <- as(diag(x = 0, nrow = modMats$nb, ncol = modMats$nb), "dgCMatrix") #<-- used every iteration
+      #TODO: `Bp` replaces `zero` in earlier version
+      ## Can allow for prior on fixed effects; need Bpinv
+      ## (see Schaeffer 1991 summary of Henderson's result)
+    Bpinv <- if(all(Bp@x == 0)) Bp + diag(0, nrow(Bp)) else solve(Bp)
+
+    # Find Non-diagonal ginverses
+    ndGinv <- sapply(seq(modMats$nG),
+	FUN = function(g){class(modMats$listGinv[[g]]) != "ddiMatrix"})  #0=I; 1=A 
+    dimsZg <- sapply(seq(modMats$nG),
+	FUN = function(g){slot(modMats$Zg[[g]], "Dim")})
+    D <- crossprod(modMats$y) # <-- Same every iteration
+      #TODO: what to do if y is multivariate (still just 1 column, so D just 1 number?
+    sln <- rep(0, modMats$nb + sum(dimsZg[2, ]))
+    r <- matrix(0, nrow = modMats$ny, ncol = 1)
+#TODO CLEANUP terminology: `Ginv` is abbreviation for ginverse matrices (e.g., inverse of additive genetic relatedness matrix) but also the variable which is the inverse of the covariance matrix G!
+##FIXME: change generalized inverses (`Ginv`) to `geninv`
+#
+#
+#
+
+
+
+#################*******    XXX   DELETE ME WHEN DONE XXX  ******###############
     tWW <- crossprod(W)  #TODO Add statement to include `Rinv`
-
-browser()
-#    Cout <- .C("gremlin", PACKAGE = "gremlin",
-#		as.double(
-
-
     zero <- Diagonal(n = modMats$nb, x = 0)  #<-- used every iteration
-    #############################################################
-    # REML doesn't change with any of above
-    #############################################################
-
-
     # transform starting parameters to 'nu' scale
     ## cholesky of covariance matrices, then take log of transformed diagonals
     cRinv <- solve(chol(theta[[thetaR]]))
-    Ginv <- lapply(thetaG, FUN = function(x){as(crossprod(cRinv, theta[[x]]) %*% cRinv, "symmetricMatrix")}) # Meyer 1991, p.77
+    Ginv <- lapply(thetaG, FUN = function(x){as(crossprod(cRinv, theta[[x]]) %*% cRinv, "symmetricMatrix")}) # Meyer 1991, p.77 (<-- ?p70/eqn4?)
   
     ##1c Now make coefficient matrix of MME
     ##`sapply()` to invert G_i and multiply with ginverse element (e.g., I or Ginv)
@@ -315,32 +327,106 @@ browser()
 	sapply(1:modMats$nG, FUN = function(u){kronecker(modMats$listGinv[[u]], solve(Ginv[[u]]))}))), "symmetricMatrix")
     } else C <- as(tWW + diag(zero), "symmetricMatrix")
 
-    ##1d Find best order of MMA/C/pivots!
-    # Graser et al. 1987 (p1363) when singular C, |C| not invariant to order
-    ##of C, therefore same order (of pivots) must be used in each loglik iteration
-    ## Hadfield (2010, MCMCglmm paper App B): details on chol(), ordering, and updating
-    # supernodal decomposition FALSE
-    ## ?Cholesky documentation demos simplicial smaller sized object/more sparse
-    ### However, tested `warcolak` trait1 with VA and VD univariate model
-    #### `super = FALSE` faster and smaller than when `super = TRUE`
-#if(any(eigen(C)$values < 0)) cat(which(eigen(C)$values < 0), "\n") #FIXME
     sLc <- Cholesky(C, perm = TRUE, LDL = FALSE, super = FALSE)
     Pc <- as(sLc, "pMatrix")
-    # TODO implement options to do different methods to obtain Cinv
-    ## Also, investigate/test fastest method to obtain Cinv from `sLc`
-    ###XXX see note/idea in "../myNotesInsights/invFromChol.Rmd"
-    Cinv <- NULL#chol2inv(sLc)
     # original order obtained by: t(Pc) %*% Lc %*% Pc or `crossprod(Pc, Lc) %*% Pc`
-    D <- crossprod(modMats$y) # <-- Same every iteration
     RHSperm <- Matrix(crossprod(Pc, crossprod(W, modMats$y)), nrow = modMats$ncy, sparse = TRUE)  # <-- Same every iteration
     tRHSD <- rBind(t(RHSperm), D)
+
+#TODO put these with `mkModMats()` - need to figure out multivariate version/format
+    # 5b log(|R|) and log(|G|) <-- Meyer 1989 (uni) & 1991 (multivar)
+    # Only have to do these once per model
+    nminffx <- modMats$ny - modMats$nb
+    rfxlvls <- sapply(modMats$Zg, FUN = ncol)
+    nr <- if(length(rfxlvls) == 0) 0 else sum(rfxlvls)
+    nminfrfx <- nminffx - nr
+
+    AI <- matrix(NA, nrow = p, ncol = p)
+    dLdtheta <- matrix(NA, nrow = p, ncol = 1, dimnames = list(names(thetav), NULL))
+    if("AI" %in% algit) PorVinv <- matrix(0, nrow = modMats$ny, ncol = modMats$ny)
+    Cinv <- NULL
+    tyPy <- numeric(1)
+    logDetC <- numeric(1)
+    sigma2e <- numeric(1)
+
+
+
+  itMat <- matrix(NA, nrow = maxit, ncol = p+5) 
+    colnames(itMat) <- c(names(thetav), "sigma2e", "tyPy", "logDetC", "loglik", "itTime")
+  vitseq <- seq(0, maxit, by = vit)
+
+
+###############*******    XXX   	END DELETE 	 XXX  ******############
+    Cout <- .C("ugremlin", PACKAGE = "gremlin",
+		as.double(modMats$y),
+		as.integer(modMats$ny),
+		as.double(D),				# D=crossprod(y)<--corner of M
+		as.integer(ndGinv),			# non-diagonal ginverses
+#		as.integer(length(ndGinv)),		# No. non-diagonal Ginv
+		as.integer(c(dimsZg)),
+		as.integer(with(modMats, c(X@Dim,				#X
+			rowSums(dimsZg),					#Z
+			W@Dim,							#W
+			unlist(lapply(listGinv, FUN = function(g){g@Dim[[1L]]}))))),#Ginvs
+		as.integer(with(modMats, c(length(X@x),
+			length(W@x),
+			sapply(seq(nG), FUN = function(g){length(listGinv[[g]]@x)})))),
+#TODO DO I need to send X???? Delete if not and fix all indexing and variable names in cpp
+		as.integer(modMats$X@i),				     #X
+		as.integer(modMats$X@p),
+		as.double(modMats$X@x),
+		as.integer(W@i), 					     #W
+		as.integer(W@p),
+		as.double(W@x),
+		as.integer(sapply(seq(modMats$nG)[ndGinv], FUN = function(g){modMats$listGinv[[g]]@i})), #Ginv
+		as.integer(sapply(seq(modMats$nG)[ndGinv], FUN = function(g){modMats$listGinv[[g]]@p})),
+		as.double(sapply(seq(modMats$nG)[ndGinv], FUN = function(g){modMats$listGinv[[g]]@x})),
+		as.double(rfxIncContrib2loglik),		# Random Fx contribution to log-Likelihood
+		as.integer(p),					#p=No. theta params
+		as.integer(c(length(thetaG), length(thetaR))),	#No. G and R thetas
+		as.integer(sapply(seq(length(gtheta)), FUN = function(g){slot(gtheta[[g]], "Dim")[[1L]]})),							#dim GRs
+		as.integer(sapply(seq(length(gtheta)), FUN = function(g){slot(gtheta[[g]], "i")})),							#i GRs
+		as.integer(sapply(seq(length(gtheta)), FUN = function(g){slot(gtheta[[g]], "p")})),							#p GRs
+		as.integer(sapply(seq(length(gtheta)), FUN = function(g){length(slot(gtheta[[g]], "x"))})),							#no. non-zero GRs
+		as.double(thetav),				#theta vector
+		as.integer(length(Bpinv@x)),			#Bpinv (fixed fx prior inverse)
+		as.integer(Bpinv@i),
+		as.integer(Bpinv@p),
+		as.double(Bpinv@x),
+		as.double(rep(0, p)),				#empty dLdtheta
+		as.double(rep(0, (p*(p+1))/2)),			#empty triangle of information matrix
+		as.double(sln), 				#empty sln
+		as.double(c(r)),				#empty resdiuals
+		as.double(rep(0, maxit*(p+5))),			#itMat
+		as.integer(factor(algit[1:maxit], levels = c("EM", "AI"), ordered = TRUE))-1, #algorithm for each iteration
+		as.integer(maxit),				#max it./n algit
+		as.double(cctol),				#convergence tol.
+		as.double(ezero),				#effective 0
+#uni?
+		as.integer(v),					#verbosity
+		as.integer(vit))				#when to output status
+
+
+
+
+
+
+
+
+#With permutation of C
+## Top-left for quadratic
+#M <- as(drop0(rbind(cbind(D, RHSperm),
+#	cbind(t(RHSperm), crossprod(Pc, C) %*% Pc))), "symmetricMatrix")
+## Bottom-right for quadratic
+M <- as(cbind(rbind(crossprod(Pc, C) %*% Pc, RHSperm),
+	    tRHSD), "symmetricMatrix")
+    # TODO implement options to do different methods to obtain Cinv
+    ## E.g., (?Meyer) only need diagonals
+    ## Also, investigate/test fastest method to obtain Cinv from `sLc`
+    ###XXX see note/idea in "../myNotesInsights/invFromChol.Rmd"
 #Without permutation of C
 #if(Mout) return(as(drop0(rBind(cBind(crossprod(modMats$y), crossprod(modMats$y, W)),
 #	cBind(crossprod(W, modMats$y), C))), "symmetricMatrix"))
-#With permutation of C
-if(Mout) return(as(drop0(rBind(cBind(D, RHSperm),
-	cBind(t(RHSperm), crossprod(Pc, C) %*% Pc))), "symmetricMatrix"))
-
 # https://software.intel.com/en-us/node/531896
     ### M = [C   t(RHSperm)]   = Lm t(Lm) = [Lc                 0  ]   [t(Lc)   Lc^{-1}t(RHSperm)] 
     #       [RHSperm    D  ]                [RHSpermt(Lc^{-1})  Ls ]   [ 0      t(Ls)            ]
@@ -360,30 +446,28 @@ if(Mout) return(as(drop0(rBind(cBind(D, RHSperm),
 #    M <- as(cBind(rBind(crossprod(Pc, C) %*% Pc, RHSperm),
 #	tRHSD), "symmetricMatrix")
     # `perm=FALSE` else block diagonal no longer `bdiag(C, D)`
-    sLm <- Cholesky(as(cBind(rBind(crossprod(Pc, C) %*% Pc, RHSperm),
-	    tRHSD), "symmetricMatrix"), perm = FALSE, LDL = FALSE, super = FALSE)
+    sLm <- Cholesky(M, perm = FALSE, LDL = FALSE, super = FALSE)
 #FIXME `tyPy` needs to be >1? So, below the `length(sLm@x)` index and/or `n=1` agrument to `tail()` needs to be changed to match dimension of y vector
-    tyPy <- numeric(1)
-    logDetC <- numeric(1)
-    sigma2e <- numeric(1)
-    # 5b log(|R|) and log(|G|) <-- Meyer 1989 (uni) & 1991 (multivar)
-    # Only have to do these once per model
-#TODO put these with `mkModMats()` - need to figure out multivariate version/format
-    nminffx <- modMats$ny - modMats$nb
-    rfxlvls <- sapply(modMats$Zg, FUN = ncol)
-    nr <- if(length(rfxlvls) == 0) 0 else sum(rfxlvls)
-    nminfrfx <- nminffx - nr
-    sln <- matrix(0, nrow = nrow(C), ncol = 1)
-    r <- matrix(0, nrow = modMats$ny, ncol = 1)
+### DIVERSION: #########
+##   determine last diagonal of cholesky(M) from sLc( without decomposing M)
+## figure out Lm (cholesky of M) using Lc and add RHSperm to C
+#Lm11 <- sLc
+#Lm21 <- solve(a= sLc, b = t(RHSperm), system = "L")
+#Lm22 <- chol(D - crossprod(Lm21))
 
-    AI <- matrix(NA, nrow = lthetav, ncol = lthetav)
-    dLdtheta <- matrix(NA, nrow = lthetav, ncol = 1, dimnames = list(names(thetav), NULL))
-    if("AI" %in% algit) PorVinv <- matrix(0, nrow = modMats$ny, ncol = modMats$ny)
+#LmCon <- t(rbind(cbind(t(expand(sLc)$L), Lm21), sparseMatrix(i = 1, j = ncol(sLc)+ncol(Lm22), x = Lm22)))
+#zapsmall(drop0(M-tcrossprod(LmCon)), 3)
+#sLm@x[length(sLm@x)]; Lm22
 
+#zapsmall(drop0(M-tcrossprod(expand(sLm)$L)), 1)
+### END DIVERSION ########
+##########################
+ 
 
 
 
-    
+
+   
     ###############################
     # reml()
     ###############################
@@ -397,7 +481,7 @@ if(Mout) return(as(drop0(rBind(cBind(D, RHSperm),
 #		R = log(chol(theta$R)))
 #    } else nu <- theta
       cRinv <- solve(chol(nu[[thetaR]]))
-      Ginv <- lapply(thetaG, FUN = function(x){as(crossprod(cRinv, nu[[x]]) %*% cRinv, "symmetricMatrix")}) # Meyer 1991, p.77
+      Ginv <- lapply(thetaG, FUN = function(x){as(crossprod(cRinv, nu[[x]]) %*% cRinv, "symmetricMatrix")}) # Meyer 1991, p.77 (<-- ?p70/eqn4?)
   
 
       ##1c Now make coefficient matrix of MME
@@ -414,7 +498,7 @@ if(Mout) return(as(drop0(rBind(cBind(D, RHSperm),
       Cinv <<- solve(C)  #<-- XXX Faster than chol2inv(sLc) atleast for warcolak
 #      M <<- as(cBind(rBind(crossprod(Pc, C) %*% Pc, RHSperm),
 #	    tRHSD), "symmetricMatrix")
-      sLm <<- update(sLm, as(cBind(rBind(crossprod(Pc, C) %*% Pc, RHSperm),
+      sLm <<- update(sLm, as(cbind(rbind(crossprod(Pc, C) %*% Pc, RHSperm),
 	    tRHSD), "symmetricMatrix"))
       tyPy[] <<- sLm@x[length(sLm@x)]^2   # Meyer & Smith 1996, eqn. 14
       # above is far faster than `tail(sLm@x, 1)^2`
@@ -467,7 +551,6 @@ if(Mout) return(as(drop0(rBind(cBind(D, RHSperm),
 
     }  #<-- end `reml()` 
 
-#  })  #<-- end `with(modMats, ...)`
 
 
 
@@ -518,7 +601,7 @@ if(Mout) return(as(drop0(rBind(cBind(D, RHSperm),
     #}
     #Vinv <- solve(V)
 
-    lthetav <- length(thetavin)
+    p <- length(thetavin)
     thetain <- vech2matlist(thetavin, skel)
     # setup Vinv directly [See Johnson & Thompson 1995, Appendix 1 (eqn A1)]
 ##FIXME will it work for >1 residual (co)variance????  XXX
@@ -559,26 +642,26 @@ if(Mout) return(as(drop0(rBind(cBind(D, RHSperm),
 #FIXME Check for multivariate when theta is a matrix, but below g is assumed to be a single (co)variance
       AI[g, g] <<- 0.5 * ((crossprod(isln, crossprod(W[, si:ei], PorVinv)) %*% W[, si:ei] %*% isln) / (thetavin[g]^2))@x
 #(crossprod(isln, crossprod(modMats$Zg[[g]], P)) %*% modMats$Zg[[g]] %*% isln) / (thetavin[g]^2)
-      if((g+1) < lthetav){
-        for(k in (g+1):(lthetav-1)){  #<-- fill upper triangle
+      if((g+1) < p){
+        for(k in (g+1):(p-1)){  #<-- fill upper triangle
           sk <- sum(sapply(seq(k-1), FUN = function(u){ncol(modMats$Zg[[u]])})) + modMats$nb + 1
           ek <- sk - 1 + ncol(modMats$Zg[[k]])
           AI[g, k] <<- AI[k, g] <<- 0.5 * ((crossprod(isln, crossprod(W[, si:ei], PorVinv)) %*% W[, sk:ek] %*% sln[sk:ek, , drop = FALSE]) / (thetavin[g]*thetavin[k]))@x    
         }  #<-- end 'for(k ...)`
       }  #<-- end `if()`
-      AI[g, lthetav] <<- AI[lthetav, g] <<- 0.5 * ((crossprod(isln, crossprod(W[, si:ei], PorVinv)) %*% r) / (thetavin[g]*thetavin[lthetav]))@x
+      AI[g, p] <<- AI[p, g] <<- 0.5 * ((crossprod(isln, crossprod(W[, si:ei], PorVinv)) %*% r) / (thetavin[g]*thetavin[p]))@x
       si <- ei+1
     }   #<-- end `for(g ...)`
-    AI[lthetav, lthetav] <<- 0.5 * ((crossprod(r, PorVinv) %*% r) / thetavin[lthetav]^2)@x
+    AI[p, p] <<- 0.5 * ((crossprod(r, PorVinv) %*% r) / thetavin[p]^2)@x
 
     # First derivatives (gradient)
 #TODO check that `nminfrfx` is still `n-p-q` when more than 1 random effect 
 ## ALSO check what `q` of `n-p-q` is when >1 random effect
-#FIXME change `[lthetav]` below to be number of residual (co)variances
-    dLdtheta[lthetav] <<- 0.5*((tee / thetavin[lthetav]^2) - (nminfrfx) / thetavin[lthetav]) 
+#FIXME change `[p]` below to be number of residual (co)variances
+    dLdtheta[p] <<- 0.5*((tee / thetavin[p]^2) - (nminfrfx) / thetavin[p]) 
     for(g in thetaG){
-      dLdtheta[lthetav] <<- dLdtheta[lthetav] - 0.5*(trCinvGinv_gg[[g]]/thetavin[g]) 
-      dLdtheta[g] <<- 0.5*(tugug[[g]]/(thetavin[g]^2) - ncol(modMats$Zg[[g]])/thetavin[g] + trCinvGinv_gg[[g]]*thetavin[lthetav]/(thetavin[g]^2))
+      dLdtheta[p] <<- dLdtheta[p] - 0.5*(trCinvGinv_gg[[g]]/thetavin[g]) 
+      dLdtheta[g] <<- 0.5*(tugug[[g]]/(thetavin[g]^2) - ncol(modMats$Zg[[g]])/thetavin[g] + trCinvGinv_gg[[g]]*thetavin[p]/(thetavin[g]^2))
     }
 
     rcondAI <- rcond(AI)
@@ -607,7 +690,7 @@ if(Mout) return(as(drop0(rBind(cBind(D, RHSperm),
 
   ############################################
   gradFun <- function(thetav){
-    dLdtheta <- matrix(NA, nrow = lthetav, ncol = 1)
+    dLdtheta <- matrix(NA, nrow = p, ncol = 1)
     # tee = e'e
     tee <- crossprod(r)
     # trCinvGinv_gg = trace[Cinv_gg %*% Ginv_gg] | tugug = u_gg' %*% Ginv_gg %*% u_gg
@@ -630,10 +713,10 @@ if(Mout) return(as(drop0(rBind(cBind(D, RHSperm),
     # First derivatives (gradient)
 #TODO check that `nminfrfx` is still `n-p-q` when more than 1 random effect 
 ## ALSO check what `q` of `n-p-q` is when >1 random effect
-#FIXME change `[lthetav]` below to be number of residual (co)variances
-    dLdtheta[lthetav] <- 0.5*((tee / tail(thetav, 1)^2) - (nminfrfx)/tail(thetav, 1)) 
+#FIXME change `[p]` below to be number of residual (co)variances
+    dLdtheta[p] <- 0.5*((tee / tail(thetav, 1)^2) - (nminfrfx)/tail(thetav, 1)) 
     for(g in thetaG){
-      dLdtheta[lthetav] <- dLdtheta[lthetav] - 0.5*(trCinvGinv_gg[[g]]/thetav[g]) 
+      dLdtheta[p] <- dLdtheta[p] - 0.5*(trCinvGinv_gg[[g]]/thetav[g]) 
       dLdtheta[g] <- 0.5*(tugug[[g]]/(thetav[g]^2) - ncol(modMats$Zg[[g]])/thetav[g] + trCinvGinv_gg[[g]]*tail(thetav, 1)/(thetav[g]^2))
     }
 
@@ -648,10 +731,7 @@ if(Mout) return(as(drop0(rBind(cBind(D, RHSperm),
   #########################################################
 
 
-  itMat <- matrix(NA, nrow = maxit, ncol = lthetav+5) 
-    colnames(itMat) <- c(names(thetav), "sigma2e", "tyPy", "logDetC", "loglik", "itTime")
-  vitseq <- seq(0, maxit, by = vit)
-  for(i in 1:nrow(itMat)){
+i <- 1#  for(i in 1:nrow(itMat)){
     if(v > 0 && i %in% vitseq){
       cat("  ", i, "of max", maxit, "iterations\t",
 	format(Sys.time(), "%H:%M:%S"), "\n")
@@ -668,7 +748,7 @@ if(Mout) return(as(drop0(rBind(cBind(D, RHSperm),
       # wombat 1
       cc[1] <- diff(itMat[c(i-1, i), "loglik"]) < cctol[1]
       # wombat 2 (eqn. A.1) (also Knight 2008 (eqn. 6.1) criteria
-      cc[2] <- sqrt(sum((itMat[i, 1:lthetav] - itMat[(i-1), 1:lthetav])^2) / sum(itMat[i, 1:lthetav]^2)) < cctol[2]
+      cc[2] <- sqrt(sum((itMat[i, 1:p] - itMat[(i-1), 1:p])^2) / sum(itMat[i, 1:p]^2)) < cctol[2]
       if(algit[i] == "AI"){
         # wombat 3 (eqn. A.2): Norm of the gradient vector
         # AI only
@@ -700,18 +780,6 @@ if(nrow(theta[[thetaR]]) != 1){
 ## How will it work so last iteration gives AI matrix of last set of parameters and not previous
       }
 
-      if(algit[i] == "bobyqa"){
-stop("Not allowing `minqa::bobyqa()` right now")
-#        if(v > 1 && i %in% vitseq) cat("Switching to `minqa::bobyqa()`\n")
-#FIXME lower bounds if not transformed!
-#        bobyout <- bobyqa(par = thetav, fn = function(x) -1*reml(x, skel), lower = ezero,
-#		control = list(iprint = v, maxfun = maxit))
-#        with(bobyout, cat("\t", msg, "after", feval, "iterations and with code:", ierr, "(0 desired)\n"))
-#        thetaout <- vech2matlist(bobyout$par, skel)
-#       loglik <- -1*bobyout$fval
-#FIXME do a better check of loglik and parameter changes
-#	cc <- diff(c(itMat[(i-1), "loglik"], loglik)) < cctol[1] #if(bobyout$ierr == 0) TRUE else FALSE
-      }
        
 
 #TODO need to transform in order to use non-EM
@@ -747,13 +815,13 @@ stop("Not allowing `minqa::bobyqa()` right now")
         cat("\tConvergence crit:", cc, "\n")
       }
       if(v > 2){#algit[i] == "AI" && 
-        sgd <- matrix(NA, nrow = lthetav, ncol = lthetav+4)  #<-- `sgd` is summary.gremlinDeriv 
-          dimnames(sgd) <- list(row.names(dLdtheta), c("gradient", "", "AI", "", "AI-inv", rep("", lthetav-1)))
+        sgd <- matrix(NA, nrow = p, ncol = p+4)  #<-- `sgd` is summary.gremlinDeriv 
+          dimnames(sgd) <- list(row.names(dLdtheta), c("gradient", "", "AI", "", "AI-inv", rep("", p-1)))
         sgd[, 1] <- dLdtheta
         AIinv <- if(algit[i] == "EM") AI else solve(AI)
-        for(rc in 1:lthetav){
+        for(rc in 1:p){
           sgd[rc, 3:(rc+2)] <- AI[rc, 1:rc]
-          sgd[rc, (4+rc):(4+lthetav)] <- AIinv[rc, rc:lthetav]   
+          sgd[rc, (4+rc):(4+p)] <- AIinv[rc, rc:p]   
         }
         cat("\tAI alpha", NA, "\n") #TODO add alpha/step-halving value
         print(as.table(sgd), digits = 3, na.print = " | ", zero.print = ".")
@@ -767,7 +835,7 @@ stop("Not allowing `minqa::bobyqa()` right now")
       break
     }
 
-  }  # END log-likelihood iterations
+#  }  # END log-likelihood iterations
   #################################### 
   itMat <- itMat[1:i, , drop = FALSE]
     rownames(itMat) <- paste(seq(i), algit[1:i], sep = "-")
@@ -783,7 +851,7 @@ stop("Not allowing `minqa::bobyqa()` right now")
  return(structure(list(call = as.call(mc),
 		modMats = modMats,
 		itMat = itMat,
-		sln = cbind(Est = c(sln), Var = diag(Cinv)),
+		sln = cbind(Est = sln, Var = diag(Cinv)),
 		AI = AI, dLdtheta = dLdtheta,
 		Cinv = Cinv),
 	class = "gremlin"))
@@ -880,7 +948,7 @@ gremlinR <- function(formula, random = NULL, rcov = ~ units,
   thetav <- sapply(theta, FUN = slot, name = "x")
   skel <- lapply(seq(length(theta)), FUN = function(i){mapply(slot, theta[i], c("i", "p", "Dim"))})
     names(skel) <- names(theta)
-  lthetav <- length(thetav)
+  p <- length(thetav)
 #FIXME figure out environments so all in the `with(modMats...)` environment is accessible outside of it
 ## How to place these objects?
 #  with(modMats, {
@@ -928,7 +996,7 @@ gremlinR <- function(formula, random = NULL, rcov = ~ units,
     # transform starting parameters to 'nu' scale
     ## cholesky of covariance matrices, then take log of transformed diagonals
     cRinv <- solve(chol(theta[[thetaR]]))
-    Ginv <- lapply(thetaG, FUN = function(x){as(crossprod(cRinv, theta[[x]]) %*% cRinv, "symmetricMatrix")}) # Meyer 1991, p.77
+    Ginv <- lapply(thetaG, FUN = function(x){as(crossprod(cRinv, theta[[x]]) %*% cRinv, "symmetricMatrix")}) # Meyer 1991, p.77 (<-- ?p70/eqn4?)
   
     ##1c Now make coefficient matrix of MME
     ##`sapply()` to invert G_i and multiply with ginverse element (e.g., I or Ginv)
@@ -936,6 +1004,23 @@ gremlinR <- function(formula, random = NULL, rcov = ~ units,
       C <- as(tWW + bdiag(c(zero,
 	sapply(1:modMats$nG, FUN = function(u){kronecker(modMats$listGinv[[u]], solve(Ginv[[u]]))}))), "symmetricMatrix")
     } else C <- as(tWW + diag(zero), "symmetricMatrix")
+
+#### DIVERSION #####################
+
+## How to include Rinv into C: above or below does it via Hadfield's code/algorithm
+#Rinv <- solve(theta[[thetaR]])
+## Kronecker with Diagonal/I
+#KRinv <- kronecker(Rinv, Diagonal(x = 1, n = modMats$Zr@Dim[[2L]])) # Same as I %x% Rinv, but be careful of order!!
+#tWKRinvW <- crossprod(W, KRinv) %*% W
+#Gs <- lapply(thetaG, FUN = function(x){as(theta[[x]], "symmetricMatrix")}) 
+#C2 <- as(tWKRinvW + bdiag(c(zero,
+#	sapply(1:modMats$nG, FUN = function(u){kronecker(modMats$listGinv[[u]], solve(Gs[[u]]))}))), "symmetricMatrix")
+#XXX Gives different answer (C2 != C) -> Rinv is in first ncol(X) rows and columns
+## different format of MME -> with respect to where Rinv factored into/out of
+
+
+###### END DIVERSION ###############
+
 
     ##1d Find best order of MMA/C/pivots!
     # Graser et al. 1987 (p1363) when singular C, |C| not invariant to order
@@ -998,8 +1083,8 @@ if(Mout) return(as(drop0(rBind(cBind(D, RHSperm),
     sln <- matrix(0, nrow = nrow(C), ncol = 1)
     r <- matrix(0, nrow = modMats$ny, ncol = 1)
 
-    AI <- matrix(NA, nrow = lthetav, ncol = lthetav)
-    dLdtheta <- matrix(NA, nrow = lthetav, ncol = 1, dimnames = list(names(thetav), NULL))
+    AI <- matrix(NA, nrow = p, ncol = p)
+    dLdtheta <- matrix(NA, nrow = p, ncol = 1, dimnames = list(names(thetav), NULL))
     if("AI" %in% algit) PorVinv <- matrix(0, nrow = modMats$ny, ncol = modMats$ny)
 
 
@@ -1019,7 +1104,7 @@ if(Mout) return(as(drop0(rBind(cBind(D, RHSperm),
 #		R = log(chol(theta$R)))
 #    } else nu <- theta
       cRinv <- solve(chol(nu[[thetaR]]))
-      Ginv <- lapply(thetaG, FUN = function(x){as(crossprod(cRinv, nu[[x]]) %*% cRinv, "symmetricMatrix")}) # Meyer 1991, p.77
+      Ginv <- lapply(thetaG, FUN = function(x){as(crossprod(cRinv, nu[[x]]) %*% cRinv, "symmetricMatrix")}) # Meyer 1991, p.77 (<-- ?p70/eqn4?)
   
 
       ##1c Now make coefficient matrix of MME
@@ -1140,7 +1225,7 @@ if(Mout) return(as(drop0(rBind(cBind(D, RHSperm),
     #}
     #Vinv <- solve(V)
 
-    lthetav <- length(thetavin)
+    p <- length(thetavin)
     thetain <- vech2matlist(thetavin, skel)
     # setup Vinv directly [See Johnson & Thompson 1995, Appendix 1 (eqn A1)]
 ##FIXME will it work for >1 residual (co)variance????  XXX
@@ -1181,26 +1266,26 @@ if(Mout) return(as(drop0(rBind(cBind(D, RHSperm),
 #FIXME Check for multivariate when theta is a matrix, but below g is assumed to be a single (co)variance
       AI[g, g] <<- 0.5 * ((crossprod(isln, crossprod(W[, si:ei], PorVinv)) %*% W[, si:ei] %*% isln) / (thetavin[g]^2))@x
 #(crossprod(isln, crossprod(modMats$Zg[[g]], P)) %*% modMats$Zg[[g]] %*% isln) / (thetavin[g]^2)
-      if((g+1) < lthetav){
-        for(k in (g+1):(lthetav-1)){  #<-- fill upper triangle
+      if((g+1) < p){
+        for(k in (g+1):(p-1)){  #<-- fill upper triangle
           sk <- sum(sapply(seq(k-1), FUN = function(u){ncol(modMats$Zg[[u]])})) + modMats$nb + 1
           ek <- sk - 1 + ncol(modMats$Zg[[k]])
           AI[g, k] <<- AI[k, g] <<- 0.5 * ((crossprod(isln, crossprod(W[, si:ei], PorVinv)) %*% W[, sk:ek] %*% sln[sk:ek, , drop = FALSE]) / (thetavin[g]*thetavin[k]))@x    
         }  #<-- end 'for(k ...)`
       }  #<-- end `if()`
-      AI[g, lthetav] <<- AI[lthetav, g] <<- 0.5 * ((crossprod(isln, crossprod(W[, si:ei], PorVinv)) %*% r) / (thetavin[g]*thetavin[lthetav]))@x
+      AI[g, p] <<- AI[p, g] <<- 0.5 * ((crossprod(isln, crossprod(W[, si:ei], PorVinv)) %*% r) / (thetavin[g]*thetavin[p]))@x
       si <- ei+1
     }   #<-- end `for(g ...)`
-    AI[lthetav, lthetav] <<- 0.5 * ((crossprod(r, PorVinv) %*% r) / thetavin[lthetav]^2)@x
+    AI[p, p] <<- 0.5 * ((crossprod(r, PorVinv) %*% r) / thetavin[p]^2)@x
 
     # First derivatives (gradient)
 #TODO check that `nminfrfx` is still `n-p-q` when more than 1 random effect 
 ## ALSO check what `q` of `n-p-q` is when >1 random effect
-#FIXME change `[lthetav]` below to be number of residual (co)variances
-    dLdtheta[lthetav] <<- 0.5*((tee / thetavin[lthetav]^2) - (nminfrfx) / thetavin[lthetav]) 
+#FIXME change `[p]` below to be number of residual (co)variances
+    dLdtheta[p] <<- 0.5*((tee / thetavin[p]^2) - (nminfrfx) / thetavin[p]) 
     for(g in thetaG){
-      dLdtheta[lthetav] <<- dLdtheta[lthetav] - 0.5*(trCinvGinv_gg[[g]]/thetavin[g]) 
-      dLdtheta[g] <<- 0.5*(tugug[[g]]/(thetavin[g]^2) - ncol(modMats$Zg[[g]])/thetavin[g] + trCinvGinv_gg[[g]]*thetavin[lthetav]/(thetavin[g]^2))
+      dLdtheta[p] <<- dLdtheta[p] - 0.5*(trCinvGinv_gg[[g]]/thetavin[g]) 
+      dLdtheta[g] <<- 0.5*(tugug[[g]]/(thetavin[g]^2) - ncol(modMats$Zg[[g]])/thetavin[g] + trCinvGinv_gg[[g]]*thetavin[p]/(thetavin[g]^2))
     }
 
     rcondAI <- rcond(AI)
@@ -1229,7 +1314,7 @@ if(Mout) return(as(drop0(rBind(cBind(D, RHSperm),
 
   ############################################
   gradFun <- function(thetav){
-    dLdtheta <- matrix(NA, nrow = lthetav, ncol = 1)
+    dLdtheta <- matrix(NA, nrow = p, ncol = 1)
     # tee = e'e
     tee <- crossprod(r)
     # trCinvGinv_gg = trace[Cinv_gg %*% Ginv_gg] | tugug = u_gg' %*% Ginv_gg %*% u_gg
@@ -1252,10 +1337,10 @@ if(Mout) return(as(drop0(rBind(cBind(D, RHSperm),
     # First derivatives (gradient)
 #TODO check that `nminfrfx` is still `n-p-q` when more than 1 random effect 
 ## ALSO check what `q` of `n-p-q` is when >1 random effect
-#FIXME change `[lthetav]` below to be number of residual (co)variances
-    dLdtheta[lthetav] <- 0.5*((tee / tail(thetav, 1)^2) - (nminfrfx)/tail(thetav, 1)) 
+#FIXME change `[p]` below to be number of residual (co)variances
+    dLdtheta[p] <- 0.5*((tee / tail(thetav, 1)^2) - (nminfrfx)/tail(thetav, 1)) 
     for(g in thetaG){
-      dLdtheta[lthetav] <- dLdtheta[lthetav] - 0.5*(trCinvGinv_gg[[g]]/thetav[g]) 
+      dLdtheta[p] <- dLdtheta[p] - 0.5*(trCinvGinv_gg[[g]]/thetav[g]) 
       dLdtheta[g] <- 0.5*(tugug[[g]]/(thetav[g]^2) - ncol(modMats$Zg[[g]])/thetav[g] + trCinvGinv_gg[[g]]*tail(thetav, 1)/(thetav[g]^2))
     }
 
@@ -1270,7 +1355,7 @@ if(Mout) return(as(drop0(rBind(cBind(D, RHSperm),
   #########################################################
 
 
-  itMat <- matrix(NA, nrow = maxit, ncol = lthetav+5) 
+  itMat <- matrix(NA, nrow = maxit, ncol = p+5) 
     colnames(itMat) <- c(names(thetav), "sigma2e", "tyPy", "logDetC", "loglik", "itTime")
   vitseq <- seq(0, maxit, by = vit)
   for(i in 1:nrow(itMat)){
@@ -1290,7 +1375,7 @@ if(Mout) return(as(drop0(rBind(cBind(D, RHSperm),
       # wombat 1
       cc[1] <- diff(itMat[c(i-1, i), "loglik"]) < cctol[1]
       # wombat 2 (eqn. A.1) (also Knight 2008 (eqn. 6.1) criteria
-      cc[2] <- sqrt(sum((itMat[i, 1:lthetav] - itMat[(i-1), 1:lthetav])^2) / sum(itMat[i, 1:lthetav]^2)) < cctol[2]
+      cc[2] <- sqrt(sum((itMat[i, 1:p] - itMat[(i-1), 1:p])^2) / sum(itMat[i, 1:p]^2)) < cctol[2]
       if(algit[i] == "AI"){
         # wombat 3 (eqn. A.2): Norm of the gradient vector
         # AI only
@@ -1369,13 +1454,13 @@ stop("Not allowing `minqa::bobyqa()` right now")
         cat("\tConvergence crit:", cc, "\n")
       }
       if(v > 2){#algit[i] == "AI" && 
-        sgd <- matrix(NA, nrow = lthetav, ncol = lthetav+4)  #<-- `sgd` is summary.gremlinDeriv 
-          dimnames(sgd) <- list(row.names(dLdtheta), c("gradient", "", "AI", "", "AI-inv", rep("", lthetav-1)))
+        sgd <- matrix(NA, nrow = p, ncol = p+4)  #<-- `sgd` is summary.gremlinDeriv 
+          dimnames(sgd) <- list(row.names(dLdtheta), c("gradient", "", "AI", "", "AI-inv", rep("", p-1)))
         sgd[, 1] <- dLdtheta
         AIinv <- if(algit[i] == "EM") AI else solve(AI)
-        for(rc in 1:lthetav){
+        for(rc in 1:p){
           sgd[rc, 3:(rc+2)] <- AI[rc, 1:rc]
-          sgd[rc, (4+rc):(4+lthetav)] <- AIinv[rc, rc:lthetav]   
+          sgd[rc, (4+rc):(4+p)] <- AIinv[rc, rc:p]   
         }
         cat("\tAI alpha", NA, "\n") #TODO add alpha/step-halving value
         print(as.table(sgd), digits = 3, na.print = " | ", zero.print = ".")
