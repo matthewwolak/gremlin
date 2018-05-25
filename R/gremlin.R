@@ -920,6 +920,12 @@ gremlinR <- function(formula, random = NULL, rcov = ~ units,
     cctol <- c(5*10^-4, 10^-8, 10^-3, NULL) # [1] for AI, alternatively 10^-5 (for EM)
   } else cctol <- eval(mc$cctol)
 #TODO check on validity of inputted algorithms (format and matching to actual ones)
+## Otherwise, get obscure warning about not finding `thetaout`
+## Something like the following line, but implement partial matching
+  if(!all(unique(algit) %in% c("EM", "AI", "bobyqa", "NR"))){  #TODO Update choices of algorithm if add/subtract any
+    stop(cat("Algorithms:", unique(algit)[which(!unique(algit) %in% c("EM", "AI", "bobyqa", "NR"))],
+      "not a valid choice. Please check values given to the `algit` argument\n"))
+  }
   if(is.null(mc$algit)) algit <- c(rep("EM", 2), rep("AI", max(0, maxit-2))) else algit <- eval(mc$algit)
   if(length(algit) == 1 && algit %in% c("EM", "AI", "bobyqa")) algit <- rep(algit, maxit)
   if(is.null(mc$ezero)) ezero <- 1e-8 else ezero <- eval(mc$ezero)
@@ -1384,7 +1390,7 @@ if(Mout) return(as(drop0(rBind(cBind(D, RHSperm),
         # AI only
 #        cc[4] <- -1 * c(crossprod(dLdtheta, H) %*% dLdtheta)
       }
-    }
+    } else cc[1] <- FALSE  #<-- ensures one of the EM/AI/etc algorithms used if i==1
 
 
 
@@ -1469,7 +1475,7 @@ stop("Not allowing `minqa::bobyqa()` right now")
     }
     units(itTime) <- "secs"
     itMat[i, ncol(itMat)] <- round(itTime, 1)
-    if(all(cc)){
+    if(all(cc, na.rm = TRUE)){
       cat("REML converged\n\n")
       break
     }
