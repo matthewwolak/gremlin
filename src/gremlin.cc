@@ -535,6 +535,7 @@ void ugremlin(
       ////XXX see instead Mrode 2005 (p. 241-245)
       if(algit[i] == 0){
         if(v[0] > 1 && i%vit[0] == 0) Rprintf("\t EM to find next theta\n");
+if( cs_em(BLUXs, theta, nG, rfxlvls, dimXZWG[1]) == 1) Rprintf("em call succsessful\n");
 
       }  // end EM
 
