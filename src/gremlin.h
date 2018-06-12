@@ -9,10 +9,12 @@ extern "C" {
 
 
 /* Expectation Algorithm: replaces elements in theta. Returns 1=success else 0 */
-csi cs_em(const cs *BLUXs, double *theta, csi nG, csi *rfxlvls, csi nb);
+csi cs_em(const cs *BLUXs, const double *theta,
+	csi nG, csi *rfxlvls, csi nb, csi *ndgeninv,
+	cs **geninv, cs *Cinv);
 
 
-
+cs *cs_chol2inv(const cs *L);
 
 /*******************************************************************/
 /* Below are functions from MCMCglmm-2.25 by Jarrod Hadfield       */
