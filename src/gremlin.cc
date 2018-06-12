@@ -55,11 +55,12 @@ void ugremlin(
 		
 ){
 
-  cs	 *Bpinv, *W, *tW, *tWW, *tWWtmp, *cRinv, *tcRinv, *Ctmp, *C, *Cperm, *Cinv,
-	 *tmpRHS, *RHSperm, *tmpBLUXs, *BLUXs, *R, *tCRHS, *CRHS, *RHSD, *M;
-  css    *sLc, *sLm;
-  csn    *Lc, *Lm;
-  csi    *P;
+  cs	 *Bpinv, *W, *tW, *tWW, *tWWtmp, *cRinv, *tcRinv,
+	 *Ctmp, *C, *Cperm, *tCperm, //*pCinv, *Cinv,
+	 *tmpRHS, *RHSperm, *tmpBLUXs, *BLUXs, *Lm12, *R;
+  css    *sLc;
+  csn    *Lc;
+  csi    *P, *Pinv;
 
   int    nG = nGR[0], nR = nGR[1];
 
@@ -70,7 +71,7 @@ void ugremlin(
   cs*    *invGRinv = new cs*[nG];
   cs* 	 *KGRinv = new cs*[nG];
 
-  double t, took, dsLc, tyPy, logDetC, sigma2e, loglik, d, cc2, cc2d;
+  double t, took, dsLc, tyPy, *Lm12x, logDetC, sigma2e, loglik, d, cc2, cc2d;
 
   int 	 g, i, k, rw, si, si2, ei,
 	 itc = 0,
@@ -250,33 +251,39 @@ void ugremlin(
   //1d Find best order of MMA/C/pivots!
   //// Graser et al. 1987 (p1363) when singular C, |C| not invariant to order
   //// of C, therefore same order (of pivots) must be used in each loglik iteration
-  //// Hadfield (2010, MCMCglmm paper App B): details on chol(), ordering, and updating
-  sLc = cs_schol(1, C);
-  P = cs_pinv(sLc->pinv, C->n);  // Create permutation matrix for C FIXME necessary if don't make M directly????
+  //// Hadfield (2010, MCMCglmm paper App B): details on chol, ordering, and updating
+  // Create permutation matrices for C
+  P = cs_amd(1, C);     // order=1 is Chol (0=natural)
+  Pinv = cs_pinv(P, C->n);
+  // permute C then update symbolic Chol. for Cperm without further permutation
+  //// permutated Chol. factor is not a Chol. factor of a matrix
+  Cperm = cs_permute(C, P, Pinv, 1);  //<-- permute values 0/1=FALSE/TRUE
+    // Do t(t(Cperm)) to order correctly
+    tCperm = cs_transpose(Cperm, true);
+    cs_spfree(Cperm);
+    Cperm = cs_transpose(tCperm, true);
+    cs_spfree(tCperm);
+
+
+  // Symbolic Cholesky factorization of re-ordered C
+  sLc = cs_schol(0, Cperm);
+  
   cs_gaxpy(tW, y, tmpRHS->x);   //  y = A*x+y XXX my variable y is cs_gaxpy's x 
+  // create RHS (permuted) = Same every iteration
   // cs_pvec:  b = P'*x
-  cs_pvec(sLc->pinv, tmpRHS->x, RHSperm->x, C->n);    // RHSperm=same every iter.
-  cs_dropzeros(RHSperm);
-  si = 0;
-  RHSD = cs_spalloc(dimXZWG[5]+1, 1, RHSperm->nzmax+1, true, false);
-  for(k = 0; k < RHSperm->nzmax; k++){
-    RHSD->i[k] = RHSperm->i[k];
-    RHSD->x[k] = RHSperm->x[k];
-    si++;
+  cs_pvec(Pinv, tmpRHS->x, RHSperm->x, C->n);
+  // NOTE: don't drop zeroes, needed for forward solve `Lm12=Lc/RHSperm` below
+
+  // fill Lm12 with RHSperm so will be created in place when solve Lc and RHSperm
+  Lm12 = cs_spalloc(dimXZWG[5], 1, dimXZWG[5], true, false);
+  for(k = 0; k < dimXZWG[5]; k++){
+    Lm12->i[k] = RHSperm->i[k];
+    Lm12->x[k] = RHSperm->x[k];
   }
-  RHSD->i[si] = dimXZWG[5];
-  RHSD->x[si] = D[0];
-  RHSD->p[0] = 0;  RHSD->p[1] = si+1;
-  Cperm = cs_permute(C, P, sLc->pinv, true);
-  tCRHS = cs_cbind(Cperm, RHSperm);
-  cs_spfree(Cperm);
-  CRHS = cs_transpose(tCRHS, true);
-  cs_spfree(tCRHS);
-  M = cs_cbind(CRHS, RHSD);
-  sLm = cs_schol(0, M);   
+  Lm12->p[0] = 0; Lm12->p[1] = dimXZWG[5];
 
 
-  // Calculate variables needed for log-likelihood calculations
+  // Create variables needed for log-likelihood calculations
   // Used for log(|R|) and log(|G|) <-- Meyer 1989 (univar.) & 1991 (multivar.)
   int	 *rfxlvls = new int[nG];
     for(g = 0; g < nG; g++){
@@ -308,6 +315,16 @@ void ugremlin(
     }
 
     if(i > 0){
+      cs_spfree(tcRinv);
+      for(g = 0; g < nG; g++){
+        cs_spfree(GcRinv[g]); cs_spfree(GRinv[g]); cs_spfree(invGRinv[g]);
+      }
+      cs_spfree(C);
+      cs_spfree(Cperm);
+      cs_nfree(Lc);
+
+
+
       // setup R matrix
       //// Assumes, just 1 R matrix 
       si = 0; for(g = 0; g < nG; g++) si += nnzGRs[g];
@@ -325,7 +342,6 @@ void ugremlin(
     error("R-structure %i starting value(s) is/are improperly specified: check that all eigenvalues (`eigen(R)$values`) > 0 and that the cholesky decomposition can be formed (`chol(R)`)\n", nR);
   }
 */
-      cs_spfree(tcRinv);
       tcRinv = cs_transpose(cRinv, true);
 
 
@@ -341,7 +357,6 @@ void ugremlin(
           G[g]->x[k] = theta[si+k];
         }
         si += nnzGRs[g];
-        cs_spfree(GcRinv[g]); cs_spfree(GRinv[g]); cs_spfree(invGRinv[g]);
         GcRinv[g] = cs_multiply(tcRinv, G[g]);  // Next two lines from Meyer 1991, p.77
         GRinv[g] = cs_multiply(GcRinv[g], cRinv);
         invGRinv[g] = cs_inv(GRinv[g]);
@@ -363,7 +378,6 @@ void ugremlin(
       }
 
       //// Construct C
-      cs_spfree(C);
       if(nG > 0){
         cs_omegaupdate(KGRinv, nG, Bpinv, Ctmp); 
         C = cs_add(tWW, Ctmp, 1.0, 1.0);
@@ -371,22 +385,25 @@ void ugremlin(
         C = cs_add(tWW, Bpinv, 1.0, 1.0);
       }
       ////// Permute C
-      Cperm = cs_permute(C, P, sLc->pinv, true);
-      tCRHS = cs_cbind(Cperm, RHSperm);
-      cs_spfree(Cperm);
-      CRHS = cs_transpose(tCRHS, true);
-      cs_spfree(tCRHS);
-      M = cs_cbind(CRHS, RHSD);
+      Cperm = cs_permute(C, P, Pinv, true);
+        // Do t(t(Cperm)) to order correctly
+        tCperm = cs_transpose(Cperm, true);
+        cs_spfree(Cperm);
+        Cperm = cs_transpose(tCperm, true);
+        cs_spfree(tCperm);
+
+      ////// Set Lm12 back to RHSperm for "in-place" fill-in
+      //FIXME Do I need to do this? Or just swap Lm12->x or just use a double array
+      for(k = 0; k < dimXZWG[5]; k++){
+        Lm12->x[k] = RHSperm->x[k];
+      }
+
     }  // End if i>0
 
 
 
 
-    if(i > 0){
-      Lc = cs_chol(C, sLc); //FIXME FIXME FIXME use cs_updown()?
-    } else {
-      Lc = cs_chol(C, sLc);
-    }
+    Lc = cs_chol(Cperm, sLc);  //TODO update if i>0? (cs_updown)
     if(Lc == NULL){
       error("Coefficient matrix of Mixed Model Equations singular: caused by a bad combination of G and R (co)variance parameters\n");
     }
@@ -398,25 +415,36 @@ void ugremlin(
 
     /*		XXX		XXX		XXX		XXX	*/
     //TODO FIXME FIXME FIXME: Get rid of explicit inversion of C !!!!!
-    /*Cinv = cs_inv(C);  TURNED OFF FOR NOW --> MCMCglmm::cs_inv / my C not working */
-
-
-
+//    Cinv = cs_inv(C);  /*TURNED OFF FOR NOW --> MCMCglmm::cs_inv / my C not working */
+//pCinv = cs_inv(Cperm);
+//Cinv = cs_permute(pCinv, sLc->pinv, P, true);
+//cs_spfree(pCinv);
+//pCinv = cs_transpose(Cinv, true);
+//cs_spfree(Cinv);
+//Cinv = cs_transpose(pCinv, true);
+//cs_spfree(pCinv);
 
 
 
 
     ////////////////////////////////////////////////////////////////////////////
     // 5 record log-like, check convergence, & determine next varcomps to evaluate  
-    ////5a determine log(|C|) and y'Py
+    //// 5a determine log(|C|) and y'Py
     ////// Meyer & Smith 1996, eqns 12-14 (and 9)
     //// Also see Meyer & Kirkpatrick 2005 GSE. eqn. 18: if cholesky of MMA = LL'
-    dsLc=0.0; tyPy=0.0; loglik=0.0;  // set diagonal sum of Lc, tyPy, and loglik back to 0
-    Lm = cs_chol(M, sLm);
-    cs_spfree(M);
-    tyPy += Lm->L->x[Lm->L->nzmax-1];      // Meyer & Smith 1996, eqn. 14
-    tyPy *= tyPy; 
-    cs_nfree(Lm);
+    dsLc = 0.0; loglik = 0.0;  // set diagonal sum of Lc and loglik back to 0
+
+    // Meyer & Smith 1996, eqn. 14
+    //// tyPy = D - crossprod(Lm12)
+    ////// set tyPy = D then subtract intermediate values of crossprod(Lm12) from it
+    tyPy = D[0];
+    cs_lsolve(Lc->L, Lm12->x);			 // Lm12=Lc\RHSperm
+    Lm12x = Lm12->x;
+    // D- [each step of] crossprod(Lm12)
+    for(k = 0; k < dimXZWG[5]; k++){
+      tyPy -= Lm12x[k] * Lm12x[k];
+    }
+
 
     for(k = 0; k < C->n; k++){
       rw = Lc->L->p[k];
@@ -453,12 +481,12 @@ void ugremlin(
 ////TODO Might not need to solve for BLUEs (see Knight 2008 for just getting BLUPs eqn 2.13-15
     //// see Mrode 2005 chapter
     //// permute tmpRHS to order of Lc
-    cs_ipvec(sLc->pinv, tmpRHS->x, tmpBLUXs->x, C->n);   // BLUXs=P*tmpRHS
+    cs_ipvec(Pinv, tmpRHS->x, tmpBLUXs->x, C->n);   	 // BLUXs=P*tmpRHS
     //// forward/back solve
     cs_lsolve(Lc->L, tmpBLUXs->x);			 // BLUXs=L\BLUXs
     cs_ltsolve(Lc->L, tmpBLUXs->x);			 // BLUXs=L'\BLUXs
     //// permute so BLUXs contains slns back in original data order
-    cs_pvec(sLc->pinv, tmpBLUXs->x, BLUXs->x, C->n);	 // BLUXs=P'*tmpBLUXs
+    cs_pvec(Pinv, tmpBLUXs->x, BLUXs->x, C->n);	 	 // BLUXs=P'*tmpBLUXs
 
 
     // calculate residuals as r = y - W %*% sln
@@ -535,7 +563,7 @@ void ugremlin(
       ////XXX see instead Mrode 2005 (p. 241-245)
       if(algit[i] == 0){
         if(v[0] > 1 && i%vit[0] == 0) Rprintf("\t EM to find next theta\n");
-if( cs_em(BLUXs, theta, nG, rfxlvls, dimXZWG[1]) == 1) Rprintf("em call succsessful\n");
+//if( cs_em(BLUXs, theta, nG, rfxlvls, dimXZWG[1], ndgeninv, geninv, Cinv) == 1) Rprintf("em call succsessful\n");
 
       }  // end EM
 
@@ -561,7 +589,7 @@ if( cs_em(BLUXs, theta, nG, rfxlvls, dimXZWG[1]) == 1) Rprintf("em call succsess
     // V=1 LEVEL of OUTPUT
     if(v[0] > 0 && i%vit[0] == 0){ 
       Rprintf("\t\tlL:%6.6f", loglik);
-      Rprintf("\ttook%6.3f sec. (CPU clock)\n", took); //TODO format units if >60
+      Rprintf("\ttook %6.3f sec. (CPU clock)\n", took); //TODO format units if >60
       // To format units see const *char in: http://www.cplusplus.com/reference/cmath/round/
 
       // V=2 LEVEL of OUTPUT
@@ -571,7 +599,7 @@ if( cs_em(BLUXs, theta, nG, rfxlvls, dimXZWG[1]) == 1) Rprintf("em call succsess
         for(g = 0; g < p[0]; g++){
           Rprintf("\tV%i", g+1);
         }
-        Rprintf("\tsigm2e\ttyPy\tlogDetC\n");
+        Rprintf("\tsigma2e\ttyPy\tlogDetC\n");
         // output underlines"
         for(g = 0; g < p[0]; g++){
           if(g < 10) Rprintf("\t--"); else Rprintf("\t---");
@@ -639,13 +667,14 @@ if( cs_em(BLUXs, theta, nG, rfxlvls, dimXZWG[1]) == 1) Rprintf("em call succsess
   cs_spfree(Bpinv);
   cs_spfree(W); cs_spfree(tW); cs_spfree(tWW);
   cs_spfree(cRinv); cs_spfree(tcRinv);
-  cs_spfree(Ctmp); cs_spfree(C); cs_spfree(Cinv);
-  cs_spfree(tmpRHS); cs_spfree(RHSperm); cs_spfree(BLUXs); cs_spfree(R);
-  cs_spfree(RHSD);
+  cs_spfree(Ctmp); cs_spfree(C); cs_spfree(Cperm); //cs_spfree(Cinv);
+  cs_spfree(tmpRHS); cs_spfree(RHSperm); cs_spfree(BLUXs); cs_spfree(Lm12); cs_spfree(R);
 
-  cs_sfree(sLc); cs_sfree(sLm);
+  cs_sfree(sLc);
+
   cs_nfree(Lc);
-  cs_free(P);
+
+  cs_free(P); cs_free(Pinv);
 
 //
   for(g = 0; g < nG; g++){
