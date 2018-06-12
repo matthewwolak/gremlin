@@ -997,20 +997,22 @@ csi cs_leaf (csi i, csi j, const csi *first, csi *maxfirst, csi *prevleaf,
     return (q) ;                    /* q = least common ancester (jprev,j) */
 }
 
+/* MEW 22 Sept 2016 response to failed SOLARIS test: function not used */
 /* load a triplet matrix from a file */
-cs *cs_load (FILE *f)
-{
-    double i, j ;   /* use double for integers to avoid csi conflicts */
-    double x ;
-    cs *T ;
-    if (!f) return (NULL) ;                             /* check inputs */
-    T = cs_spalloc (0, 0, 1, 1, 1) ;                    /* allocate result */
-    while (fscanf (f, "%lg %lg %lg\n", &i, &j, &x) == 3)
-    {
-        if (!cs_entry (T, (csi) i, (csi) j, x)) return (cs_spfree (T)) ;
-    }
-    return (T) ;
-}
+//cs *cs_load (FILE *f)
+//{
+//    double i, j ;   /* use double for integers to avoid csi conflicts */
+//    double x ;
+//    cs *T ;
+//    if (!f) return (NULL) ;                             /* check inputs */
+//    T = cs_spalloc (0, 0, 1, 1, 1) ;                    /* allocate result */
+//    while (fscanf (f, "%lg %lg %lg\n", &i, &j, &x) == 3)
+//    {
+//        if (!cs_entry (T, (csi) i, (csi) j, x)) return (cs_spfree (T)) ;
+//    }
+//    return (T) ;
+//}
+
 
 /* solve Lx=b where x and b are dense.  x=b on input, solution on output. */
 csi cs_lsolve (const cs *L, double *x)
