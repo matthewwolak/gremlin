@@ -84,6 +84,13 @@ void ugremlin(
 
   char   tookUnits;
 
+
+
+
+
+if(v[0] > 3) t = tic();
+
+
   d = 0.0;
 
   //FIXME Do I need X? Delete if not
@@ -265,9 +272,23 @@ void ugremlin(
     cs_spfree(tCperm);
 
 
+
+if(v[0] > 3){
+  took = toc(t); 
+  Rprintf("initial cpp setup (to get C) took %6.3f sec. (CPU clock)\n", took);
+  t = tic();
+}
+
+
   // Symbolic Cholesky factorization of re-ordered C
   sLc = cs_schol(0, Cperm);
-  
+ 
+if(v[0] > 3){
+  took = toc(t);
+  Rprintf("initial cpp cs_schol(C) took %6.3f sec. (CPU clock)\n", took);
+  t = tic();
+}
+   
   cs_gaxpy(tW, y, tmpRHS->x);   //  y = A*x+y XXX my variable y is cs_gaxpy's x 
   // create RHS (permuted) = Same every iteration
   // cs_pvec:  b = P'*x
@@ -300,6 +321,10 @@ void ugremlin(
 
 
 
+if(v[0] > 3){
+  took = toc(t);
+  Rprintf("rest of initial cpp setup took %6.3f sec. (CPU clock)\n", took);
+}
 
   //////////////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
@@ -403,6 +428,13 @@ void ugremlin(
 
 
 
+if(v[0] > 3){
+  took = toc(t);
+  Rprintf("cpp REML i=%i setup took %6.3f sec. (CPU clock)\n", i, took);
+  t = tic();
+}
+
+
     Lc = cs_chol(Cperm, sLc);  //TODO update if i>0? (cs_updown)
     if(Lc == NULL){
       error("Coefficient matrix of Mixed Model Equations singular: caused by a bad combination of G and R (co)variance parameters\n");
@@ -410,6 +442,11 @@ void ugremlin(
 
 
   
+if(v[0] > 3){
+  took = toc(t);
+  Rprintf("  cpp REML i=%i cs_chol(C) took %6.3f sec. (CPU clock)\n", i, took);
+  t = tic();
+}
 
 
 
@@ -469,6 +506,14 @@ void ugremlin(
     loglik += rfxlL[0];
     loglik *= -0.5;
 
+
+
+if(v[0] > 3){
+  took = toc(t);
+  Rprintf("  cpp REML i=%i log-likelihood calc. took %6.3f sec. (CPU clock)\n", i, took);
+  t = tic();
+}
+
     //XXX	**** END LOG-LIKELIHOOD CALCULATION **** 		XXX
     //XXX	**** END LOG-LIKELIHOOD CALCULATION **** 		XXX
     /**************************************************************************/
@@ -501,6 +546,15 @@ void ugremlin(
     }
 
 
+
+if(v[0] > 3){
+  took = toc(t);
+  Rprintf("  cpp REML i=%i sln/r calc. took %6.3f sec. (CPU clock)\n", i, took);
+  t = tic();
+}
+
+
+
     for(k = 0; k < p[0]; k++){
       itMat[itc] += theta[k];
       itc++;
@@ -513,6 +567,12 @@ void ugremlin(
 
 
 
+
+if(v[0] > 3){
+  took = toc(t);
+  Rprintf("  cpp REML i=%i itMat recording took %6.3f sec. (CPU clock)\n", i, took);
+  t = tic();
+}
 
 
     ////////////////////////////////////////////////////////////////////////////
@@ -547,6 +607,12 @@ void ugremlin(
 
 
 
+
+if(v[0] > 3){
+  took = toc(t);
+  Rprintf("  cpp REML i=%i convergence crit. calc. took %6.3f sec. (CPU clock)\n", i, took);
+  t = tic();
+}
 
 
 
@@ -589,7 +655,7 @@ void ugremlin(
     // V=1 LEVEL of OUTPUT
     if(v[0] > 0 && i%vit[0] == 0){ 
       Rprintf("\t\tlL:%6.6f", loglik);
-      Rprintf("\ttook %6.3f sec. (CPU clock)\n", took); //TODO format units if >60
+      Rprintf("\ttook %6.3f sec. (CPU clock)\n", took); //TODO format units if >60 (and do for all Rprintf(took))
       // To format units see const *char in: http://www.cplusplus.com/reference/cmath/round/
 
       // V=2 LEVEL of OUTPUT
@@ -650,7 +716,7 @@ void ugremlin(
 
 
 
-
+if(v[0] > 3) t = tic();
 
   for(k = 0; k < dimXZWG[5]; k++){
     sln[k] += BLUXs->x[k];
@@ -689,6 +755,13 @@ void ugremlin(
 //
   delete [] rfxlvls;
   delete [] cc;
+
+
+if(v[0] > 3){
+  took = toc(t);
+  Rprintf("cpp post-REML freeing-up took %6.3f sec. (CPU clock)\n", took);
+}
+
 }
 }
 
