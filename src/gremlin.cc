@@ -286,10 +286,7 @@ if(v[0] > 3){
 
 
   // Symbolic Cholesky factorization of re-ordered/permuted C
-  sLc = cs_schol(0, Cperm);
-
-
-
+  sLc = cs_pschol(0, Cperm);
 
 if(sLc->pinv == NULL){
   Rprintf("Sorry fella, didn't work\n\n\n");
