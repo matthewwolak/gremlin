@@ -60,7 +60,7 @@ void ugremlin(
 	 *tmpRHS, *RHSperm, *tmpBLUXs, *BLUXs, *Lm12, *R;
   css    *sLc;
   csn    *Lc;
-  csi    *P, *Pinv;
+  csi    Cn, *P, *Pinv;
 
   int    nG = nGR[0], nR = nGR[1];
 
@@ -71,7 +71,7 @@ void ugremlin(
   cs*    *invGRinv = new cs*[nG];
   cs* 	 *KGRinv = new cs*[nG];
 
-  double t, took, dsLc, tyPy, *Lm12x, logDetC, sigma2e, loglik, d, cc2, cc2d;
+  double t, T, took, dsLc, tyPy, *Lm12x, logDetC, sigma2e, loglik, d, cc2, cc2d;
 
   int 	 g, i, k, rw, si, si2, ei,
 	 itc = 0,
@@ -254,6 +254,11 @@ if(v[0] > 3) t = tic();
   }else{
     C = cs_add(tWW, Bpinv, 1.0, 1.0);
   }
+  Cn = C->n;
+
+
+
+
 
   //1d Find best order of MMA/C/pivots!
   //// Graser et al. 1987 (p1363) when singular C, |C| not invariant to order
@@ -261,7 +266,7 @@ if(v[0] > 3) t = tic();
   //// Hadfield (2010, MCMCglmm paper App B): details on chol, ordering, and updating
   // Create permutation matrices for C
   P = cs_amd(1, C);     // order=1 is Chol (0=natural)
-  Pinv = cs_pinv(P, C->n);
+  Pinv = cs_pinv(P, Cn);
   // permute C then update symbolic Chol. for Cperm without further permutation
   //// permutated Chol. factor is not a Chol. factor of a matrix
   Cperm = cs_permute(C, P, Pinv, 1);  //<-- permute values 0/1=FALSE/TRUE
@@ -275,24 +280,38 @@ if(v[0] > 3) t = tic();
 
 if(v[0] > 3){
   took = toc(t); 
-  Rprintf("initial cpp setup (to get C) took %6.3f sec. (CPU clock)\n", took);
+  Rprintf("%6.4f sec. (CPU clock): initial cpp setup (to get C)\n", took);
   t = tic();
 }
 
 
-  // Symbolic Cholesky factorization of re-ordered C
+  // Symbolic Cholesky factorization of re-ordered/permuted C
   sLc = cs_schol(0, Cperm);
+
+
+
+
+if(sLc->pinv == NULL){
+  Rprintf("Sorry fella, didn't work\n\n\n");
+}
+
+
+  if(sLc == NULL){
+      Rprintf("FAILED to create sybmolic Cholesky factorization of Coefficient matrix of Mixed Model Equations (C)\n");
+  }
+
+
  
 if(v[0] > 3){
   took = toc(t);
-  Rprintf("initial cpp cs_schol(C) took %6.3f sec. (CPU clock)\n", took);
+  Rprintf("  %6.4f sec. (CPU clock): initial cpp cs_schol(C)\n", took);
   t = tic();
 }
    
   cs_gaxpy(tW, y, tmpRHS->x);   //  y = A*x+y XXX my variable y is cs_gaxpy's x 
   // create RHS (permuted) = Same every iteration
   // cs_pvec:  b = P'*x
-  cs_pvec(Pinv, tmpRHS->x, RHSperm->x, C->n);
+  cs_pvec(Pinv, tmpRHS->x, RHSperm->x, Cn);
   // NOTE: don't drop zeroes, needed for forward solve `Lm12=Lc/RHSperm` below
 
   // fill Lm12 with RHSperm so will be created in place when solve Lc and RHSperm
@@ -323,7 +342,7 @@ if(v[0] > 3){
 
 if(v[0] > 3){
   took = toc(t);
-  Rprintf("rest of initial cpp setup took %6.3f sec. (CPU clock)\n", took);
+  Rprintf("  %6.4f sec. (CPU clock): rest of initial cpp setup\n", took);
 }
 
   //////////////////////////////////////////////////////////////////////////////
@@ -334,7 +353,7 @@ if(v[0] > 3){
   //////////////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
   for(i = 0; i < maxit[0]; i++){
-    t = tic();
+    T = tic();
     if(v[0] > 0 && i%vit[0] == 0){
       Rprintf("  %i of max %i\n", i+1, maxit[0]); //TODO TIME of DAY?
     }
@@ -430,11 +449,16 @@ if(v[0] > 3){
 
 if(v[0] > 3){
   took = toc(t);
-  Rprintf("cpp REML i=%i setup took %6.3f sec. (CPU clock)\n", i, took);
+  Rprintf("  %6.4f sec. (CPU clock): cpp REML i=%i setup\n", took, i);
   t = tic();
 }
 
 
+
+
+
+//for(k = 0; k < Cn; k++) Rprintf("sLc->pinv[%i]:%i\n", k, sLc->pinv[k]);
+cs_print(Cperm, 0);
     Lc = cs_chol(Cperm, sLc);  //TODO update if i>0? (cs_updown)
     if(Lc == NULL){
       error("Coefficient matrix of Mixed Model Equations singular: caused by a bad combination of G and R (co)variance parameters\n");
@@ -444,7 +468,7 @@ if(v[0] > 3){
   
 if(v[0] > 3){
   took = toc(t);
-  Rprintf("  cpp REML i=%i cs_chol(C) took %6.3f sec. (CPU clock)\n", i, took);
+  Rprintf("    %6.4f sec. (CPU clock): cpp REML i=%i cs_chol(C)\n", took, i);
   t = tic();
 }
 
@@ -483,7 +507,7 @@ if(v[0] > 3){
     }
 
 
-    for(k = 0; k < C->n; k++){
+    for(k = 0; k < Cn; k++){
       rw = Lc->L->p[k];
       dsLc += log(Lc->L->x[rw]);
     }
@@ -510,7 +534,7 @@ if(v[0] > 3){
 
 if(v[0] > 3){
   took = toc(t);
-  Rprintf("  cpp REML i=%i log-likelihood calc. took %6.3f sec. (CPU clock)\n", i, took);
+  Rprintf("    %6.4f sec. (CPU clock): cpp REML i=%i log-likelihood calc.\n", took, i);
   t = tic();
 }
 
@@ -526,12 +550,12 @@ if(v[0] > 3){
 ////TODO Might not need to solve for BLUEs (see Knight 2008 for just getting BLUPs eqn 2.13-15
     //// see Mrode 2005 chapter
     //// permute tmpRHS to order of Lc
-    cs_ipvec(Pinv, tmpRHS->x, tmpBLUXs->x, C->n);   	 // BLUXs=P*tmpRHS
+    cs_ipvec(Pinv, tmpRHS->x, tmpBLUXs->x, Cn);   	 // BLUXs=P*tmpRHS
     //// forward/back solve
     cs_lsolve(Lc->L, tmpBLUXs->x);			 // BLUXs=L\BLUXs
     cs_ltsolve(Lc->L, tmpBLUXs->x);			 // BLUXs=L'\BLUXs
     //// permute so BLUXs contains slns back in original data order
-    cs_pvec(Pinv, tmpBLUXs->x, BLUXs->x, C->n);	 	 // BLUXs=P'*tmpBLUXs
+    cs_pvec(Pinv, tmpBLUXs->x, BLUXs->x, Cn);	 	 // BLUXs=P'*tmpBLUXs
 
 
     // calculate residuals as r = y - W %*% sln
@@ -549,7 +573,7 @@ if(v[0] > 3){
 
 if(v[0] > 3){
   took = toc(t);
-  Rprintf("  cpp REML i=%i sln/r calc. took %6.3f sec. (CPU clock)\n", i, took);
+  Rprintf("    %6.4f sec. (CPU clock): cpp REML i=%i sln/r calc.\n", took, i);
   t = tic();
 }
 
@@ -570,7 +594,7 @@ if(v[0] > 3){
 
 if(v[0] > 3){
   took = toc(t);
-  Rprintf("  cpp REML i=%i itMat recording took %6.3f sec. (CPU clock)\n", i, took);
+  Rprintf("    %6.4f sec. (CPU clock): cpp REML i=%i itMat recording took\n", took, i);
   t = tic();
 }
 
@@ -610,7 +634,7 @@ if(v[0] > 3){
 
 if(v[0] > 3){
   took = toc(t);
-  Rprintf("  cpp REML i=%i convergence crit. calc. took %6.3f sec. (CPU clock)\n", i, took);
+  Rprintf("    %6.4f sec. (CPU clock): cpp REML i=%i convergence crit. calc.\n", took, i);
   t = tic();
 }
 
@@ -651,7 +675,7 @@ if(v[0] > 3){
 
 
 
-    took = toc(t);                 // Capture cpu clock time for i REML iteration
+    took = toc(T);                 // Capture cpu clock time for i REML iteration
     // V=1 LEVEL of OUTPUT
     if(v[0] > 0 && i%vit[0] == 0){ 
       Rprintf("\t\tlL:%6.6f", loglik);
@@ -759,7 +783,7 @@ if(v[0] > 3) t = tic();
 
 if(v[0] > 3){
   took = toc(t);
-  Rprintf("cpp post-REML freeing-up took %6.3f sec. (CPU clock)\n", took);
+  Rprintf("%6.4f sec. (CPU clock): cpp post-REML freeing-up\n", took);
 }
 
 }
