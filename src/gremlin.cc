@@ -454,8 +454,6 @@ if(v[0] > 3){
 
 
 
-//for(k = 0; k < Cn; k++) Rprintf("sLc->pinv[%i]:%i\n", k, sLc->pinv[k]);
-cs_print(Cperm, 0);
     Lc = cs_chol(Cperm, sLc);  //TODO update if i>0? (cs_updown)
     if(Lc == NULL){
       error("Coefficient matrix of Mixed Model Equations singular: caused by a bad combination of G and R (co)variance parameters\n");
