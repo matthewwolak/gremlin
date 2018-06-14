@@ -1,3 +1,6 @@
+#include "gremlin.h"
+
+
 /* Similar copy of `cs_schol()` from Csparse */
 /* ordering and symbolic analysis for a Cholesky factorization */
 /* ASSUMES: if order = 0, still returns Identy S->pinv */
