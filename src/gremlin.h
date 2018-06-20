@@ -10,10 +10,6 @@ extern "C" {
 
 
 
-/* My copy of Csparse::cs_schol: this on produces identity S->pinv if order=0 */
-css *cs_pschol (int order, const cs *A) ;
-
-
 /* Expectation Maximization Algorithm:
      replaces elements in theta. Returns 1=success else 0 */
 csi cs_em(const cs *BLUXs, const double *theta,
