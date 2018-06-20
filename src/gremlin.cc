@@ -302,7 +302,7 @@ if(v[0] > 3){
       error("FAILED: symbolic Cholesky factorization of Mixed Model Array (`M`)\n");
   }
   if(sLm->pinv[Cn] != Cn){
-    Rprintf("sLm->pinv[%i]=%i\n", Cn, sLm->pinv[Cn])
+    Rprintf("sLm->pinv[%i]=%i\n", Cn, sLm->pinv[Cn]);
     error("Ordering of M has not left RHS as last row/column\n");
   }
 
