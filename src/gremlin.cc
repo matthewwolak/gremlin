@@ -1,9 +1,9 @@
 #include "gremlincc.h"
 /*******************************************************************/
 /* 2 clock functions from SuiteSparse 5.1.0 by Tim Davis           */
-/*******************************************************************/
 static double tic (void) { return (clock () / (double) CLOCKS_PER_SEC) ; }
 static double toc (double t) { double s = tic () ; return (CS_MAX (0, s-t)) ; }
+/*******************************************************************/
 
 
 
@@ -56,11 +56,11 @@ void ugremlin(
 ){
 
   cs	 *Bpinv, *W, *tW, *tWW, *tWWtmp, *cRinv, *tcRinv,
-	 *Ctmp, *C, *Cperm, *tCperm, //*pCinv, *Cinv,
-	 *tmpRHS, *RHSperm, *tmpBLUXs, *BLUXs, *Lm12, *R;
-  css    *sLc;
-  csn    *Lc;
-  csi    Cn, *P, *Pinv;
+	 *Ctmp, *C, *tC,//*pCinv, *Cinv,
+	 *RHS, *tCRHS, *CRHS, *RHSD, *M, *BLUXs, *R;
+  css    *sLm;
+  csn    *Lm;
+  csi    Cn;//*Pinv
 
   int    nG = nGR[0], nR = nGR[1];
 
@@ -71,7 +71,7 @@ void ugremlin(
   cs*    *invGRinv = new cs*[nG];
   cs* 	 *KGRinv = new cs*[nG];
 
-  double t, T, took, dsLc, tyPy, *Lm12x, logDetC, sigma2e, loglik, d, cc2, cc2d;
+  double t, T, took, dsLc, tyPy, logDetC, sigma2e, loglik, d, cc2, cc2d;
 
   int 	 g, i, k, rw, si, si2, ei,
 	 itc = 0,
@@ -156,23 +156,21 @@ if(v[0] > 3) t = tic();
     tWW = cs_transpose(tWWtmp, true);
     cs_spfree(tWWtmp);
 
-  // setup 0 initialized RHS (permuted by ordering of C cholesky) 1-column matrix
-  tmpRHS = cs_spalloc(dimXZWG[5], 1, dimXZWG[5], true, false);
-  RHSperm = cs_spalloc(dimXZWG[5], 1, dimXZWG[5], true, false);
+  // setup 0 initialized RHS 1-column matrix
+  //// ?Potentially: having explicit 0s in RHS will ensure M ordered with RHS last
+  ////TODO check this last statement
+  RHS = cs_spalloc(dimXZWG[5], 1, dimXZWG[5], true, false);
   BLUXs = cs_spalloc(dimXZWG[5], 1, dimXZWG[5], true, false);     // sln matrix
-  tmpBLUXs = cs_spalloc(dimXZWG[5], 1, dimXZWG[5], true, false); 
   for(k = 0; k < dimXZWG[5]; k++){
-    tmpRHS->i[k] = k;
-    RHSperm->i[k] = k;
-    tmpBLUXs->i[k] = k ; BLUXs->i[k] = k;
-    tmpRHS->x[k] = 0.0;
-    RHSperm->x[k] = 0.0;
-    tmpBLUXs->x[k] = 0 ; BLUXs->x[k] = 0.0;
+    RHS->i[k] = k;
+    BLUXs->i[k] = k;
+    RHS->x[k] = 0.0;
+    BLUXs->x[k] = 0.0;
   }
-  tmpRHS->p[0] = 0; tmpRHS->p[1] = dimXZWG[5];
-  RHSperm->p[0] = 0; RHSperm->p[1] = dimXZWG[5];
-  tmpBLUXs->p[0] = 0; tmpBLUXs->p[1] = dimXZWG[5];
+  RHS->p[0] = 0; RHS->p[1] = dimXZWG[5];
+//  tmpBLUXs->p[0] = 0; tmpBLUXs->p[1] = dimXZWG[5];
   BLUXs->p[0] = 0; BLUXs->p[1] = dimXZWG[5];
+
 
   // setup matrix for residuals
   R = cs_spalloc(dimXZWG[5], 1, dimXZWG[5], true, false);
@@ -259,25 +257,6 @@ if(v[0] > 3) t = tic();
 
 
 
-
-  //1d Find best order of MMA/C/pivots!
-  //// Graser et al. 1987 (p1363) when singular C, |C| not invariant to order
-  //// of C, therefore same order (of pivots) must be used in each loglik iteration
-  //// Hadfield (2010, MCMCglmm paper App B): details on chol, ordering, and updating
-  // Create permutation matrices for C
-  P = cs_amd(1, C);     // order=1 is Chol (0=natural)
-  Pinv = cs_pinv(P, Cn);
-  // permute C then update symbolic Chol. for Cperm without further permutation
-  //// permutated Chol. factor is not a Chol. factor of a matrix
-  Cperm = cs_permute(C, P, Pinv, 1);  //<-- permute values 0/1=FALSE/TRUE
-    // Do t(t(Cperm)) to order correctly
-    tCperm = cs_transpose(Cperm, true);
-    cs_spfree(Cperm);
-    Cperm = cs_transpose(tCperm, true);
-    cs_spfree(tCperm);
-
-
-
 if(v[0] > 3){
   took = toc(t); 
   Rprintf("%6.4f sec. (CPU clock): initial cpp setup (to get C)\n", took);
@@ -285,39 +264,57 @@ if(v[0] > 3){
 }
 
 
-  // Symbolic Cholesky factorization of re-ordered/permuted C
-  sLc = cs_pschol(0, Cperm);
-
-if(sLc->pinv == NULL){
-  Rprintf("Sorry fella, didn't work\n\n\n");
-}
 
 
-  if(sLc == NULL){
-      Rprintf("FAILED to create sybmolic Cholesky factorization of Coefficient matrix of Mixed Model Equations (C)\n");
+  // Create Mixed Model Array (M) matrix
+  cs_gaxpy(tW, y, RHS->x);  // y = A*x+y XXX my `y` is cs_gaxpy's `x`
+  cs_dropzeros(RHS);  //XXX FIXME DELETE OR do I need to do this?
+  //// TODO (potentially  keep 0s to ensure RHS is always last row/column in M)
+  // copy RHS to BLUXs so can solve in place later (C * BLUXs = RHS)
+  for(k = 0; k < dimXZWG[5]; k++){
+    BLUXs->x[k] += RHS->x[k];
+  }
+  RHSD = cs_spalloc(dimXZWG[5]+1, 1, RHS->nzmax+1, true, false);
+  si = 0;
+  for(k = 0; k < RHS->nzmax; k++){
+    RHSD->i[k] = RHS->i[k];
+    RHSD->x[k] = RHS->x[k];
+    si++;
+  }
+  RHSD->i[si] = dimXZWG[5];
+  RHSD->x[si] = D[0];
+  RHSD->p[0] = 0; RHSD->p[1] = si + 1;
+ 
+  tCRHS = cs_cbind(C, RHS);
+  CRHS = cs_transpose(tCRHS, true);
+  cs_spfree(tCRHS);
+  M = cs_cbind(CRHS, RHSD);
+  cs_spfree(CRHS); cs_spfree(RHSD);
+
+  //1d Find best order of MMA/C/pivots!
+  //// Graser et al. 1987 (p1363) when singular C, |C| not invariant to order
+  //// of C, therefore same order (of pivots) must be used in each loglik iteration
+  //// Hadfield (2010, MCMCglmm paper App B): details on chol, ordering, and updating
+  
+  // Symbolic Cholesky factorization of M
+  sLm = cs_schol(1, M);
+  if(sLm == NULL){
+      error("FAILED: symbolic Cholesky factorization of Mixed Model Array (`M`)\n");
+  }
+  if(sLm->pinv[Cn] != Cn){
+    Rprintf("sLm->pinv[%i]=%i\n", Cn, sLm->pinv[Cn])
+    error("Ordering of M has not left RHS as last row/column\n");
   }
 
 
- 
 if(v[0] > 3){
   took = toc(t);
   Rprintf("  %6.4f sec. (CPU clock): initial cpp cs_schol(C)\n", took);
   t = tic();
 }
-   
-  cs_gaxpy(tW, y, tmpRHS->x);   //  y = A*x+y XXX my variable y is cs_gaxpy's x 
-  // create RHS (permuted) = Same every iteration
-  // cs_pvec:  b = P'*x
-  cs_pvec(Pinv, tmpRHS->x, RHSperm->x, Cn);
-  // NOTE: don't drop zeroes, needed for forward solve `Lm12=Lc/RHSperm` below
 
-  // fill Lm12 with RHSperm so will be created in place when solve Lc and RHSperm
-  Lm12 = cs_spalloc(dimXZWG[5], 1, dimXZWG[5], true, false);
-  for(k = 0; k < dimXZWG[5]; k++){
-    Lm12->i[k] = RHSperm->i[k];
-    Lm12->x[k] = RHSperm->x[k];
-  }
-  Lm12->p[0] = 0; Lm12->p[1] = dimXZWG[5];
+
+
 
 
   // Create variables needed for log-likelihood calculations
@@ -327,13 +324,6 @@ if(v[0] > 3){
       rfxlvls[g] = dimZgs[2*g+1];
     }
     nminfrfx = nminffx - nr; 
-
-
-
-
-
-
-
 
 
 
@@ -361,8 +351,7 @@ if(v[0] > 3){
         cs_spfree(GcRinv[g]); cs_spfree(GRinv[g]); cs_spfree(invGRinv[g]);
       }
       cs_spfree(C);
-      cs_spfree(Cperm);
-      cs_nfree(Lc);
+      cs_nfree(Lm);
 
 
 
@@ -425,22 +414,22 @@ if(v[0] > 3){
       }else{
         C = cs_add(tWW, Bpinv, 1.0, 1.0);
       }
-      ////// Permute C
-      Cperm = cs_permute(C, P, Pinv, true);
-        // Do t(t(Cperm)) to order correctly
-        tCperm = cs_transpose(Cperm, true);
-        cs_spfree(Cperm);
-        Cperm = cs_transpose(tCperm, true);
-        cs_spfree(tCperm);
+      // order rows within columns (necessary for updating M)
+      tC = cs_transpose(C, true);
+      cs_spfree(C);
+      C = cs_transpose(tC, true);
+      cs_spfree(tC);
 
-      ////// Set Lm12 back to RHSperm for "in-place" fill-in
-      //FIXME Do I need to do this? Or just swap Lm12->x or just use a double array
-      for(k = 0; k < dimXZWG[5]; k++){
-        Lm12->x[k] = RHSperm->x[k];
+      // update M
+      // non-zero pattern hasn't changed - nor has last row & column
+      for(k = 0; k < Cn; k++){
+        for(g = C->p[k], rw = M->p[k]; g < C->p[k+1]; g++, rw++){
+          M->x[rw] = C->x[g];
+        }
       }
 
-    }  // End if i>0
 
+    }  // End if i>0
 
 
 
@@ -453,17 +442,17 @@ if(v[0] > 3){
 
 
 
-
-    Lc = cs_chol(Cperm, sLc);  //TODO update if i>0? (cs_updown)
-    if(Lc == NULL){
-      error("Coefficient matrix of Mixed Model Equations singular: caused by a bad combination of G and R (co)variance parameters\n");
+    Lm = cs_chol(M, sLm);  //TODO update if i>0? (cs_updown)
+//    Lm = cs_chol(M, sLm);  //TODO update if i>0? (cs_updown)
+    if(Lm == NULL){
+      error("Mixed Model Array singular: possibly caused by a bad combination of G and R (co)variance parameters\n");
     }
 
 
   
 if(v[0] > 3){
   took = toc(t);
-  Rprintf("    %6.4f sec. (CPU clock): cpp REML i=%i cs_chol(C)\n", took, i);
+  Rprintf("    %6.4f sec. (CPU clock): cpp REML i=%i cs_chol(M)\n", took, i);
   t = tic();
 }
 
@@ -472,13 +461,6 @@ if(v[0] > 3){
     /*		XXX		XXX		XXX		XXX	*/
     //TODO FIXME FIXME FIXME: Get rid of explicit inversion of C !!!!!
 //    Cinv = cs_inv(C);  /*TURNED OFF FOR NOW --> MCMCglmm::cs_inv / my C not working */
-//pCinv = cs_inv(Cperm);
-//Cinv = cs_permute(pCinv, sLc->pinv, P, true);
-//cs_spfree(pCinv);
-//pCinv = cs_transpose(Cinv, true);
-//cs_spfree(Cinv);
-//Cinv = cs_transpose(pCinv, true);
-//cs_spfree(pCinv);
 
 
 
@@ -488,25 +470,17 @@ if(v[0] > 3){
     //// 5a determine log(|C|) and y'Py
     ////// Meyer & Smith 1996, eqns 12-14 (and 9)
     //// Also see Meyer & Kirkpatrick 2005 GSE. eqn. 18: if cholesky of MMA = LL'
-    dsLc = 0.0; loglik = 0.0;  // set diagonal sum of Lc and loglik back to 0
-
-    // Meyer & Smith 1996, eqn. 14
-    //// tyPy = D - crossprod(Lm12)
-    ////// set tyPy = D then subtract intermediate values of crossprod(Lm12) from it
-    tyPy = D[0];
-    cs_lsolve(Lc->L, Lm12->x);			 // Lm12=Lc\RHSperm
-    Lm12x = Lm12->x;
-    // D- [each step of] crossprod(Lm12)
-    for(k = 0; k < dimXZWG[5]; k++){
-      tyPy -= Lm12x[k] * Lm12x[k];
-    }
-
-
+    dsLc = 0.0; tyPy = 0.0; loglik = 0.0;  // set diagonal sum of Lc, tyPy, and loglik back to 0
+    // Meyer & Smith 1996, eqn. 13
     for(k = 0; k < Cn; k++){
-      rw = Lc->L->p[k];
-      dsLc += log(Lc->L->x[rw]);
+      rw = Lm->L->p[k];
+      dsLc += log(Lm->L->x[rw]);
     }
-    logDetC = 2 * dsLc;
+    logDetC = 2.0 * dsLc;
+    // Meyer & Smith 1996, eqn. 14
+    tyPy += Lm->L->x[Lm->L->p[Cn]];
+      tyPy *= tyPy;
+
     sigma2e = tyPy / nminffx;             // residual variance
     loglik += nminffx + logDetC;         // nminffx is tyPy/sigma2e, simplified b/c sigma2e=tyPy/nminffx 
     
@@ -544,14 +518,8 @@ if(v[0] > 3){
     // solve MME for BLUEs/BLUPs
 ////TODO Might not need to solve for BLUEs (see Knight 2008 for just getting BLUPs eqn 2.13-15
     //// see Mrode 2005 chapter
-    //// permute tmpRHS to order of Lc
-    cs_ipvec(Pinv, tmpRHS->x, tmpBLUXs->x, Cn);   	 // BLUXs=P*tmpRHS
-    //// forward/back solve
-    cs_lsolve(Lc->L, tmpBLUXs->x);			 // BLUXs=L\BLUXs
-    cs_ltsolve(Lc->L, tmpBLUXs->x);			 // BLUXs=L'\BLUXs
-    //// permute so BLUXs contains slns back in original data order
-    cs_pvec(Pinv, tmpBLUXs->x, BLUXs->x, Cn);	 	 // BLUXs=P'*tmpBLUXs
-
+//TODO edit cs_chol to save Lc from Lm then pickup from cs_cholsol remaining steps
+    cs_cholsol(1, C, BLUXs->x); 
 
     // calculate residuals as r = y - W %*% sln
     // put y in R->x to be over-written
@@ -752,14 +720,12 @@ if(v[0] > 3) t = tic();
   cs_spfree(Bpinv);
   cs_spfree(W); cs_spfree(tW); cs_spfree(tWW);
   cs_spfree(cRinv); cs_spfree(tcRinv);
-  cs_spfree(Ctmp); cs_spfree(C); cs_spfree(Cperm); //cs_spfree(Cinv);
-  cs_spfree(tmpRHS); cs_spfree(RHSperm); cs_spfree(BLUXs); cs_spfree(Lm12); cs_spfree(R);
+  cs_spfree(Ctmp); cs_spfree(C);//cs_spfree(Cinv);
+  cs_spfree(RHS); cs_spfree(BLUXs); cs_spfree(R);
 
-  cs_sfree(sLc);
+  cs_sfree(sLm);
 
-  cs_nfree(Lc);
-
-  cs_free(P); cs_free(Pinv);
+  cs_nfree(Lm);
 
 //
   for(g = 0; g < nG; g++){
