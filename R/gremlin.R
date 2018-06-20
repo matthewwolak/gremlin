@@ -317,8 +317,8 @@ gremlin <- function(formula, random = NULL, rcov = ~ units,
 #
 
 
-skipcpp <- FALSE
-skipR <- TRUE
+skipcpp <- !TRUE
+skipR <- !TRUE
 #################*******    XXX   DELETE ME WHEN DONE XXX  ******###############
 if(!skipR){
     tWW <- crossprod(W)  #TODO Add statement to include `Rinv`
@@ -335,12 +335,26 @@ if(!skipR){
 	sapply(1:modMats$nG, FUN = function(u){kronecker(modMats$listGinv[[u]], solve(Ginv[[u]]))}))), "symmetricMatrix")
     } else C <- as(tWW + diag(zero), "symmetricMatrix")
 
-    sLc <- Cholesky(C, perm = TRUE, LDL = FALSE, super = FALSE)
-    Pc <- as(sLc, "pMatrix")
-    # original order obtained by: t(Pc) %*% Lc %*% Pc or `crossprod(Pc, Lc) %*% Pc`
-    Cperm <- crossprod(Pc, C) %*% Pc
-      sLc <- Cholesky(Cperm, perm = FALSE, LDL = FALSE, super =  FALSE)
-     RHSperm <- Matrix(crossprod(Pc, crossprod(W, modMats$y)), nrow = modMats$ncy, sparse = TRUE)  # <-- Same every iteration
+    # With permutation of C
+    ## Top-left for quadratic
+    #M <- as(drop0(rbind(cbind(D, RHSperm),
+    #	cbind(t(RHSperm), crossprod(Pc, C) %*% Pc))), "symmetricMatrix")
+    ## Bottom-right for quadratic
+    #M <- as(cbind(rbind(crossprod(Pc, C) %*% Pc, RHSperm),
+    #	    rBind(t(RHSperm), D)), "symmetricMatrix")
+
+    RHS <- Matrix(crossprod(W, modMats$y), sparse = TRUE)  # <-- Same every iteration
+    M <- as(cbind(rbind(C, t(RHS)),
+	    rbind(RHS, D)), "symmetricMatrix")
+    #TODO delete `Mout` option entirely?
+    if(Mout) return(M)
+
+    #TODO test if super=TRUE better
+    ## supernodal might be better as coefficient matrix (C) becomes more dense
+    #### e.g., with a genomic relatedness matrix (see Masuda et al. 2014 & 2015)
+    sLm <- Cholesky(M, perm = TRUE, LDL = FALSE, super = FALSE)
+    # original order obtained by: t(P) %*% L %*% P or `crossprod(P, L) %*% P`
+
 
 #TODO put these with `mkModMats()` - need to figure out multivariate version/format
     # 5b log(|R|) and log(|G|) <-- Meyer 1989 (uni) & 1991 (multivar)
@@ -433,25 +447,12 @@ if(!skipcpp){
 
 
 if(!skipR){
-# With permutation of C
-## Top-left for quadratic
-#M <- as(drop0(rbind(cbind(D, RHSperm),
-#	cbind(t(RHSperm), crossprod(Pc, C) %*% Pc))), "symmetricMatrix")
-## Bottom-right for quadratic
-#M <- as(cbind(rbind(crossprod(Pc, C) %*% Pc, RHSperm),
-#	    rBind(t(RHSperm), D)), "symmetricMatrix")
 
     # TODO implement options to do different methods to obtain Cinv
     ## E.g., (?Meyer) only need diagonals
-    ## Also, investigate/test fastest method to obtain Cinv from `sLc`
+    ## Also, investigate/test fastest method to obtain Cinv from `sLc` or `sLm`
     ###XXX see note/idea in "../myNotesInsights/invFromChol.Rmd"
 
-#TODO delete `Mout` option entirely?
-if(Mout){
-  RHS <- Matrix(crossprod(W, modMats$y), nrow = modMats$ncy, sparse = TRUE)
-  return(as(cbind(rbind(C, RHS),
-	    rbind(t(RHS), D)), "symmetricMatrix"))
-}
 
 
 
@@ -482,25 +483,24 @@ if(Mout){
 	  sapply(1:modMats$nG, FUN = function(u){kronecker(modMats$listGinv[[u]], solve(Ginv[[u]]))}))), "symmetricMatrix")
       } else C <<- as(tWW + diag(zero), "symmetricMatrix")
 #XXX Gives wrong/different answer sLc <<- update(object = sLc, parent = crossprod(Pc, C) %*% Pc)
-      sLc <<- Cholesky(crossprod(Pc, C) %*% Pc, perm = FALSE, LDL = FALSE, super = FALSE)
-      #TODO see note/idea in "../myNotesInsights/invFromChol.Rmd"
-      #Cinv <<- chol2inv(sLc) # chol2inv gives Cinv in same permutation as C (not permutation of sLc)
-      Cinv <<- solve(C)  #<-- XXX Faster than chol2inv(sLc) atleast for warcolak
-      ##XXX NOTE Above Cinv is in original order of C and NOT Cperm
-      Lm12 <- solve(a = sLc, b = t(RHSperm), system = "L")
-      #Lm22 <- sqrt(D - crossprod(Lm12)) #XXX Alternatively, `Cholesky()` instead of `sqrt()` if adding more than 1 row/column to C to get M.
-      #tLm <- rbind(cbind(t(expand(sLc)$L), Lm12), sparseMatrix(i = 1, j = ncol(C) + ncol(Lm22), x = Lm22, dims = c(1, ncol(C)+ncol(Lm22))))
 
-      # Meyer & Smith 1996, eqn. 14
-      tyPy[] <<- (D - crossprod(Lm12))@x    #<-- Lm22^{2}
+      M <<- as(cbind(rbind(C, t(RHS)),
+	    rbind(RHS, D)), "symmetricMatrix")
+      sLm <<- Cholesky(M, perm = TRUE, LDL = FALSE, super = FALSE)
+      #TODO see note/idea in "../myNotesInsights/invFromChol.Rmd"
+      #Cinv <<- chol2inv(sLc) # chol2inv gives Cinv in same permutation as C (not permutation of sLm)
+      Cinv <<- solve(C)  #<-- XXX Faster than chol2inv(sLc) atleast for warcolak
+      ##XXX NOTE Above Cinv is in original order of C and NOT permutation of M
+
       # 5 record log-like, check convergence, & determine next varcomps to evaluate  
       ##5a determine log(|C|) and y'Py
       ### Meyer & Smith 1996, eqns 12-14 (and 9)
       #### Also see Meyer & Kirkpatrick 2005 GSE. eqn. 18: if cholesky of MMA = LL'
-#FIXME does sLc@x[sLc@p+1] give an NA in the vector of results for Mrode11 it=1??
-      logDetC[] <<- 2 * sum(log(sLc@x[sLc@p+1][1:sLc@Dim[[1]]]))
-      # alternatively from sLm: `...sum(log(sLm@x[sLm@p+1][1:(sLm@Dim[[1]]-1)]))`
-      ## takes longer than sLc for more complex models
+      # Meyer & Smith 1996, eqn. 14
+      tyPy[] <<- tail(sLm@x, 1)^2
+      logDetC[] <<- 2 * sum(log(sLm@x[sLm@p+1][1:(sLm@Dim[[1L]]-1)]))
+      # alternatively from sLc: `... sum(log(sLc@x[sLc@p+1][1:sLc@Dim[[1]]]))`
+      ## XXX does sLm takes longer than sLc for more complex models
 
       # Residual variance
       sigma2e[] <<- tyPy / nminffx
@@ -526,8 +526,26 @@ if(Mout){
       # solve MME for BLUEs/BLUPs
 #XXX Do I need to solve for BLUEs (see Knight 2008 for just getting BLUPs eqn 2.13-15)
       ## see Mrode 2005 chapter
-      # permuted RHS of MME is `RHSperm`
-      sln[] <<- Pc %*% solve(a = sLc, b = t(RHSperm), system = "A")
+      # alternatively if sLc instead of sLm
+      ## permuted RHS of MME is `RHSperm`
+      #sln[] <<- Pc %*% solve(a = sLc, b = t(RHSperm), system = "A")
+      sln[] <<- solve(a = C, b = RHS, system = "A")
+      # alternatively, get factorization of C (sLc) from sLm:
+#      sLc_m <- sLm
+#        rm1 <- which(sLm@i != (sLm@Dim[1]-1))
+#        sLc_m@x <- sLm@x[rm1]
+#        sLc_m@i <- sLm@i[rm1]
+
+#        sLc_m@nz <- sLc_m@colcount <- sapply(seq(sLm@Dim[[2L]]-1), FUN = function(k){sum(sLm@i[(sLm@p[k]+1):(sLm@p[k+1])] < sLm@Dim[[2L]]-1)})
+#        sLc_m@p <- as.integer(c(0, cumsum(sLc_m@nz)))
+#        sLc_m@Dim <- as.integer(c(sLm@Dim[[1L]]-1, sLm@Dim[[2L]]-1))
+#        sLc_m@nxt <- sLm@nxt[-which(sLm@nxt == sLm@Dim[[1L]])]
+#        sLc_m@prv <- as.integer(c(sLm@Dim[[1L]], seq(0, sLc_m@Dim[[1L]]-1, 1), -1))
+#        sLc_m@perm <- head(sLc_m@perm, -1)
+#        sln_m <- solve(a = sLc_m, b = RHS, system = "A")
+
+ 
+
       ## Cholesky is more efficient and computationally stable
       ### see Matrix::CHMfactor-class expand note about fill-in causing many more non-zeros of very small magnitude to occur
       #### see Matrix file "CHMfactor.R" method for "determinant" (note differences with half the logdet of original matrix) and the functions:
