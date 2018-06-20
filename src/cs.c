@@ -397,7 +397,6 @@ csi *cs_amd (csi order, const cs *A)  /* order 0:natural, 1:Chol, 2:LU, 3:QR */
     }
     return (cs_idone (P, C, W, 1)) ;
 }
-
 /* L = chol (A, [pinv parent cp]), pinv is optional */
 csn *cs_chol (const cs *A, const css *S)
 {
