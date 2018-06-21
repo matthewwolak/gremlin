@@ -56,11 +56,12 @@ void ugremlin(
 ){
 
   cs	 *Bpinv, *W, *tW, *tWW, *tWWtmp, *cRinv, *tcRinv,
-	 *Ctmp, *C, *tC,//*pCinv, *Cinv,
-	 *RHS, *tCRHS, *CRHS, *RHSD, *M, *BLUXs, *R;
+	 *Ctmp, *C, *tC, *Lcij, *Lc,//*pCinv, *Cinv,
+	 *RHS, *tCRHS, *CRHS, *RHSD, *M, *tmpBLUXs, *BLUXs, *R;
   css    *sLm;
   csn    *Lm;
-  csi    Cn;//*Pinv
+  csi    Cn;
+  csi    *Pinv = new csi[dimXZWG[5]];
 
   int    nG = nGR[0], nR = nGR[1];
 
@@ -159,16 +160,20 @@ if(v[0] > 3) t = tic();
   // setup 0 initialized RHS 1-column matrix
   //// ?Potentially: having explicit 0s in RHS will ensure M ordered with RHS last
   ////TODO check this last statement
+  //// XXX KEEP explicit 0s for BLUXs cholesky/triangular solve to work
   RHS = cs_spalloc(dimXZWG[5], 1, dimXZWG[5], true, false);
-  BLUXs = cs_spalloc(dimXZWG[5], 1, dimXZWG[5], true, false);     // sln matrix
+  tmpBLUXs = cs_spalloc(dimXZWG[5], 1, dimXZWG[5], true, false);  // *sln matrix
+  BLUXs = cs_spalloc(dimXZWG[5], 1, dimXZWG[5], true, false);    // sln matrix
   for(k = 0; k < dimXZWG[5]; k++){
     RHS->i[k] = k;
+    tmpBLUXs->i[k] = k;
     BLUXs->i[k] = k;
     RHS->x[k] = 0.0;
+    tmpBLUXs->x[k] = 0.0;
     BLUXs->x[k] = 0.0;
   }
   RHS->p[0] = 0; RHS->p[1] = dimXZWG[5];
-//  tmpBLUXs->p[0] = 0; tmpBLUXs->p[1] = dimXZWG[5];
+  tmpBLUXs->p[0] = 0; tmpBLUXs->p[1] = dimXZWG[5];
   BLUXs->p[0] = 0; BLUXs->p[1] = dimXZWG[5];
 
 
@@ -268,12 +273,6 @@ if(v[0] > 3){
 
   // Create Mixed Model Array (M) matrix
   cs_gaxpy(tW, y, RHS->x);  // y = A*x+y XXX my `y` is cs_gaxpy's `x`
-  cs_dropzeros(RHS);  //XXX FIXME DELETE OR do I need to do this?
-  //// TODO (potentially  keep 0s to ensure RHS is always last row/column in M)
-  // copy RHS to BLUXs so can solve in place later (C * BLUXs = RHS)
-  for(k = 0; k < dimXZWG[5]; k++){
-    BLUXs->x[k] += RHS->x[k];
-  }
   RHSD = cs_spalloc(dimXZWG[5]+1, 1, RHS->nzmax+1, true, false);
   si = 0;
   for(k = 0; k < RHS->nzmax; k++){
@@ -305,11 +304,13 @@ if(v[0] > 3){
     Rprintf("sLm->pinv[%i]=%i\n", Cn, sLm->pinv[Cn]);
     error("Ordering of M has not left RHS as last row/column\n");
   }
+  // Allocate permutation matrix for C (all but last entry)
+  for(k = 0; k < Cn; k++) Pinv[k] = sLm->pinv[k];
 
 
 if(v[0] > 3){
   took = toc(t);
-  Rprintf("  %6.4f sec. (CPU clock): initial cpp cs_schol(C)\n", took);
+  Rprintf("  %6.4f sec. (CPU clock): initial cpp cs_schol(M)\n", took);
   t = tic();
 }
 
@@ -449,12 +450,59 @@ if(v[0] > 3){
     }
 
 
-  
 if(v[0] > 3){
   took = toc(t);
   Rprintf("    %6.4f sec. (CPU clock): cpp REML i=%i cs_chol(M)\n", took, i);
   t = tic();
 }
+
+
+
+    // Obtain Cholesky factor of C (Lc) from Lm (first Cn rows & columns of Lm)
+    //// Assume, same non-zero pattern each iteration (i.e., order or rows same)
+    if(i == 0){
+      // form a triplet matrix
+      //// allocate max. entries according to non-zeroes in m-1 columns of M 
+      //// does include the non-zeroes from last row of M
+      Lcij = cs_spalloc(Cn, Cn, Lm->L->p[Cn], true, true);
+      k = 0; rw = 0;
+      for(g = 0; g < Lm->L->p[Cn]; g++){
+        if(g >= Lm->L->p[k+1]) k++;
+        if(Lm->L->i[g] != Cn){
+          Lcij->i[rw] = Lm->L->i[g];
+          Lcij->p[rw] = k;
+          Lcij->x[rw] = Lm->L->x[g];
+          rw++;
+        }
+      Lcij->nz = rw;
+      }
+
+    } else{
+      rw = 0;
+      for(g = 0; g < Lm->L->p[Cn]; g++){
+        if(Lm->L->i[g] != Cn){
+          Lcij->x[rw] = Lm->L->x[g];
+          rw++;
+        }
+      }
+    }    
+    // Convert triplet matrix into sparse compressed column matrix
+    Lc = cs_compress(Lcij);
+
+
+if(v[0] > 3){
+  took = toc(t);
+  Rprintf("\t    %6.4f sec. (CPU clock): cpp REML i=%i chol(C) from chol(M)\n", took, i);
+  t = tic();
+}
+
+
+
+
+
+
+
+  
 
 
 
@@ -518,8 +566,18 @@ if(v[0] > 3){
     // solve MME for BLUEs/BLUPs
 ////TODO Might not need to solve for BLUEs (see Knight 2008 for just getting BLUPs eqn 2.13-15
     //// see Mrode 2005 chapter
-//TODO edit cs_chol to save Lc from Lm then pickup from cs_cholsol remaining steps
-    cs_cholsol(1, C, BLUXs->x); 
+    //XXX tmpBLUXs must have EXPLICIT 0s, else triangular solve = incorrect answer
+    cs_ipvec (Pinv, RHS->x, tmpBLUXs->x, Cn) ;   /* x = P*b */
+    cs_lsolve (Lc, tmpBLUXs->x) ;                /* x = L\x */
+    cs_ltsolve (Lc, tmpBLUXs->x) ;               /* x = L'\x */
+    cs_pvec (Pinv, tmpBLUXs->x, BLUXs->x, Cn) ;  /* b = P'*x */
+
+if(v[0] > 3){
+  took = toc(t);
+  Rprintf("\t    %6.4f sec. (CPU clock): cpp REML i=%i sln forward/back solve with chol(C)\n", took, i);
+  t = tic();
+}
+
 
     // calculate residuals as r = y - W %*% sln
     // put y in R->x to be over-written
@@ -720,8 +778,9 @@ if(v[0] > 3) t = tic();
   cs_spfree(Bpinv);
   cs_spfree(W); cs_spfree(tW); cs_spfree(tWW);
   cs_spfree(cRinv); cs_spfree(tcRinv);
-  cs_spfree(Ctmp); cs_spfree(C);//cs_spfree(Cinv);
-  cs_spfree(RHS); cs_spfree(BLUXs); cs_spfree(R);
+  cs_spfree(Ctmp); cs_spfree(C); //cs_spfree(Cinv);
+  cs_spfree(Lcij); cs_spfree(Lc);
+  cs_spfree(RHS); cs_spfree(tmpBLUXs); cs_spfree(BLUXs); cs_spfree(R);
 
   cs_sfree(sLm);
 
@@ -738,6 +797,7 @@ if(v[0] > 3) t = tic();
   delete [] G; delete [] GcRinv; delete [] GRinv;
   delete [] invGRinv; delete [] KGRinv;
 //
+  delete [] Pinv;
   delete [] rfxlvls;
   delete [] cc;
 
