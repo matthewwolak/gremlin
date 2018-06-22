@@ -56,11 +56,11 @@ void ugremlin(
 ){
 
   cs	 *Bpinv, *W, *tW, *tWW, *tWWtmp, *cRinv, *tcRinv,
-	 *Ctmp, *C, *tC, *Lcij, *Lc,//*pCinv, *Cinv,
+	 *Ctmp, *C, *tC, *Lcij, *Lc, *pCinv, *Cinv,
 	 *RHS, *tCRHS, *CRHS, *RHSD, *M, *tmpBLUXs, *BLUXs, *R;
   css    *sLm;
   csn    *Lm;
-  csi    Cn;
+  csi    Cn, *P;
   csi    *Pinv = new csi[dimXZWG[5]];
 
   int    nG = nGR[0], nR = nGR[1];
@@ -306,6 +306,7 @@ if(v[0] > 3){
   }
   // Allocate permutation matrix for C (all but last entry)
   for(k = 0; k < Cn; k++) Pinv[k] = sLm->pinv[k];
+  P = cs_pinv(Pinv, Cn);
 
 
 if(v[0] > 3){
@@ -508,10 +509,24 @@ if(v[0] > 3){
 
     /*		XXX		XXX		XXX		XXX	*/
     //TODO FIXME FIXME FIXME: Get rid of explicit inversion of C !!!!!
-//    Cinv = cs_inv(C);  /*TURNED OFF FOR NOW --> MCMCglmm::cs_inv / my C not working */
+    pCinv = cs_chol2inv(Lc);
+    if(pCinv == NULL){
+      error("Error inverting C\n");
+    }
 
+    Cinv = cs_permute(pCinv, P, Pinv, 1);  //<-- permute values 0/1=FALSE/TRUE
+    // Do t(t(Cinv)) to order correctly
+    cs_spfree(pCinv);   
+    pCinv = cs_transpose(Cinv, true);
+    cs_spfree(Cinv);
+    Cinv = cs_transpose(pCinv, true);
+    cs_spfree(pCinv);
 
-
+if(v[0] > 3){
+  took = toc(t);
+  Rprintf("\t    %6.4f sec. (CPU clock): cpp REML i=%i chol2inv(Lc) to Cinv\n", took, i);
+  t = tic();
+}
 
     ////////////////////////////////////////////////////////////////////////////
     // 5 record log-like, check convergence, & determine next varcomps to evaluate  
@@ -760,7 +775,6 @@ if(v[0] > 3){
 
 
 
-
 if(v[0] > 3) t = tic();
 
   for(k = 0; k < dimXZWG[5]; k++){
@@ -778,7 +792,7 @@ if(v[0] > 3) t = tic();
   cs_spfree(Bpinv);
   cs_spfree(W); cs_spfree(tW); cs_spfree(tWW);
   cs_spfree(cRinv); cs_spfree(tcRinv);
-  cs_spfree(Ctmp); cs_spfree(C); //cs_spfree(Cinv);
+  cs_spfree(Ctmp); cs_spfree(C); cs_spfree(Cinv);
   cs_spfree(Lcij); cs_spfree(Lc);
   cs_spfree(RHS); cs_spfree(tmpBLUXs); cs_spfree(BLUXs); cs_spfree(R);
 
@@ -797,7 +811,7 @@ if(v[0] > 3) t = tic();
   delete [] G; delete [] GcRinv; delete [] GRinv;
   delete [] invGRinv; delete [] KGRinv;
 //
-  delete [] Pinv;
+  delete [] Pinv; delete [] P;
   delete [] rfxlvls;
   delete [] cc;
 

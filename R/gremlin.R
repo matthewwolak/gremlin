@@ -1126,8 +1126,10 @@ if(!skipR){
 	    rbind(RHS, D)), "symmetricMatrix")
       sLm <<- Cholesky(M, perm = TRUE, LDL = FALSE, super = FALSE)
       #TODO see note/idea in "../myNotesInsights/invFromChol.Rmd"
-      #Cinv <<- chol2inv(sLc) # chol2inv gives Cinv in same permutation as C (not permutation of sLm)
-      Cinv <<- solve(C)  #<-- XXX Faster than chol2inv(sLc) atleast for warcolak
+      # chol2inv: Cinv in same permutation as C (not permutation of sLc/sLm)
+      #Cinv <<- chol2inv(sLc) #<-- XXX ~10x slower than `solve(C)` atleast for warcolak
+      #Cinv <<- solve(a = sLc, b = Ic, system = "A") #<-- XXX comparable speed to `solve(C)` at least for warcolak
+      Cinv <<- solve(C)
       ##XXX NOTE Above Cinv is in original order of C and NOT permutation of M
 
       # 5 record log-like, check convergence, & determine next varcomps to evaluate  
