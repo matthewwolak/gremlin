@@ -45,7 +45,7 @@ cs *cs_chol2inv(const cs *L){
       b[g] = 0.0;
     }  // end for g
     // finish resetting b
-    if(j > 0) for(g = 0; g < j; g++) b[g] = 0.0;
+    if( (j > 0) && (j < n-1) ) for(g = 0; g < j; g++) b[g] = 0.0;
   }  // end for j
   Ainv->nz = cnt - 1;
 
