@@ -47,7 +47,7 @@ cs *cs_chol2inv(const cs *L){
     // finish resetting b
     if( (j > 0) && (j < n-1) ) for(g = 0; g < j; g++) b[g] = 0.0;
   }  // end for j
-  Ainv->nz = cnt - 1;
+  Ainv->nz = cnt;
 
   INV = cs_compress(Ainv);    
   cs_spfree(Ainv);
