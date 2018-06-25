@@ -80,6 +80,7 @@ csi cs_em(const cs *BLUXs, double *theta,
         if(!CS_CSC(geninv[g])) error("geninv[%i] not CSC matrix\n", g);
         preTRprod = cs_multiply(geninv[g], preTR);
       }
+//TODO DELETEME: 4 lines below?
 //      cs_spfree(preTR);
 //      preTR = cs_transpose(preTRprod, 1);
 //      cs_spfree(preTRprod);
@@ -94,6 +95,7 @@ csi cs_em(const cs *BLUXs, double *theta,
           }
         }  // end for j
       }  // end for k
+//TODO DELETEME: 2 lines below?
 //      cs_spfree(preTRprod);
 //      cs_spfree(preTR);
 
@@ -108,8 +110,8 @@ csi cs_em(const cs *BLUXs, double *theta,
 
 
 
-  delete [] tmp_sln;
+   delete [] tmp_sln;
+
   return(1);
-// use  cs_idone() to finish and return?
 }
 

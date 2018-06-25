@@ -1212,8 +1212,6 @@ if(!skipR){
   ## Meyer and Smith 1996 for algorithm using derivatives of loglik
   ### eqn 15-18 (+ eqn 33-42ish) for derivatives of tyPy and logDetC
   ### Smith 1995 for very technical details
-  ## Appendix 5 of Meyer/WOMBAT help manual fro how to modify AI matrix to ensure improvements of logLike
-#XXX trace of a matrix corresponds to the derivative of the determinant
   # EM refs: Hofer 1998 eqn 10-12
   ## XXX note Hofer eqn 12 missing sigma2e in last term of non-residual formula
   ### see instead Mrode 2005 (p. 241-245)
