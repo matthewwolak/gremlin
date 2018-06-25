@@ -99,12 +99,14 @@ csi cs_em(const cs *BLUXs, double *theta,
 
     // (first term + trace * r ) / qi
     theta[g] = (o + tr * r ) / qi;
-Rprintf("o=%f\n", o);
-Rprintf("trace:%f\n", tr);
-Rprintf("tr*r:%f\n", tr*r);
-Rprintf("theta[%i]=%f\n", g, theta[g]);
     si = ei + 1;
   }  // end for g in nG
+
+
+
+  //  XXX	XXX  Residual Done outside of function!!  XXX	XXX
+
+
 
   delete [] tmp_sln;
   return(1);

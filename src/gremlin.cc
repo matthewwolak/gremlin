@@ -92,7 +92,7 @@ void ugremlin(
 if(v[0] > 3) t = tic();
 
 
-  d = 0.0;
+  d = 0.0;    // temporary for calculating change in theta (cc2) and EM residual
 
   //FIXME Do I need X? Delete if not
   // setup X: fixed-effects design matrix
@@ -640,7 +640,7 @@ if(v[0] > 3){
     //// Knight ('08 ch. 6): Searle et al.'92 & Longford '93 discuss diff. crit. types
     //// Appendix 2 of WOMBAT help manual for 4 criteria specified
     for(k = 0; k <= 4; k++) cc[k] = 0;     // Keep track of sum in last position
-    cc2 = 0.0; cc2d = 0.0;
+    d = 0.0; cc2 = 0.0; cc2d = 0.0;
     if(i > 0){
       // Change in log-likelihood
       cc[0] += (itMat[itc-6-p[0]] - loglik) < cctol[0];
@@ -689,8 +689,14 @@ if(v[0] > 3){
       ////XXX see instead Mrode 2005 (p. 241-245)
       if(algit[i] == 0){
         if(v[0] > 1 && i%vit[0] == 0) Rprintf("\t EM to find next theta\n");
-if(i==0) cs_em(BLUXs, theta, nG, rfxlvls, dimXZWG[1], ndgeninv, geninv, Cinv);
-
+        if(!cs_em(BLUXs, theta, nG, rfxlvls, dimXZWG[1], ndgeninv, geninv, Cinv)){
+          error("Unusccessful EM algorithm in iteration %i\n");
+        }
+        // Calculate EM for residual:
+        //// crossprod(y, r) / nminffx
+        d = 0.0;
+        for(k = 0; k < ny[0]; k++) d += y[k] * R->x[k]; // assumes R has explicit 0s
+        theta[nG] = d / nminffx;
       }  // end EM
 
       // Average Information
@@ -709,7 +715,8 @@ if(i==0) cs_em(BLUXs, theta, nG, rfxlvls, dimXZWG[1], ndgeninv, geninv, Cinv);
 
 
 
-
+    ////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////
 
     took = toc(T);                 // Capture cpu clock time for i REML iteration
     // V=1 LEVEL of OUTPUT
