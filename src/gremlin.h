@@ -12,7 +12,7 @@ extern "C" {
 
 /* Expectation Maximization Algorithm:
      replaces elements in theta. Returns 1=success else 0 */
-csi cs_em(const cs *BLUXs, const double *theta,
+csi cs_em(const cs *BLUXs, double *theta,
 	csi nG, csi *rfxlvls, csi nb, csi *ndgeninv,
 	cs **geninv, cs *Cinv);
 

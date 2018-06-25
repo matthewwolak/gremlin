@@ -1131,7 +1131,6 @@ if(!skipR){
       #Cinv <<- solve(a = sLc, b = Ic, system = "A") #<-- XXX comparable speed to `solve(C)` at least for warcolak
       Cinv <<- solve(C)
       ##XXX NOTE Above Cinv is in original order of C and NOT permutation of M
-
       # 5 record log-like, check convergence, & determine next varcomps to evaluate  
       ##5a determine log(|C|) and y'Py
       ### Meyer & Smith 1996, eqns 12-14 (and 9)
@@ -1228,10 +1227,10 @@ if(!skipR){
 #XXX TODO see Knight 2008 thesis eqns 2.36 & 2.42 (and intermediates) for more generalized form of what is in Mrode (i.e., multivariate/covariance matrices instead of single varcomps)
 ##XXX eqn. 2.44 is the score/gradient! for a varcomp
       # current indexing faster than creating logical index matrix to multiply through Cinv for the purposes of subsetting/indexing
-
       thetain[[g]] <- (crossprod(sln[si:ei, , drop = FALSE], modMats$listGinv[[g]]) %*% sln[si:ei, , drop = FALSE] + tr(modMats$listGinv[[g]] %*% Cinv[si:ei, si:ei])*tail(thetav, 1)) / qi
       si <- ei+1
     }
+
     #FIXME make sure `nminffx` == `ncol(X)` even when reduced rank
     thetain[[thetaR]] <- crossprod(modMats$y, r) / nminffx
    thetain

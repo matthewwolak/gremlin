@@ -508,7 +508,6 @@ if(v[0] > 3){
 
 
     /*		XXX		XXX		XXX		XXX	*/
-    //TODO FIXME FIXME FIXME: Get rid of explicit inversion of C !!!!!
     pCinv = cs_chol2inv(Lc);
     if(pCinv == NULL){
       error("Error inverting C\n");
@@ -521,6 +520,7 @@ if(v[0] > 3){
     cs_spfree(Cinv);
     Cinv = cs_transpose(pCinv, true);
     cs_spfree(pCinv);
+
 
 if(v[0] > 3){
   took = toc(t);
@@ -689,7 +689,7 @@ if(v[0] > 3){
       ////XXX see instead Mrode 2005 (p. 241-245)
       if(algit[i] == 0){
         if(v[0] > 1 && i%vit[0] == 0) Rprintf("\t EM to find next theta\n");
-//if( cs_em(BLUXs, theta, nG, rfxlvls, dimXZWG[1], ndgeninv, geninv, Cinv) == 1) Rprintf("em call succsessful\n");
+if(i==0) cs_em(BLUXs, theta, nG, rfxlvls, dimXZWG[1], ndgeninv, geninv, Cinv);
 
       }  // end EM
 
