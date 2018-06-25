@@ -682,7 +682,7 @@ if(v[0] > 3){
     //// eqn 15-18 (+ eqn 33-42ish) for derivatives of tyPy and logDetC
     //// Smith 1995 for very technical details
 //XXX trace of a matrix corresponds to the derivative of the determinant
-    if(cc[4] == 0){
+    if(cc[4] < 2){
       // Expectation Maximization
       // EM refs: Hofer 1998 eqn 10-12
       // XXX note Hofer eqn 12 missing sigma2e in last term of non-residual formula
