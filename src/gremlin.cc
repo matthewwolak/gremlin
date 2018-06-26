@@ -779,10 +779,8 @@ if(v[0] > 3){
       break;
     }
 
-Rprintf("i=%i\n", i);
   }  // end i for loop 
   maxit[0] = i;    // record number of iterations
-Rprintf("maxit after REML loop:%i\n", maxit[0]);
 
   //////////////////////////////////////////////////////////////////////////////
   //XXX									     XXX
