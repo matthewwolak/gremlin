@@ -330,6 +330,10 @@ if(v[0] > 3){
 
 
 
+
+
+
+
 if(v[0] > 3){
   took = toc(t);
   Rprintf("  %6.4f sec. (CPU clock): rest of initial cpp setup\n", took);
@@ -705,6 +709,9 @@ if(v[0] > 3){
       if(algit[i] == 1){
         if(v[0] > 1 && i%vit[0] == 0) Rprintf("\t AI to find next theta\n");
         //TODO do I need to check convergence criteria here (i.e., cc[3:4])
+
+        //TODO if AI not successful, then change algit[i] = 0 (if EM was successful)
+
       }  // end AI
 
 
@@ -772,14 +779,19 @@ if(v[0] > 3){
       break;
     }
 
-
+Rprintf("i=%i\n", i);
   }  // end i for loop 
+  maxit[0] = i;    // record number of iterations
+Rprintf("maxit after REML loop:%i\n", maxit[0]);
 
   //////////////////////////////////////////////////////////////////////////////
   //XXX									     XXX
   /*		END reml iterations		END reml iterations	      */
   //XXX									     XXX
   //////////////////////////////////////////////////////////////////////////////
+
+
+
 
 
 

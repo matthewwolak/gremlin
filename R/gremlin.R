@@ -1081,7 +1081,7 @@ if(!skipcpp){
 
 
 
-
+    maxit <- Cout[[36L]]  #<-- record number of REML iterations run
 
 
 
@@ -1489,9 +1489,8 @@ if(nrow(theta[[thetaR]]) != 1){
 
 
 
-
-#FIXME FIXME FIXME
-#TODO Make sln variances come from another source (eliminate Cinv)
+#TODO DELETEME
+if(skipcpp){
  return(structure(list(call = as.call(mc),
 		modMats = modMats,
 		itMat = itMat,
@@ -1499,13 +1498,22 @@ if(nrow(theta[[thetaR]]) != 1){
 		AI = AI, dLdtheta = dLdtheta,
 		Cinv = Cinv),
 	class = "gremlin"))
+}
 
 
 }
 
-if(skipR){
+if(!skipcpp){
+#TODO Make sln variances come from another source (eliminate Cinv)?
+#TODO return residuals
   return(structure(list(call = as.call(mc),
-		modMats = modMats),
+		modMats = modMats,
+		itMat = matrix(Cout[[34L]], nrow = maxit, ncol = 8,
+		  byrow = TRUE,
+		  dimnames = list(paste(seq(maxit), algit[seq(maxit)], sep = "-"),
+		  c(names(thetav), "sigma2e", "tyPy", "logDetC", "loglik", "itTime"))),
+		sln = cbind(Est = Cout[[31L]], Var = Cout[[32L]]),
+		AI = Cout[[30L]], dLdtheta = Cout[[29L]]),
 	class = "gremlin"))
 }
 
