@@ -44,6 +44,7 @@ void ugremlin(
 	double *dLdtheta,	// gradient vector (1st deriv. of lL / thetas)
 	double *lHvec,		// vector for lower triangle of information matrix (2nd deriv. of lL / thetas)
 	double *sln,		// solution vector
+        double *Cinv_ii,	// diagonal of Cinv: sampling variances of BLUXs
 	double *r,		// residual vector
 	double *itMat,		// parameter information at each iteration
 	int *algit,		// algorithm for optimization at each iteration
@@ -784,13 +785,22 @@ if(v[0] > 3){
 
 if(v[0] > 3) t = tic();
 
-  for(k = 0; k < dimXZWG[5]; k++){
-    sln[k] += BLUXs->x[k];
-  }
+  // Pass information to R
+  //// Solution vector
+  for(k = 0; k < dimXZWG[5]; k++) sln[k] += BLUXs->x[k];
+  //// diagonals of Cinv (sln sampling variances) 
+  for(k = 0; k < Cn; k++){
+    for(j = Cinv->p[k]; j < Cinv->p[k+1]; j++){
+      if(Cinv->i[j] == k){
+        Cinv_ii[k] += Cinv->x[j];
+        break; 
+      }  // end if
+    }  // end for j
+  }  // end for k
+  //// Residual vector
+  for(k = 0; k < ny[0]; k++) r[k] += R->x[k];
   //TODO
-  //// return diagonals of Cinv (sln sampling variances)? 
   //// return AI and dLdtheta
-  //// return Cinv?
 
   //////////////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////

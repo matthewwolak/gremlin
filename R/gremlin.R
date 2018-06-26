@@ -946,7 +946,7 @@ gremlin <- function(formula, random = NULL, rcov = ~ units,
 	FUN = function(g){slot(modMats$Zg[[g]], "Dim")})
     D <- crossprod(modMats$y) # <-- Same every iteration
       #TODO: what to do if y is multivariate (still just 1 column, so D just 1 number?
-    sln <- matrix(0, nrow = modMats$nb + sum(dimsZg[2, ]), ncol = 1)
+    sln <- Cinv_ii <- matrix(0, nrow = modMats$nb + sum(dimsZg[2, ]), ncol = 1)
     r <- matrix(0, nrow = modMats$ny, ncol = 1)
 #TODO CLEANUP terminology: `Ginv` is abbreviation for ginverse matrices (e.g., inverse of additive genetic relatedness matrix) but also the variable which is the inverse of the covariance matrix G!
 ##FIXME: change generalized inverses (`Ginv`) to `geninv`
@@ -1064,6 +1064,7 @@ if(!skipcpp){
 		as.double(rep(0, p)),				#empty dLdtheta
 		as.double(rep(0, (p*(p+1))/2)),			#empty triangle of information matrix
 		as.double(c(sln)), 				#empty sln
+                as.double(c(Cinv_ii)),				#empty diag(Cinv) sampling variances of BLUEs/BLUPs
 		as.double(c(r)),				#empty resdiuals
 		as.double(rep(0, maxit*(p+5))),			#itMat
 		as.integer(factor(algit[1:maxit], levels = c("EM", "AI"), ordered = TRUE))-1, #algorithm for each iteration
