@@ -790,12 +790,12 @@ if(v[0] > 3) t = tic();
   for(k = 0; k < dimXZWG[5]; k++) sln[k] += BLUXs->x[k];
   //// diagonals of Cinv (sln sampling variances) 
   for(k = 0; k < Cn; k++){
-    for(j = Cinv->p[k]; j < Cinv->p[k+1]; j++){
-      if(Cinv->i[j] == k){
-        Cinv_ii[k] += Cinv->x[j];
+    for(i = Cinv->p[k]; i < Cinv->p[k+1]; i++){
+      if(Cinv->i[i] == k){
+        Cinv_ii[k] += Cinv->x[i];
         break; 
       }  // end if
-    }  // end for j
+    }  // end for i
   }  // end for k
   //// Residual vector
   for(k = 0; k < ny[0]; k++) r[k] += R->x[k];
