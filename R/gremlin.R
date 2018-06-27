@@ -992,7 +992,18 @@ if(!skipR){
     #### e.g., with a genomic relatedness matrix (see Masuda et al. 2014 & 2015)
     sLm <- Cholesky(M, perm = TRUE, LDL = FALSE, super = FALSE)
     # original order obtained by: t(P) %*% L %*% P or `crossprod(P, L) %*% P`
+    sLc <- sLm
+      rm1 <- which(sLm@i != (sLm@Dim[1]-1))
+      sLc@x <- sLm@x[rm1]
+      sLc@i <- sLm@i[rm1]
 
+      sLc@nz <- sLc@colcount <- sapply(seq(sLm@Dim[[2L]]-1), FUN = function(k){sum(sLm@i[(sLm@p[k]+1):(sLm@p[k+1])] < sLm@Dim[[2L]]-1)})
+      sLc@p <- as.integer(c(0, cumsum(sLc@nz)))
+      sLc@Dim <- as.integer(c(sLm@Dim[[1L]]-1, sLm@Dim[[2L]]-1))
+      sLc@nxt <- sLm@nxt[-which(sLm@nxt == sLm@Dim[[1L]])]
+      sLc@prv <- as.integer(c(sLm@Dim[[1L]], seq(0, sLc@Dim[[1L]]-1, 1), -1))
+      sLc@perm <- head(sLc@perm, -1)
+    Ic <- Diagonal(x = 1, n = nrow(C))
 
 #TODO put these with `mkModMats()` - need to figure out multivariate version/format
     # 5b log(|R|) and log(|G|) <-- Meyer 1989 (uni) & 1991 (multivar)
@@ -1129,8 +1140,8 @@ if(!skipR){
       #TODO see note/idea in "../myNotesInsights/invFromChol.Rmd"
       # chol2inv: Cinv in same permutation as C (not permutation of sLc/sLm)
       #Cinv <<- chol2inv(sLc) #<-- XXX ~10x slower than `solve(C)` atleast for warcolak
-      #Cinv <<- solve(a = sLc, b = Ic, system = "A") #<-- XXX comparable speed to `solve(C)` at least for warcolak
-      Cinv <<- solve(C)
+      Cinv <<- solve(a = sLc, b = Ic, system = "A") #<-- XXX comparable speed to `solve(C)` at least for warcolak
+      #Cinv <<- solve(C)
       ##XXX NOTE Above Cinv is in original order of C and NOT permutation of M
       # 5 record log-like, check convergence, & determine next varcomps to evaluate  
       ##5a determine log(|C|) and y'Py
@@ -1169,23 +1180,13 @@ if(!skipR){
       # alternatively if sLc instead of sLm
       ## permuted RHS of MME is `RHSperm`
       #sln[] <<- Pc %*% solve(a = sLc, b = t(RHSperm), system = "A")
-      sln[] <<- solve(a = C, b = RHS, system = "A")
+      #otherwise
+      #sln[] <<- solve(a = C, b = RHS, system = "A")
       # alternatively, get factorization of C (sLc) from sLm:
-#      sLc_m <- sLm
-#        rm1 <- which(sLm@i != (sLm@Dim[1]-1))
-#        sLc_m@x <- sLm@x[rm1]
-#        sLc_m@i <- sLm@i[rm1]
+      ## Assume same non-zero pattern
+      sLc@x <<- sLm@x[rm1]
 
-#        sLc_m@nz <- sLc_m@colcount <- sapply(seq(sLm@Dim[[2L]]-1), FUN = function(k){sum(sLm@i[(sLm@p[k]+1):(sLm@p[k+1])] < sLm@Dim[[2L]]-1)})
-#        sLc_m@p <- as.integer(c(0, cumsum(sLc_m@nz)))
-#        sLc_m@Dim <- as.integer(c(sLm@Dim[[1L]]-1, sLm@Dim[[2L]]-1))
-#        sLc_m@nxt <- sLm@nxt[-which(sLm@nxt == sLm@Dim[[1L]])]
-#        sLc_m@prv <- as.integer(c(sLm@Dim[[1L]], seq(0, sLc_m@Dim[[1L]]-1, 1), -1))
-#        sLc_m@perm <- head(sLc_m@perm, -1)
-#        sln_m <- solve(a = sLc_m, b = RHS, system = "A")
-
- 
-
+      sln[] <<- solve(a = sLc, b = RHS, system = "A")
       ## Cholesky is more efficient and computationally stable
       ### see Matrix::CHMfactor-class expand note about fill-in causing many more non-zeros of very small magnitude to occur
       #### see Matrix file "CHMfactor.R" method for "determinant" (note differences with half the logdet of original matrix) and the functions:
@@ -1235,6 +1236,43 @@ if(!skipR){
    thetain
   }
 
+
+
+  ## `em2` doesn't require Cinv to be made, but replaces Lc with lower triangle of all that is necessary of the Cinv for calculations below
+  em2 <- function(thetain){
+    ## go "backwards" so can fill in Lc with lower triangle of Cinv
+    ei <- modMats$nb + sum(sapply(modMats$Zg, FUN = ncol))
+    for(g in rev(thetaG)){
+      qi <- ncol(modMats$Zg[[g]])
+      si <- ei - qi + 1
+      # note the trace of a product is equal to the sum of the element-by-element product
+#XXX TODO see Knight 2008 thesis eqns 2.36 & 2.42 (and intermediates) for more generalized form of what is in Mrode (i.e., multivariate/covariance matrices instead of single varcomps)
+##XXX eqn. 2.44 is the score/gradient! for a varcomp
+      trace <- 0
+      if(ndGinv[g]){
+        o <- crossprod(sln[si:ei, , drop = FALSE], modMats$listGinv[[g]]) %*% sln[si:ei, , drop = FALSE]
+        for(k in si:ei){
+          Cinv_siei_k <- solve(sLc, b = Ig[, k], system = "A")[si:ei, , drop = TRUE]
+          Cinv_ii[k] <<- Cinv_siei_k[k-si+1]       
+          trace <- trace + sum(modMats$listGinv[[g]][(k-si+1), , drop = TRUE] * Cinv_siei_k)
+        }  #<-- end for k
+      } else{
+          ## first term
+          o <- crossprod(sln[si:ei, , drop = FALSE])
+          Ig <- Diagonal(n = nrow(C), x = 1)
+          for(k in si:ei){
+            Cinv_ii[k] <<- solve(sLc, b = Ig[, k], system = "A")[k,]
+            trace <- trace + Cinv_ii[k]
+          }  #<-- end for k
+        }  #<-- end if/else ndGinv
+      thetain[[g]] <- (o + trace*tail(thetav, 1)) / qi
+      ei <- si-1
+    }
+
+    #FIXME make sure `nminffx` == `ncol(X)` even when reduced rank
+    thetain[[thetaR]] <- crossprod(modMats$y, r) / nminffx
+   thetain
+  }
 
 
 
@@ -1409,6 +1447,7 @@ if(!skipR){
     if(!all(cc, na.rm = TRUE)){
       if(algit[i] == "EM"){
         if(v > 1 && i %in% vitseq) cat("\t EM iteration\n")
+if(i==1)browser()
         thetaout <- em(theta)
       }
 
@@ -1508,7 +1547,7 @@ if(!skipcpp){
 #TODO return residuals
   return(structure(list(call = as.call(mc),
 		modMats = modMats,
-		itMat = matrix(Cout[[34L]], nrow = maxit, ncol = 8,
+		itMat = matrix(Cout[[34L]][1:(8*maxit)], nrow = maxit, ncol = 8,
 		  byrow = TRUE,
 		  dimnames = list(paste(seq(maxit), algit[seq(maxit)], sep = "-"),
 		  c(names(thetav), "sigma2e", "tyPy", "logDetC", "loglik", "itTime"))),

@@ -449,8 +449,8 @@ if(v[0] > 3){
 
 
 
-    Lm = cs_chol(M, sLm);  //TODO update if i>0? (cs_updown)
-//    Lm = cs_chol(M, sLm);  //TODO update if i>0? (cs_updown)
+    Lm = cs_chol(M, sLm);  //TODO update when i>0? (cs_updown)
+//    Lm = cs_chol(M, sLm);  //TODO update when i>0? (cs_updown)
     if(Lm == NULL){
       error("Mixed Model Array singular: possibly caused by a bad combination of G and R (co)variance parameters\n");
     }
@@ -465,7 +465,7 @@ if(v[0] > 3){
 
 
     // Obtain Cholesky factor of C (Lc) from Lm (first Cn rows & columns of Lm)
-    //// Assume, same non-zero pattern each iteration (i.e., order or rows same)
+    //// Assume, same non-zero pattern each iteration (i.e., order of rows same)
     if(i == 0){
       // form a triplet matrix
       //// allocate max. entries according to non-zeroes in m-1 columns of M 

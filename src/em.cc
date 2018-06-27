@@ -13,7 +13,7 @@ XXX eqn. 2.44 is the score/gradient! for a varcomp
 /* theta overwritten with solution */
 csi cs_em(const cs *BLUXs, double *theta,
 	csi nG, csi *rfxlvls, csi nb, csi *ndgeninv,
-	cs **geninv
+	cs **geninv, cs *Lc, csi *P
 ){
 
   double  *Bx, r, o, tr;
@@ -56,7 +56,10 @@ csi cs_em(const cs *BLUXs, double *theta,
     }
 
 
+
+
     // ... + trace(geninv[g] %*% Cinv[si:ei, si:ei]) * residual variance / qi
+    //// geninv[g] %*% Cinv[si:ei, si:ei]
     preTR = cs_spalloc(qi, qi, qi*qi, true, false);
       i = 0;
       preTR->p[0] = 0;
@@ -80,11 +83,6 @@ csi cs_em(const cs *BLUXs, double *theta,
         if(!CS_CSC(geninv[g])) error("geninv[%i] not CSC matrix\n", g);
         preTRprod = cs_multiply(geninv[g], preTR);
       }
-//TODO DELETEME: 4 lines below?
-//      cs_spfree(preTR);
-//      preTR = cs_transpose(preTRprod, 1);
-//      cs_spfree(preTRprod);
-//      preTRprod = cs_transpose(preTR, 1);
 
       // now tr(preTRprod)
       for(k = 0; k < qi; k++){
@@ -95,9 +93,7 @@ csi cs_em(const cs *BLUXs, double *theta,
           }
         }  // end for j
       }  // end for k
-//TODO DELETEME: 2 lines below?
-//      cs_spfree(preTRprod);
-//      cs_spfree(preTR);
+
 
     // (first term + trace * r ) / qi
     theta[g] = (o + tr * r ) / qi;
