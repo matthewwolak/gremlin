@@ -14,6 +14,11 @@ extern "C" {
      replaces elements in theta. Returns 1=success else 0 */
 csi cs_em(const cs *BLUXs, double *theta,
 	csi nG, csi *rfxlvls, csi nb, csi *ndgeninv,
+	cs **geninv);
+// cs_emCinv deprecated
+//// requires Cinv, whereas above only calculates required elements of Cinv
+csi cs_emCinv(const cs *BLUXs, double *theta,
+	csi nG, csi *rfxlvls, csi nb, csi *ndgeninv,
 	cs **geninv, cs *Cinv);
 
 
