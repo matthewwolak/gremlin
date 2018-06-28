@@ -1096,15 +1096,7 @@ if(!skipcpp){
 
 
 
-if(!skipR){
-
-    # TODO implement options to do different methods to obtain Cinv
-    ## E.g., (?Meyer) only need diagonals
-    ## Also, investigate/test fastest method to obtain Cinv from `sLc` or `sLm`
-    ###XXX see note/idea in "../myNotesInsights/invFromChol.Rmd"
-
-
-
+if(!skipR){cat("\n\n********R below R below R below R below R below********\n\n")
 
 
 
@@ -1138,11 +1130,6 @@ if(!skipR){
 	    rbind(RHS, D)), "symmetricMatrix")
       sLm <<- Cholesky(M, perm = TRUE, LDL = FALSE, super = FALSE)
       #TODO see note/idea in "../myNotesInsights/invFromChol.Rmd"
-      # chol2inv: Cinv in same permutation as C (not permutation of sLc/sLm)
-      #Cinv <<- chol2inv(sLc) #<-- XXX ~10x slower than `solve(C)` atleast for warcolak
-      Cinv <<- solve(a = sLc, b = Ic, system = "A") #<-- XXX comparable speed to `solve(C)` at least for warcolak
-      #Cinv <<- solve(C)
-      ##XXX NOTE Above Cinv is in original order of C and NOT permutation of M
       # 5 record log-like, check convergence, & determine next varcomps to evaluate  
       ##5a determine log(|C|) and y'Py
       ### Meyer & Smith 1996, eqns 12-14 (and 9)
@@ -1186,6 +1173,12 @@ if(!skipR){
       ## Assume same non-zero pattern
       sLc@x <<- sLm@x[rm1]
 
+      # chol2inv: Cinv in same permutation as C (not permutation of sLc/sLm)
+      #Cinv <<- chol2inv(sLc) #<-- XXX ~10x slower than `solve(C)` atleast for warcolak
+      Cinv <<- solve(a = sLc, b = Ic, system = "A") #<-- XXX comparable speed to `solve(C)` at least for warcolak
+      #Cinv <<- solve(C)
+      ##XXX NOTE Above Cinv is in original order of C and NOT permutation of M
+
       sln[] <<- solve(a = sLc, b = RHS, system = "A")
       ## Cholesky is more efficient and computationally stable
       ### see Matrix::CHMfactor-class expand note about fill-in causing many more non-zeros of very small magnitude to occur
@@ -1217,7 +1210,7 @@ if(!skipR){
   # EM refs: Hofer 1998 eqn 10-12
   ## XXX note Hofer eqn 12 missing sigma2e in last term of non-residual formula
   ### see instead Mrode 2005 (p. 241-245)
-  em <- function(thetain){
+  emCinv <- function(thetain){
     si <- modMats$nb+1
     for(g in thetaG){
       qi <- ncol(modMats$Zg[[g]])
@@ -1230,7 +1223,6 @@ if(!skipR){
       thetain[[g]] <- (crossprod(sln[si:ei, , drop = FALSE], modMats$listGinv[[g]]) %*% sln[si:ei, , drop = FALSE] + tr(modMats$listGinv[[g]] %*% Cinv[si:ei, si:ei])*tail(thetav, 1)) / qi
       si <- ei+1
     }
-
     #FIXME make sure `nminffx` == `ncol(X)` even when reduced rank
     thetain[[thetaR]] <- crossprod(modMats$y, r) / nminffx
    thetain
@@ -1239,9 +1231,10 @@ if(!skipR){
 
 
   ## `em2` doesn't require Cinv to be made, but replaces Lc with lower triangle of all that is necessary of the Cinv for calculations below
-  em2 <- function(thetain){
+  em <- function(thetain){
     ## go "backwards" so can fill in Lc with lower triangle of Cinv
     ei <- modMats$nb + sum(sapply(modMats$Zg, FUN = ncol))
+    Ig <- Diagonal(n = nrow(C), x = 1)
     for(g in rev(thetaG)){
       qi <- ncol(modMats$Zg[[g]])
       si <- ei - qi + 1
@@ -1250,7 +1243,7 @@ if(!skipR){
 ##XXX eqn. 2.44 is the score/gradient! for a varcomp
       trace <- 0
       if(ndGinv[g]){
-        o <- crossprod(sln[si:ei, , drop = FALSE], modMats$listGinv[[g]]) %*% sln[si:ei, , drop = FALSE]
+        o <- (crossprod(sln[si:ei, , drop = FALSE], modMats$listGinv[[g]]) %*% sln[si:ei, , drop = FALSE])@x
         for(k in si:ei){
           Cinv_siei_k <- solve(sLc, b = Ig[, k], system = "A")[si:ei, , drop = TRUE]
           Cinv_ii[k] <<- Cinv_siei_k[k-si+1]       
@@ -1259,7 +1252,6 @@ if(!skipR){
       } else{
           ## first term
           o <- crossprod(sln[si:ei, , drop = FALSE])
-          Ig <- Diagonal(n = nrow(C), x = 1)
           for(k in si:ei){
             Cinv_ii[k] <<- solve(sLc, b = Ig[, k], system = "A")[k,]
             trace <- trace + Cinv_ii[k]
@@ -1447,8 +1439,7 @@ if(!skipR){
     if(!all(cc, na.rm = TRUE)){
       if(algit[i] == "EM"){
         if(v > 1 && i %in% vitseq) cat("\t EM iteration\n")
-if(i==1)browser()
-        thetaout <- em(theta)
+        thetaout <- emCinv(theta)
       }
 
       if(algit[i] == "AI"){
@@ -1533,9 +1524,8 @@ if(skipcpp){
  return(structure(list(call = as.call(mc),
 		modMats = modMats,
 		itMat = itMat,
-		sln = cbind(Est = sln, Var = diag(Cinv)),
-		AI = AI, dLdtheta = dLdtheta,
-		Cinv = Cinv),
+		sln = cbind(Est = sln, Var = diag(Cinv)),#Cinv_ii),
+		AI = AI, dLdtheta = dLdtheta),
 	class = "gremlin"))
 }
 
@@ -1547,7 +1537,7 @@ if(!skipcpp){
 #TODO return residuals
   return(structure(list(call = as.call(mc),
 		modMats = modMats,
-		itMat = matrix(Cout[[34L]][1:(8*maxit)], nrow = maxit, ncol = 8,
+		itMat = matrix(Cout[[34L]][1:((p+5)*maxit)], nrow = maxit, ncol = p+5,
 		  byrow = TRUE,
 		  dimnames = list(paste(seq(maxit), algit[seq(maxit)], sep = "-"),
 		  c(names(thetav), "sigma2e", "tyPy", "logDetC", "loglik", "itTime"))),

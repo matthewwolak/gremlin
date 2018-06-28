@@ -57,7 +57,7 @@ void ugremlin(
 ){
 
   cs	 *Bpinv, *W, *tW, *tWW, *tWWtmp, *cRinv, *tcRinv,
-	 *Ctmp, *C, *tC, *Lcij, *Lc, *pCinv, *Cinv,
+	 *Ctmp, *C, *tC, *Lcij, *Lc,// *pCinv, *Cinv,
 	 *RHS, *tCRHS, *CRHS, *RHSD, *M, *tmpBLUXs, *BLUXs, *R;
   css    *sLm;
   csn    *Lm;
@@ -493,7 +493,7 @@ if(v[0] > 3){
       }
     }    
     // Convert triplet matrix into sparse compressed column matrix
-    Lc = cs_compress(Lcij);
+    Lc = cs_compress(Lcij);    // PERMUTED order (NOT order of C)
 
 
 if(v[0] > 3){
@@ -512,7 +512,7 @@ if(v[0] > 3){
 
 
 
-    /*		XXX		XXX		XXX		XXX	*/
+    /* No longer use explicit inverse (deprecated cs_emCinv uses it)
     pCinv = cs_chol2inv(Lc);
     if(pCinv == NULL){
       error("Error inverting C\n");
@@ -526,12 +526,13 @@ if(v[0] > 3){
     Cinv = cs_transpose(pCinv, true);
     cs_spfree(pCinv);
 
-
 if(v[0] > 3){
   took = toc(t);
   Rprintf("\t    %6.4f sec. (CPU clock): cpp REML i=%i chol2inv(Lc) to Cinv\n", took, i);
   t = tic();
 }
+    */
+    /*		XXX		XXX		XXX		XXX	*/
 
     ////////////////////////////////////////////////////////////////////////////
     // 5 record log-like, check convergence, & determine next varcomps to evaluate  
@@ -693,8 +694,9 @@ if(v[0] > 3){
       // XXX note Hofer eqn 12 missing sigma2e in last term of non-residual formula
       ////XXX see instead Mrode 2005 (p. 241-245)
       if(algit[i] == 0){
-        if(v[0] > 1 && i%vit[0] == 0) Rprintf("\t EM to find next theta\n");
-        if(!cs_em(BLUXs, theta, nG, rfxlvls, dimXZWG[1], ndgeninv, geninv, Cinv)){
+        if(v[0] > 1 && i%vit[0] == 0) Rprintf("\tEM to find next theta");
+        if(!cs_em(BLUXs, theta, Cinv_ii,
+	  nG, rfxlvls, dimXZWG[1], ndgeninv, geninv, Lc, P, Pinv)){
           error("Unusccessful EM algorithm in iteration %i\n");
         }
         // Calculate EM for residual:
@@ -707,13 +709,19 @@ if(v[0] > 3){
       // Average Information
       // Appendix 5 WOMBAT manual:how to modify AI matrix ensure improvements of logLik
       if(algit[i] == 1){
-        if(v[0] > 1 && i%vit[0] == 0) Rprintf("\t AI to find next theta\n");
+        if(v[0] > 1 && i%vit[0] == 0) Rprintf("\tAI to find next theta");
         //TODO do I need to check convergence criteria here (i.e., cc[3:4])
 
         //TODO if AI not successful, then change algit[i] = 0 (if EM was successful)
 
       }  // end AI
 
+
+if(v[0] > 3){
+  took = toc(t);
+  Rprintf(": %6.4f sec. (CPU clock)\n", took, i);
+  t = tic();
+} else Rprintf("\n");  // end the line
 
     }  // end if REML did not converge
 
@@ -729,7 +737,7 @@ if(v[0] > 3){
     took = toc(T);                 // Capture cpu clock time for i REML iteration
     // V=1 LEVEL of OUTPUT
     if(v[0] > 0 && i%vit[0] == 0){ 
-      Rprintf("\t\tlL:%6.6f", loglik);
+      Rprintf("\n\tlL:%6.6f", loglik);
       Rprintf("\ttook %6.3f sec. (CPU clock)\n", took); //TODO format units if >60 (and do for all Rprintf(took))
       // To format units see const *char in: http://www.cplusplus.com/reference/cmath/round/
 
@@ -798,6 +806,8 @@ if(v[0] > 3) t = tic();
   // Pass information to R
   //// Solution vector
   for(k = 0; k < dimXZWG[5]; k++) sln[k] += BLUXs->x[k];
+
+/* No longer needed - cs_em automatically replaces and don't make Cinv
   //// diagonals of Cinv (sln sampling variances) 
   for(k = 0; k < Cn; k++){
     for(i = Cinv->p[k]; i < Cinv->p[k+1]; i++){
@@ -807,6 +817,8 @@ if(v[0] > 3) t = tic();
       }  // end if
     }  // end for i
   }  // end for k
+*/
+
   //// Residual vector
   for(k = 0; k < ny[0]; k++) r[k] += R->x[k];
   //TODO
@@ -819,7 +831,7 @@ if(v[0] > 3) t = tic();
   cs_spfree(Bpinv);
   cs_spfree(W); cs_spfree(tW); cs_spfree(tWW);
   cs_spfree(cRinv); cs_spfree(tcRinv);
-  cs_spfree(Ctmp); cs_spfree(C); cs_spfree(Cinv);
+  cs_spfree(Ctmp); cs_spfree(C); //cs_spfree(Cinv);
   cs_spfree(Lcij); cs_spfree(Lc);
   cs_spfree(RHS); cs_spfree(tmpBLUXs); cs_spfree(BLUXs); cs_spfree(R);
 

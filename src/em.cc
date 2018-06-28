@@ -11,17 +11,22 @@ XXX eqn. 2.44 is the score/gradient! for a varcomp
 */
 
 /* theta overwritten with solution */
-csi cs_em(const cs *BLUXs, double *theta,
+/* Cinv_ii overwritten with diag(Cinv) */
+csi cs_em(const cs *BLUXs, double *theta, double *Cinv_ii,
 	csi nG, csi *rfxlvls, csi nb, csi *ndgeninv,
-	cs **geninv, cs *Lc, csi *P
+	cs **geninv, cs *Lc, csi *P, csi *Pinv
 ){
 
   double  *Bx, r, o, tr;
-  cs      *preTR, *preTRprod;
-  csi     g, i, j, k, m, si, qi, ei;
+  csi     g, i, j, k, m, n, si, qi, ei;
   if(!CS_CSC (BLUXs) || !nb || !theta) return (0);    // check arguments
-  double  *tmp_sln = new double[BLUXs->m];
-    for(k = 0; k < BLUXs->m; k++) tmp_sln[k] = 0.0;
+  n = BLUXs->m;
+  double  *tmp_sln = new double[n];
+  double  *w = new double[n];
+    for(k = 0; k < n; k++){
+      tmp_sln[k] = 0.0;
+      w[k] = 0.0;
+    }
   Bx = BLUXs->x;
   si = nb;
   r = theta[nG];                       //   residual var
@@ -34,6 +39,7 @@ csi cs_em(const cs *BLUXs, double *theta,
     // crossproduct of BLUXs[si:ei] with geninv (t(BLUXs) %*% geninv)
     //// Diagonal geninv first
     if(ndgeninv[g] > 0){
+      if(!CS_CSC(geninv[g])) error("geninv[%i] not CSC matrix\n", g);
       //// Non-diagonal generalized inverses
       ////// Column-by-column of geninv
       for(k = 0; k < qi; k++){
@@ -55,49 +61,44 @@ csi cs_em(const cs *BLUXs, double *theta,
         o += tmp_sln[k] * Bx[k];
     }
 
-
-
-
-    // ... + trace(geninv[g] %*% Cinv[si:ei, si:ei]) * residual variance / qi
+    // ... + trace(geninv[g] %*% Cinv[si:ei, si:ei]) ...
     //// geninv[g] %*% Cinv[si:ei, si:ei]
-    preTR = cs_spalloc(qi, qi, qi*qi, true, false);
-      i = 0;
-      preTR->p[0] = 0;
+      ////// each k column of Lc, create Cinv[si:ei, si:ei] elements
+      //////// forward solve with Identity[, k] then backsolve
       for(k = si; k <= ei; k++){
-//        for(j = Cinv->p[k]; j < Cinv->p[k+1]; j++){
-//          if( (Cinv->i[j] >= si) && (Cinv->i[j] <= ei) ){
-//            preTR->i[i] = Cinv->i[j] - si;
-//            preTR->x[i] = Cinv->x[j];
-//            i++;
-//          }  // end if
-//        }  // end for j
-        preTR->p[k-si+1] = i;
-      }  // end for k
-      preTR->nzmax = i;
+        // use tmp_sln as working vector: first zero out and create Identity[, k]
+        //// however, Lc is permuted, so need to use t(P) %*% I[, k]
+        for(i = 0; i < n; i++) tmp_sln[i] = 0.0;
+        tmp_sln[Pinv[k]] += 1.0;                      /* essentially `cs_ipvec` */
+        cs_lsolve (Lc, tmp_sln);                /* x = L\x */      
+        cs_ltsolve(Lc, tmp_sln);                /* x = L'\x */
+        // Now tmp_sln holds a permuted ordering of Cinv[, k]
+//TODO combine ipvec (take code out of function) and multiplication in next step
+        cs_ipvec(P, tmp_sln, w, n);            /* b = P'*x */
+        // w holds Cinv[, k]
 
-      if(ndgeninv[g] == 0){
-        preTRprod = cs_spalloc(preTR->m, preTR->n, preTR->nzmax, true, false);
-          preTRprod->i = preTR->i; preTRprod->p = preTR->p;
-          preTRprod->x = preTR->x;
-      } else{
-        if(!CS_CSC(geninv[g])) error("geninv[%i] not CSC matrix\n", g);
-        preTRprod = cs_multiply(geninv[g], preTR);
-      }
+        // write sampling variance for kth BLUP
+        Cinv_ii[k] = w[k];
 
-      // now tr(preTRprod)
-      for(k = 0; k < qi; k++){
-        for(j = preTRprod->p[k]; j < preTRprod->p[k+1]; j++){
-          if(preTRprod->i[j] == k){
-            tr += preTRprod->x[j];
-            break;
-          }
-        }  // end for j
+        if(ndgeninv[g] == 0){
+          // if a diagonal geninv, trace=sum(diag(Cinv[si:ei, si:ei]))
+          tr += w[k];
+        } else{
+          // Contribution to the trace: calculate diagonal of matrix product
+          //(geninv[g]%*%Cinv[si:ei, si:ei])[k,k] = geninv[g][k,]%*%Cinv[si:ei,k]
+          for(i = geninv[g]->p[k-si]; i < geninv[g]->p[k-si+1]; i++){
+            j = geninv[g]->i[i] + si;
+            tr += geninv[g]->x[i] * w[j];
+          }  // end for i
+        }  // end if/else non-diagonal geninv trace calculation
       }  // end for k
 
 
     // (first term + trace * r ) / qi
     theta[g] = (o + tr * r ) / qi;
     si = ei + 1;
+    // reset tmp_sln to zero for next g
+    if(g < (nG-1)) for(k = 0; k < n; k++) tmp_sln[k] = 0.0;
   }  // end for g in nG
 
 
@@ -107,6 +108,7 @@ csi cs_em(const cs *BLUXs, double *theta,
 
 
    delete [] tmp_sln;
+   delete [] w;
 
   return(1);
 }
@@ -163,7 +165,7 @@ csi cs_emCinv(const cs *BLUXs, double *theta,
     }
 
 
-    // ... + trace(geninv[g] %*% Cinv[si:ei, si:ei]) * residual variance / qi
+    // ... + trace(geninv[g] %*% Cinv[si:ei, si:ei]) ...
     preTR = cs_spalloc(qi, qi, qi*qi, true, false);
       i = 0;
       preTR->p[0] = 0;
