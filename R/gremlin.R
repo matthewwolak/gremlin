@@ -204,7 +204,7 @@ gremlinR <- function(formula, random = NULL, rcov = ~ units,
 
   stopifnot(inherits(formula, "formula"), length(formula) == 3L)
   mc <- as.list(match.call())
-  if(v > 0) cat("          gremlin started:\t", format(Sys.time(), "%H:%M:%S"), "\n")
+  if(v > 0) cat("gremlin started:\t\t", format(Sys.time(), "%H:%M:%S"), "\n")
   m <- match(c("formula", "random", "rcov", "data", "subset", "ginverse", "na.action", "offset", "contrasts", "Xsparse"), names(mc), 0)
   mMmc <- as.call(c(quote(mkModMats), mc[m]))
   modMats <- eval(mMmc, parent.frame())
@@ -393,7 +393,6 @@ gremlinR <- function(formula, random = NULL, rcov = ~ units,
 
   itMat <- matrix(NA, nrow = maxit, ncol = p+5) 
     colnames(itMat) <- c(names(thetav), "sigma2e", "tyPy", "logDetC", "loglik", "itTime")
-  vitseq <- seq(0, maxit, by = vit)
     #############################################################
     # REML doesn't change with any of above
     #############################################################
@@ -692,7 +691,8 @@ gremlinR <- function(formula, random = NULL, rcov = ~ units,
   #########################################################
   #########################################################
   for(i in 1:nrow(itMat)){
-    if(v > 0 && i %in% vitseq){
+    vitout <- ifelse(i == 1, 0, i%%vit)
+    if(v > 0 && vitout == 0){
       cat("  ", i, "of max", maxit, "iterations\t",
 	format(Sys.time(), "%H:%M:%S"), "\n")
     }
@@ -725,12 +725,12 @@ gremlinR <- function(formula, random = NULL, rcov = ~ units,
 
     if(!all(cc, na.rm = TRUE)){
       if(algit[i] == "EM"){
-        if(v > 1 && i %in% vitseq) cat("\t EM iteration\n")
+        if(v > 1 && vitout == 0) cat("\t EM iteration\n")
         thetaout <- em(theta)
       }
 
       if(algit[i] == "AI"){
-        if(v > 1 && i %in% vitseq) cat("\t AI iteration\n")
+        if(v > 1 && vitout == 0) cat("\t AI iteration\n")
 #FIXME Currently, only allow when not: 
 if(nrow(theta[[thetaR]]) != 1){
   stop("AI algorithm currently only works for a single residual variance")
@@ -745,7 +745,7 @@ if(nrow(theta[[thetaR]]) != 1){
 
       if(algit[i] == "bobyqa"){
 stop("Not allowing `minqa::bobyqa()` right now")
-#        if(v > 1 && i %in% vitseq) cat("Switching to `minqa::bobyqa()`\n")
+#        if(v > 1 && vitout == 0) cat("Switching to `minqa::bobyqa()`\n")
 #FIXME lower bounds if not transformed!
 #        bobyout <- bobyqa(par = thetav, fn = function(x) -1*reml(x, skel), lower = ezero,
 #		control = list(iprint = v, maxfun = maxit))
@@ -761,7 +761,7 @@ stop("Not allowing `minqa::bobyqa()` right now")
 ##think requires obtaining gradient and hessian for both `nu` and `theta`
 ## See Meyer 1996 eqns ~ 45-55ish
       if(algit[i] == "NR"){
-        if(v > 1 && i %in% vitseq) cat("\t NR iteration\n")
+        if(v > 1 && vitout == 0) cat("\t NR iteration\n")
 #        gr <- gradFun(thetav)
 #        H <- hessian(func = reml, x = thetav, skel = skel) 
 #tmp <- numDeriv::genD(func = reml, x = thetav, skel = skel)
@@ -779,7 +779,7 @@ stop("Not allowing `minqa::bobyqa()` right now")
     }
     theta <- sapply(thetaout, FUN = stTrans)
     itTime <- Sys.time() - stItTime
-    if(v > 0 && i %in% vitseq){
+    if(v > 0 && vitout == 0){
       cat("\t\tlL:", format(round(loglik, 6), nsmall = 6), "\t1 iteration:",
 	round(itTime, 2), units(itTime), "\n")
       if(v > 1){
@@ -871,7 +871,7 @@ gremlin <- function(formula, random = NULL, rcov = ~ units,
 
   stopifnot(inherits(formula, "formula"), length(formula) == 3L)
   mc <- as.list(match.call())
-  if(v > 0) cat("          gremlin started:\t", format(Sys.time(), "%H:%M:%S"), "\n")
+  if(v > 0) cat("gremlin started:\t\t", format(Sys.time(), "%H:%M:%S"), "\n")
   m <- match(c("formula", "random", "rcov", "data", "subset", "ginverse", "na.action", "offset", "contrasts", "Xsparse"), names(mc), 0)
   mMmc <- as.call(c(quote(mkModMats), mc[m]))
   modMats <- eval(mMmc, parent.frame())
