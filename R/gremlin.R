@@ -1535,9 +1535,6 @@ AI2 <- AI1 <- matrix(NA, nrow = p, ncol = p)
 
 
 
-if(i==4)browser() # XXX DELETEME
-
-
 
 
     if(!all(cc, na.rm = TRUE)){
