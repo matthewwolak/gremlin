@@ -147,6 +147,18 @@ vech2matlist <- function(vech, skeleton){
 #'     \item{call }{The model \code{call}.}
 #'     \item{modMats }{A \code{list} of the model matrices used to construct the
 #'       mixed model equations.}
+#'       \item{y }{The response vector.}
+#'       \item{ny }{The number of responses.}
+#'       \item{ncy }{The number of columns of the original response.}
+#'       \item{X }{ The fixed effects design matrix.}
+#'       \item{nb }{The number of columns in X.}
+#'       \item{Zr }{The residual design matrix.}
+#'       \item{Zg }{A list of the design matrices for each random term.}
+#'       \item{nG }{The number of parameters in the G structure.}
+#'       \item{listGinv }{A list of genearlized inverse matrices.}
+#'       \item{logDetG }{The log-determinants of the generalized inverse 
+#'       matrices - necessary to calculate the log-likelihood.}
+#'
 #'     \item{itMat }{A \code{matrix} of details about each iteration.}
 #'     \item{sln }{A two column \code{matrix} of solutions and their sampling
 #'       variances from the mixed model.}
@@ -156,18 +168,6 @@ vech2matlist <- function(vech, skeleton){
 #'       sampling variances of the (co)variance components.}
 #'     \item{dLdtheta }{A single column \code{matrix} of first derivatives of
 #'       the (co)variance parameters with respect to the log-Likelihood.}
-#'
-#'     \item{y }{The response vector.}
-#'     \item{ny }{The number of responses.}
-#'     \item{ncy }{The number of columns of the original response.}
-#'     \item{X }{ The fixed effects design matrix.}
-#'     \item{nb }{The number of columns in X.}
-#'     \item{Zr }{The residual design matrix.}
-#'     \item{Zg }{A list of the design matrices for each random term.}
-#'     \item{nG }{The number of parameters in the G structure.}
-#'     \item{listGinv }{A list of genearlized inverse matrices.}
-#'     \item{logDetG }{The log-determinants of the generalized inverse matrices
-#'       - necessary to calculate the log-likelihood.}
 #'   }
 #'
 #' @references
