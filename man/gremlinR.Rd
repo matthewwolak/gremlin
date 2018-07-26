@@ -3,17 +3,17 @@
 \name{gremlinR}
 \alias{gremlinR}
 \alias{gremlin}
-\alias{is.gremlin}
-\alias{mkModMats}
-\alias{is.gremlin}
+\alias{gremlin}
 \alias{mkModMats}
 \title{Mixed-effect modeling functions.}
 \usage{
 gremlinR(formula, random = NULL, rcov = ~units, data = NULL,
   ginverse = NULL, Gstart = NULL, Rstart = NULL, maxit = 20,
-  algit = NULL, vit = 10, v = 1, Mout = FALSE, ...)
+  algit = NULL, vit = 10, v = 1, ...)
 
-is.gremlin(x)
+gremlin(formula, random = NULL, rcov = ~units, data = NULL,
+  ginverse = NULL, Gstart = NULL, Rstart = NULL, maxit = 20,
+  algit = NULL, vit = 10, v = 1, ...)
 
 mkModMats(formula, random = NULL, rcov = ~units, data = NULL,
   subset = NULL, ginverse = NULL, na.action = na.pass, offset = NULL,
@@ -56,12 +56,7 @@ larger values increase the amount of information printed on the screen.}
 regarding the model fitting process. A value of zero gives no details and
 larger values increase the amount of information printed on the screen.}
 
-\item{Mout}{A \code{logical} value that indicates if the model should quit
-and return the mixed model array (or M-matrix) once it is formed.}
-
 \item{\dots}{Additional arguments to be passed to control the model fitting.}
-
-\item{x}{An object of \code{class} \sQuote{gremlin}.}
 
 \item{subset}{An expression for the subset of \code{data} to use.}
 
@@ -73,6 +68,8 @@ and return the mixed model array (or M-matrix) once it is formed.}
 
 \item{Xsparse}{Should sparse matrices be used for the fixed effects design
 matrix.}
+
+\item{x}{An object of \code{class} \sQuote{gremlin}.}
 }
 \value{
 A \code{list} of class \code{gremlin} or \code{gremlinModMats}:
@@ -80,6 +77,18 @@ A \code{list} of class \code{gremlin} or \code{gremlinModMats}:
     \item{call }{The model \code{call}.}
     \item{modMats }{A \code{list} of the model matrices used to construct the
       mixed model equations.}
+      \item{y }{The response vector.}
+      \item{ny }{The number of responses.}
+      \item{ncy }{The number of columns of the original response.}
+      \item{X }{ The fixed effects design matrix.}
+      \item{nb }{The number of columns in X.}
+      \item{Zr }{The residual design matrix.}
+      \item{Zg }{A list of the design matrices for each random term.}
+      \item{nG }{The number of parameters in the G structure.}
+      \item{listGinv }{A list of genearlized inverse matrices.}
+      \item{logDetG }{The log-determinants of the generalized inverse 
+      matrices - necessary to calculate the log-likelihood.}
+
     \item{itMat }{A \code{matrix} of details about each iteration.}
     \item{sln }{A two column \code{matrix} of solutions and their sampling
       variances from the mixed model.}
@@ -89,20 +98,6 @@ A \code{list} of class \code{gremlin} or \code{gremlinModMats}:
       sampling variances of the (co)variance components.}
     \item{dLdtheta }{A single column \code{matrix} of first derivatives of
       the (co)variance parameters with respect to the log-Likelihood.}
-    \item{Cinv }{The inverse coefficient \code{matrix}, in sparse matrix
-      format, of the mixed model equations.}
-
-    \item{y }{The response vector.}
-    \item{ny }{The number of responses.}
-    \item{ncy }{The number of columns of the original response.}
-    \item{X }{ The fixed effects design matrix.}
-    \item{nb }{The number of columns in X.}
-    \item{Zr }{The residual design matrix.}
-    \item{Zg }{A list of the design matrices for each random term.}
-    \item{nG }{The number of parameters in the G structure.}
-    \item{listGinv }{A list of genearlized inverse matrices.}
-    \item{logDetG }{The log-determinants of the generalized inverse matrices
-      - necessary to calculate the log-likelihood.}
   }
 }
 \description{
@@ -111,8 +106,6 @@ object is a fitted model.
 }
 \section{Functions}{
 \itemize{
-\item \code{is.gremlin}: Method to test if object is of class \code{gremlin}
-
 \item \code{mkModMats}: Generates model matrices.
 }}
 
@@ -120,7 +113,7 @@ object is a fitted model.
 \dontrun{
   library(nadiv)
   Ainv <- makeAinv(Mrode3[-c(1:2), 1:3])$Ainv
-  mod11 <- gremlinR(WWG11 ~ sex - 1,
+  mod11 <- gremlin(WWG11 ~ sex - 1,
   	random = ~ calf,
   	data = Mrode11,
   	ginverse = list(calf = Ainv),
@@ -128,6 +121,13 @@ object is a fitted model.
   	maxit = 10, v = 2, algit = "AI")
 
   is(mod11)
+
+  mod11R <- gremlinR(WWG11 ~ sex - 1,
+  	random = ~ calf,
+  	data = Mrode11,
+  	ginverse = list(calf = Ainv),
+  	Gstart = matrix(0.2), Rstart = matrix(0.4),
+  	maxit = 10, v = 2, algit = "AI")
 }
 }
 \references{
