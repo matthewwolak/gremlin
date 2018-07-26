@@ -693,7 +693,7 @@ gremlinR <- function(formula, random = NULL, rcov = ~ units,
   for(i in 1:nrow(itMat)){
     vitout <- ifelse(i == 1, 0, i%%vit)
     if(v > 0 && vitout == 0){
-      cat("  ", i, "of max", maxit, "iterations\t",
+      cat("  ", i, "of max", maxit, "\t\t\t",
 	format(Sys.time(), "%H:%M:%S"), "\n")
     }
     stItTime <- Sys.time()
@@ -725,12 +725,12 @@ gremlinR <- function(formula, random = NULL, rcov = ~ units,
 
     if(!all(cc, na.rm = TRUE)){
       if(algit[i] == "EM"){
-        if(v > 1 && vitout == 0) cat("\t EM iteration\n")
+        if(v > 1 && vitout == 0) cat("\tEM to find next theta\n")
         thetaout <- em(theta)
       }
 
       if(algit[i] == "AI"){
-        if(v > 1 && vitout == 0) cat("\t AI iteration\n")
+        if(v > 1 && vitout == 0) cat("\tAI to find next theta\n")
 #FIXME Currently, only allow when not: 
 if(nrow(theta[[thetaR]]) != 1){
   stop("AI algorithm currently only works for a single residual variance")
@@ -761,7 +761,7 @@ stop("Not allowing `minqa::bobyqa()` right now")
 ##think requires obtaining gradient and hessian for both `nu` and `theta`
 ## See Meyer 1996 eqns ~ 45-55ish
       if(algit[i] == "NR"){
-        if(v > 1 && vitout == 0) cat("\t NR iteration\n")
+        if(v > 1 && vitout == 0) cat("\tNR to find next theta\n")
 #        gr <- gradFun(thetav)
 #        H <- hessian(func = reml, x = thetav, skel = skel) 
 #tmp <- numDeriv::genD(func = reml, x = thetav, skel = skel)
@@ -780,7 +780,7 @@ stop("Not allowing `minqa::bobyqa()` right now")
     theta <- sapply(thetaout, FUN = stTrans)
     itTime <- Sys.time() - stItTime
     if(v > 0 && vitout == 0){
-      cat("\t\tlL:", format(round(loglik, 6), nsmall = 6), "\t1 iteration:",
+      cat("\tlL:", format(round(loglik, 6), nsmall = 6), "\ttook ",
 	round(itTime, 2), units(itTime), "\n")
       if(v > 1){
 #        cat("\t", colnames(itMat)[-match(c("loglik", "itTime"), colnames(itMat))], "\n", sep = "  ")
