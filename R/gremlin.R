@@ -183,7 +183,7 @@ vech2matlist <- function(vech, skeleton){
 #'   	data = Mrode11,
 #'   	ginverse = list(calf = Ainv),
 #'   	Gstart = matrix(0.2), Rstart = matrix(0.4),
-#'   	maxit = 10, v = 2, algit = "AI")
+#'   	maxit = 10, v = 2)
 #'
 #'   is(mod11)
 #'
@@ -192,7 +192,7 @@ vech2matlist <- function(vech, skeleton){
 #'   	data = Mrode11,
 #'   	ginverse = list(calf = Ainv),
 #'   	Gstart = matrix(0.2), Rstart = matrix(0.4),
-#'   	maxit = 10, v = 2, algit = "AI")
+#'   	maxit = 10, v = 2)
 #' }
 #' @export
 gremlinR <- function(formula, random = NULL, rcov = ~ units,
