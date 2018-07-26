@@ -158,8 +158,6 @@ vech2matlist <- function(vech, skeleton){
 #'       sampling variances of the (co)variance components.}
 #'     \item{dLdtheta }{A single column \code{matrix} of first derivatives of
 #'       the (co)variance parameters with respect to the log-Likelihood.}
-#'     \item{Cinv }{The inverse coefficient \code{matrix}, in sparse matrix
-#'       format, of the mixed model equations.}
 #'
 #'     \item{y }{The response vector.}
 #'     \item{ny }{The number of responses.}
@@ -271,8 +269,6 @@ gremlinR <- function(formula, random = NULL, rcov = ~ units,
     if(modMats$ncy == 1) uni <- TRUE else stop("gremlin isn't old enough to play with multivariate models")
 #TODO is `start` even necessary any more? Can I just keep `Gstart` and `Rstart`
 
-#FIXME: Add G to ginverse elements from `mkmod()` in c++ 
-## to take advantage of cs_kroneckerAupdate and cs_kroneckerIupdate
 #FIXME: change G to cholesky of G with log(diagonals)
 ## e.g., parameterisation to ensure postive-definiteness
 ### when to do cholesky factorization of G?
@@ -284,10 +280,6 @@ gremlinR <- function(formula, random = NULL, rcov = ~ units,
 
 
 
-    # Rand Fx incidence matrix part of 'log(|G|)'
-    #FIXME: Only works for independent random effects right now!
-    rfxIncContrib2loglik <- sum(unlist(modMats$logDetG))
-
     # 1 Create mixed model array (M) and coefficient matrix of MME (C)
     # quadratic at bottom-right (Meyer & Smith 1996, eqn 6)
     ##1a form W by `cBind()` X and each Z_i
@@ -297,13 +289,32 @@ gremlinR <- function(formula, random = NULL, rcov = ~ units,
         W <- cBind(W, modMats$Zg[[g]])
       }
     }
+    # Rand Fx incidence matrix part of 'log(|G|)'
+    #FIXME: Only works for independent random effects right now!
+    rfxIncContrib2loglik <- sum(unlist(modMats$logDetG))
+    Bp <- as(diag(x = 0, nrow = modMats$nb, ncol = modMats$nb), "dgCMatrix") #<-- used every iteration
+      #TODO: `Bp` replaces `zero` in earlier version
+      ## Can allow for prior on fixed effects; need Bpinv
+      ## (see Schaeffer 1991 summary of Henderson's result)
+    Bpinv <- if(all(Bp@x == 0)) Bp + diag(0, nrow(Bp)) else solve(Bp)
+
+    # Find Non-diagonal ginverses
+    ndGinv <- sapply(seq(modMats$nG),
+	FUN = function(g){class(modMats$listGinv[[g]]) != "ddiMatrix"})  #0=I; 1=A 
+    dimsZg <- sapply(seq(modMats$nG),
+	FUN = function(g){slot(modMats$Zg[[g]], "Dim")})
+    D <- crossprod(modMats$y) # <-- Same every iteration
+      #TODO: what to do if y is multivariate (still just 1 column, so D just 1 number?
+    sln <- Cinv_ii <- matrix(0, nrow = modMats$nb + sum(dimsZg[2, ]), ncol = 1)
+    r <- matrix(0, nrow = modMats$ny, ncol = 1)
+#TODO CLEANUP terminology: `Ginv` is abbreviation for ginverse matrices (e.g., inverse of additive genetic relatedness matrix) but also the variable which is the inverse of the covariance matrix G!
+##FIXME: change generalized inverses (`Ginv`) to `geninv`
+#
+#
+#
+
     tWW <- crossprod(W)  #TODO Add statement to include `Rinv`
     zero <- Diagonal(n = modMats$nb, x = 0)  #<-- used every iteration
-    #############################################################
-    # REML doesn't change with any of above
-    #############################################################
-
-
     # transform starting parameters to 'nu' scale
     ## cholesky of covariance matrices, then take log of transformed diagonals
     cRinv <- solve(chol(theta[[thetaR]]))
@@ -333,6 +344,12 @@ gremlinR <- function(formula, random = NULL, rcov = ~ units,
 ###### END DIVERSION ###############
 
 
+    RHS <- Matrix(crossprod(W, modMats$y), sparse = TRUE)  # <-- Same every iteration
+    M <- as(cbind(rbind(C, t(RHS)),
+	    rbind(RHS, D)), "symmetricMatrix")
+    #TODO delete `Mout` option entirely?
+    if(Mout) return(M)
+
     ##1d Find best order of MMA/C/pivots!
     # Graser et al. 1987 (p1363) when singular C, |C| not invariant to order
     ##of C, therefore same order (of pivots) must be used in each loglik iteration
@@ -342,61 +359,51 @@ gremlinR <- function(formula, random = NULL, rcov = ~ units,
     ### However, tested `warcolak` trait1 with VA and VD univariate model
     #### `super = FALSE` faster and smaller than when `super = TRUE`
 #if(any(eigen(C)$values < 0)) cat(which(eigen(C)$values < 0), "\n") #FIXME
-    sLc <- Cholesky(C, perm = TRUE, LDL = FALSE, super = FALSE)
-    Pc <- as(sLc, "pMatrix")
-    # TODO implement options to do different methods to obtain Cinv
-    ## Also, investigate/test fastest method to obtain Cinv from `sLc`
-    ###XXX see note/idea in "../myNotesInsights/invFromChol.Rmd"
-    Cinv <- NULL#chol2inv(sLc)
-    # original order obtained by: t(Pc) %*% Lc %*% Pc or `crossprod(Pc, Lc) %*% Pc`
-    D <- crossprod(modMats$y) # <-- Same every iteration
-    RHSperm <- Matrix(crossprod(Pc, crossprod(W, modMats$y)), nrow = modMats$ncy, sparse = TRUE)  # <-- Same every iteration
-    tRHSD <- rBind(t(RHSperm), D)
-#Without permutation of C
-#if(Mout) return(as(drop0(rBind(cBind(crossprod(modMats$y), crossprod(modMats$y, W)),
-#	cBind(crossprod(W, modMats$y), C))), "symmetricMatrix"))
-#With permutation of C
-if(Mout) return(as(drop0(rBind(cBind(D, RHSperm),
-	cBind(t(RHSperm), crossprod(Pc, C) %*% Pc))), "symmetricMatrix"))
+    #TODO test if super=TRUE better
+    ## supernodal might be better as coefficient matrix (C) becomes more dense
+    #### e.g., with a genomic relatedness matrix (see Masuda et al. 2014 & 2015)
+    sLm <- Cholesky(M, perm = TRUE, LDL = FALSE, super = FALSE)
+    # original order obtained by: t(P) %*% L %*% P or `crossprod(P, L) %*% P`
+    sLc <- sLm
+      rm1 <- which(sLm@i != (sLm@Dim[1]-1))
+      sLc@x <- sLm@x[rm1]
+      sLc@i <- sLm@i[rm1]
 
-# https://software.intel.com/en-us/node/531896
-    ### M = [C   t(RHSperm)]   = Lm t(Lm) = [Lc                 0  ]   [t(Lc)   Lc^{-1}t(RHSperm)] 
-    #       [RHSperm    D  ]                [RHSpermt(Lc^{-1})  Ls ]   [ 0      t(Ls)            ]
-    ### C = Lc t(Lc)
-    ### S = D - B C^{-1} t(B) the Schur complement
-    ### S = Ls t(Ls)
-#Alternatively: need to keep working out below
-#    Lb <- tcrossprod(RHSperm, solve(sLc))
-#    S <- D - tcrossprod(Lb)
-#    Ls <- chol(S)
-#MMA <- rBind(cBind(tcrossprod(Lc), tcrossprod(Lc, Lb)),
-#	cBind(tcrossprod(Lb, Lc), tcrossprod(Lb) + tcrossprod(Ls2)))
-# FIXME   tyPy <- S@x #tail(L@x, 1)^2   # faster to do `diag(L)[ncol(L)]^2`???
+      sLc@nz <- sLc@colcount <- sapply(seq(sLm@Dim[[2L]]-1), FUN = function(k){sum(sLm@i[(sLm@p[k]+1):(sLm@p[k+1])] < sLm@Dim[[2L]]-1)})
+      sLc@p <- as.integer(c(0, cumsum(sLc@nz)))
+      sLc@Dim <- as.integer(c(sLm@Dim[[1L]]-1, sLm@Dim[[2L]]-1))
+      sLc@nxt <- sLm@nxt[-which(sLm@nxt == sLm@Dim[[1L]])]
+      sLc@prv <- as.integer(c(sLm@Dim[[1L]], seq(0, sLc@Dim[[1L]]-1, 1), -1))
+      sLc@perm <- head(sLc@perm, -1)
+    Ic <- Diagonal(x = 1, n = nrow(C))
 
-#TODO what to do about this: test and see which is faster (scholM TRUE/FALSE)?
-## Need sLm to get tyPy? but don't use sLm otherwise below / do use C, sLc, Cinv below
-#    M <- as(cBind(rBind(crossprod(Pc, C) %*% Pc, RHSperm),
-#	tRHSD), "symmetricMatrix")
-    # `perm=FALSE` else block diagonal no longer `bdiag(C, D)`
-    sLm <- Cholesky(as(cBind(rBind(crossprod(Pc, C) %*% Pc, RHSperm),
-	    tRHSD), "symmetricMatrix"), perm = FALSE, LDL = FALSE, super = FALSE)
-#FIXME `tyPy` needs to be >1? So, below the `length(sLm@x)` index and/or `n=1` agrument to `tail()` needs to be changed to match dimension of y vector
-    tyPy <- numeric(1)
-    logDetC <- numeric(1)
-    sigma2e <- numeric(1)
+#TODO put these with `mkModMats()` - need to figure out multivariate version/format
     # 5b log(|R|) and log(|G|) <-- Meyer 1989 (uni) & 1991 (multivar)
     # Only have to do these once per model
-#TODO put these with `mkModMats()` - need to figure out multivariate version/format
     nminffx <- modMats$ny - modMats$nb
     rfxlvls <- sapply(modMats$Zg, FUN = ncol)
     nr <- if(length(rfxlvls) == 0) 0 else sum(rfxlvls)
     nminfrfx <- nminffx - nr
-    sln <- matrix(0, nrow = nrow(C), ncol = 1)
-    r <- matrix(0, nrow = modMats$ny, ncol = 1)
 
     AI <- matrix(NA, nrow = p, ncol = p)
     dLdtheta <- matrix(NA, nrow = p, ncol = 1, dimnames = list(names(thetav), NULL))
     if("AI" %in% algit) PorVinv <- matrix(0, nrow = modMats$ny, ncol = modMats$ny)
+    Cinv <- NULL
+    tyPy <- numeric(1)
+    logDetC <- numeric(1)
+    sigma2e <- numeric(1)
+
+
+
+  itMat <- matrix(NA, nrow = maxit, ncol = p+5) 
+    colnames(itMat) <- c(names(thetav), "sigma2e", "tyPy", "logDetC", "loglik", "itTime")
+  vitseq <- seq(0, maxit, by = vit)
+    #############################################################
+    # REML doesn't change with any of above
+    #############################################################
+
+
+
 
 
 
@@ -424,26 +431,21 @@ if(Mout) return(as(drop0(rBind(cBind(D, RHSperm),
         C <<- as(tWW + bdiag(c(zero,
 	  sapply(1:modMats$nG, FUN = function(u){kronecker(modMats$listGinv[[u]], solve(Ginv[[u]]))}))), "symmetricMatrix")
       } else C <<- as(tWW + diag(zero), "symmetricMatrix")
-      sLc <<- update(sLc, C)
-      #TODO see note/idea in "../myNotesInsights/invFromChol.Rmd"
-      #TODO should update the permutation each iteration????
-      #Cinv <<- chol2inv(sLc) # chol2inv gives Cinv in same permutation as C (not permutation of sLc)
-      Cinv <<- solve(C)  #<-- XXX Faster than chol2inv(sLc) atleast for warcolak
-#      M <<- as(cBind(rBind(crossprod(Pc, C) %*% Pc, RHSperm),
-#	    tRHSD), "symmetricMatrix")
-      sLm <<- update(sLm, as(cBind(rBind(crossprod(Pc, C) %*% Pc, RHSperm),
-	    tRHSD), "symmetricMatrix"))
-      tyPy[] <<- sLm@x[length(sLm@x)]^2   # Meyer & Smith 1996, eqn. 14
-      # above is far faster than `tail(sLm@x, 1)^2`
+#XXX Gives wrong/different answer sLc <<- update(object = sLc, parent = crossprod(Pc, C) %*% Pc)
 
+      M <<- as(cbind(rbind(C, t(RHS)),
+	    rbind(RHS, D)), "symmetricMatrix")
+      sLm <<- Cholesky(M, perm = TRUE, LDL = FALSE, super = FALSE)
+      #TODO see note/idea in "../myNotesInsights/invFromChol.Rmd"
       # 5 record log-like, check convergence, & determine next varcomps to evaluate  
       ##5a determine log(|C|) and y'Py
       ### Meyer & Smith 1996, eqns 12-14 (and 9)
       #### Also see Meyer & Kirkpatrick 2005 GSE. eqn. 18: if cholesky of MMA = LL'
-#FIXME does sLc@x[sLc@p+1] give an NA in the vector of results for Mrode11 it=1??
-      logDetC[] <<- 2 * sum(log(sLc@x[sLc@p+1][1:sLc@Dim[[1]]]))
-      # alternatively from sLm: `...sum(log(sLm@x[sLm@p+1][1:(sLm@Dim[[1]]-1)]))`
-      ## takes longer than sLc for more complex models
+      # Meyer & Smith 1996, eqn. 14
+      tyPy[] <<- tail(sLm@x, 1)^2
+      logDetC[] <<- 2 * sum(log(sLm@x[sLm@p+1][1:(sLm@Dim[[1L]]-1)]))
+      # alternatively from sLc: `... sum(log(sLc@x[sLc@p+1][1:sLc@Dim[[1]]]))`
+      ## XXX does sLm takes longer than sLc for more complex models
 
       # Residual variance
       sigma2e[] <<- tyPy / nminffx
@@ -466,12 +468,25 @@ if(Mout) return(as(drop0(rBind(cBind(D, RHSperm),
 
 
 
+
       # solve MME for BLUEs/BLUPs
 #XXX Do I need to solve for BLUEs (see Knight 2008 for just getting BLUPs eqn 2.13-15)
       ## see Mrode 2005 chapter
       # permuted RHS of MME is `RHSperm`
-      sln[] <<- solve(a = sLc, b = solve(a = sLc, b = t(RHSperm), system = "P"),
-	  system = "A")
+      #sln[] <<- Pc %*% solve(a = sLc, b = t(RHSperm), system = "A")
+      #otherwise
+      #sln[] <<- solve(a = C, b = RHS, system = "A")
+      # alternatively, get factorization of C (sLc) from sLm:
+      ## Assume same non-zero pattern
+      sLc@x <<- sLm@x[rm1]
+
+      # chol2inv: Cinv in same permutation as C (not permutation of sLc/sLm)
+      #Cinv <<- chol2inv(sLc) #<-- XXX ~10x slower than `solve(C)` atleast for warcolak
+#      Cinv <<- solve(a = sLc, b = Ic, system = "A") #<-- XXX comparable speed to `solve(C)` at least for warcolak
+      #Cinv <<- solve(C)
+      ##XXX NOTE Above Cinv is in original order of C and NOT permutation of M
+
+      sln[] <<- solve(a = sLc, b = RHS, system = "A")
       ## Cholesky is more efficient and computationally stable
       ### see Matrix::CHMfactor-class expand note about fill-in causing many more non-zeros of very small magnitude to occur
       #### see Matrix file "CHMfactor.R" method for "determinant" (note differences with half the logdet of original matrix) and the functions:
@@ -500,24 +515,39 @@ if(Mout) return(as(drop0(rBind(cBind(D, RHSperm),
   ## Meyer and Smith 1996 for algorithm using derivatives of loglik
   ### eqn 15-18 (+ eqn 33-42ish) for derivatives of tyPy and logDetC
   ### Smith 1995 for very technical details
-  ## Appendix 5 of Meyer/WOMBAT help manual fro how to modify AI matrix to ensure improvements of logLike
-#XXX trace of a matrix corresponds to the derivative of the determinant
   # EM refs: Hofer 1998 eqn 10-12
   ## XXX note Hofer eqn 12 missing sigma2e in last term of non-residual formula
   ### see instead Mrode 2005 (p. 241-245)
   em <- function(thetain){
-    si <- modMats$nb+1
-    for(g in thetaG){
+    ## go "backwards" so can fill in Lc with lower triangle of Cinv
+    ei <- modMats$nb + sum(sapply(modMats$Zg, FUN = ncol))
+    Ig <- Diagonal(n = nrow(C), x = 1)
+    for(g in rev(thetaG)){
       qi <- ncol(modMats$Zg[[g]])
-      ei <- si - 1 + qi
+      si <- ei - qi + 1
       # note the trace of a product is equal to the sum of the element-by-element product
-#TODO FIXME check what to do if no ginverse associated with a parameter?!
 #XXX TODO see Knight 2008 thesis eqns 2.36 & 2.42 (and intermediates) for more generalized form of what is in Mrode (i.e., multivariate/covariance matrices instead of single varcomps)
 ##XXX eqn. 2.44 is the score/gradient! for a varcomp
-      # current indexing faster than creating logical index matrix to multiply through Cinv for the purposes of subsetting/indexing
-      thetain[[g]] <- (crossprod(sln[si:ei, , drop = FALSE], modMats$listGinv[[g]]) %*% sln[si:ei, , drop = FALSE] + tr(modMats$listGinv[[g]] %*% Cinv[si:ei, si:ei])*tail(thetav, 1)) / qi
-      si <- ei+1
+      trace <- 0
+      if(ndGinv[g]){
+        o <- (crossprod(sln[si:ei, , drop = FALSE], modMats$listGinv[[g]]) %*% sln[si:ei, , drop = FALSE])@x
+        for(k in si:ei){
+          Cinv_siei_k <- solve(sLc, b = Ig[, k], system = "A")[si:ei, , drop = TRUE]
+          Cinv_ii[k] <<- Cinv_siei_k[k-si+1]       
+          trace <- trace + sum(modMats$listGinv[[g]][(k-si+1), , drop = TRUE] * Cinv_siei_k)
+        }  #<-- end for k
+      } else{
+          ## first term
+          o <- crossprod(sln[si:ei, , drop = FALSE])
+          for(k in si:ei){
+            Cinv_ii[k] <<- solve(sLc, b = Ig[, k], system = "A")[k,]
+            trace <- trace + Cinv_ii[k]
+          }  #<-- end for k
+        }  #<-- end if/else ndGinv
+      thetain[[g]] <- (o + trace*tail(thetav, 1)) / qi
+      ei <- si-1
     }
+
     #FIXME make sure `nminffx` == `ncol(X)` even when reduced rank
     thetain[[thetaR]] <- crossprod(modMats$y, r) / nminffx
    thetain
@@ -665,11 +695,6 @@ if(Mout) return(as(drop0(rBind(cBind(D, RHSperm),
 
   #########################################################
   #########################################################
-
-
-  itMat <- matrix(NA, nrow = maxit, ncol = p+5) 
-    colnames(itMat) <- c(names(thetav), "sigma2e", "tyPy", "logDetC", "loglik", "itTime")
-  vitseq <- seq(0, maxit, by = vit)
   for(i in 1:nrow(itMat)){
     if(v > 0 && i %in% vitseq){
       cat("  ", i, "of max", maxit, "iterations\t",
@@ -700,6 +725,8 @@ if(Mout) return(as(drop0(rBind(cBind(D, RHSperm),
 
 
 
+
+
     if(!all(cc, na.rm = TRUE)){
       if(algit[i] == "EM"){
         if(v > 1 && i %in% vitseq) cat("\t EM iteration\n")
@@ -712,6 +739,8 @@ if(Mout) return(as(drop0(rBind(cBind(D, RHSperm),
 if(nrow(theta[[thetaR]]) != 1){
   stop("AI algorithm currently only works for a single residual variance")
 }
+        Cinv <<- solve(a = sLc, b = Ic, system = "A")
+        Cinv_ii <- diag(Cinv)
         aiout <- ai(thetav)
         thetaout <- vech2matlist(aiout, skel)
 #TODO need to evaluate cc criteria now? 
@@ -801,9 +830,8 @@ stop("Not allowing `minqa::bobyqa()` right now")
  return(structure(list(call = as.call(mc),
 		modMats = modMats,
 		itMat = itMat,
-		sln = cbind(Est = c(sln), Var = diag(Cinv)),
-		AI = AI, dLdtheta = dLdtheta,
-		Cinv = Cinv),
+		sln = cbind(Est = sln, Var = Cinv_ii),
+		AI = AI, dLdtheta = dLdtheta),
 	class = "gremlin"))
 }
 
