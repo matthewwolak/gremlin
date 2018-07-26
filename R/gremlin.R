@@ -204,7 +204,8 @@ gremlinR <- function(formula, random = NULL, rcov = ~ units,
 
   stopifnot(inherits(formula, "formula"), length(formula) == 3L)
   mc <- as.list(match.call())
-  if(v > 0) cat("gremlin started:\t\t", format(Sys.time(), "%H:%M:%S"), "\n")
+  startTime <- Sys.time()
+  if(v > 0) cat("gremlin started:\t\t", format(startTime, "%H:%M:%S"), "\n")
   m <- match(c("formula", "random", "rcov", "data", "subset", "ginverse", "na.action", "offset", "contrasts", "Xsparse"), names(mc), 0)
   mMmc <- as.call(c(quote(mkModMats), mc[m]))
   modMats <- eval(mMmc, parent.frame())
@@ -828,8 +829,14 @@ stop("Not allowing `minqa::bobyqa()` right now")
 		itMat = itMat,
 		sln = cbind(Est = sln, Var = Cinv_ii),
 		AI = AI, dLdtheta = dLdtheta),
-	class = "gremlin"))
+	class = "gremlin",
+	startTime = startTime))
 }
+
+
+
+
+
 
 
 
@@ -871,7 +878,8 @@ gremlin <- function(formula, random = NULL, rcov = ~ units,
 
   stopifnot(inherits(formula, "formula"), length(formula) == 3L)
   mc <- as.list(match.call())
-  if(v > 0) cat("gremlin started:\t\t", format(Sys.time(), "%H:%M:%S"), "\n")
+  startTime <- Sys.time()
+  if(v > 0) cat("gremlin started:\t\t", format(startTime, "%H:%M:%S"), "\n")
   m <- match(c("formula", "random", "rcov", "data", "subset", "ginverse", "na.action", "offset", "contrasts", "Xsparse"), names(mc), 0)
   mMmc <- as.call(c(quote(mkModMats), mc[m]))
   modMats <- eval(mMmc, parent.frame())
@@ -1053,7 +1061,8 @@ if(any(algit == "AI")){
 		  c(names(thetav), "sigma2e", "tyPy", "logDetC", "loglik", "itTime"))),
 		sln = cbind(Est = Cout[[31L]], Var = Cout[[32L]]),
 		AI = Cout[[30L]], dLdtheta = Cout[[29L]]),
-	class = "gremlin"))
+	class = "gremlin",
+	startTime = startTime))
 
 
 }
