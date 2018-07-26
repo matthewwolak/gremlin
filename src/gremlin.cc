@@ -739,7 +739,7 @@ if(v[0] > 3){
     // V=1 LEVEL of OUTPUT
     if(v[0] > 0 && vitout == 0){ 
       Rprintf("\n\tlL:%6.6f", loglik);
-      Rprintf("\ttook %6.3f sec. (CPU clock)\n", took); //TODO format units if >60 (and do for all Rprintf(took))
+      Rprintf("\t\ttook %6.3f sec. (CPU clock)\n", took); //TODO format units if >60 (and do for all Rprintf(took))
       // To format units see const *char in: http://www.cplusplus.com/reference/cmath/round/
 
       // V=2 LEVEL of OUTPUT
