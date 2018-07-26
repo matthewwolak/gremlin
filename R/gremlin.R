@@ -162,6 +162,9 @@ vech2matlist <- function(vech, skeleton){
 #'     \item{itMat }{A \code{matrix} of details about each iteration.}
 #'     \item{sln }{A two column \code{matrix} of solutions and their sampling
 #'       variances from the mixed model.}
+#'     \item{residuals }{A \code{vector} of residual deviations, response minus
+#'       the values expected based on the solutions, corresponding to the order
+#'       in \code{modMats$y}.} 
 #'     \item{AI }{A \code{matrix} of values containing the Average Information
 #'       matrix, or second partial derivatives of the likelihood with respect to
 #'       the (co)variance components. The inverse of this matrix gives the
@@ -821,13 +824,12 @@ stop("Not allowing `minqa::bobyqa()` right now")
 
 
 
-
 #FIXME FIXME FIXME
-#TODO Make sln variances come from another source (eliminate Cinv)
  return(structure(list(call = as.call(mc),
 		modMats = modMats,
 		itMat = itMat,
 		sln = cbind(Est = sln, Var = Cinv_ii),
+		residuals = c(r),
 		AI = AI, dLdtheta = dLdtheta),
 	class = "gremlin",
 	startTime = startTime))
@@ -1048,11 +1050,6 @@ if(any(algit == "AI")){
 
   maxit <- Cout[[36L]]  #<-- record number of REML iterations run
 
-
-
-
-
-#TODO return residuals
   return(structure(list(call = as.call(mc),
 		modMats = modMats,
 		itMat = matrix(Cout[[34L]][1:((p+5)*maxit)], nrow = maxit, ncol = p+5,
@@ -1060,6 +1057,7 @@ if(any(algit == "AI")){
 		  dimnames = list(paste(seq(maxit), algit[seq(maxit)], sep = "-"),
 		  c(names(thetav), "sigma2e", "tyPy", "logDetC", "loglik", "itTime"))),
 		sln = cbind(Est = Cout[[31L]], Var = Cout[[32L]]),
+		residuals = Cout[[33L]],
 		AI = Cout[[30L]], dLdtheta = Cout[[29L]]),
 	class = "gremlin",
 	startTime = startTime))
