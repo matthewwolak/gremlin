@@ -622,6 +622,8 @@ if(Mout) return(as(drop0(rBind(cBind(D, RHSperm),
 
 
 
+
+
   ############################################
   gradFun <- function(thetav){
     dLdtheta <- matrix(NA, nrow = p, ncol = 1)
@@ -695,7 +697,6 @@ if(Mout) return(as(drop0(rBind(cBind(D, RHSperm),
 #        cc[4] <- -1 * c(crossprod(dLdtheta, H) %*% dLdtheta)
       }
     } else cc[1] <- FALSE  #<-- ensures one of the EM/AI/etc algorithms used if i==1
-
 
 
 
@@ -888,10 +889,6 @@ gremlin <- function(formula, random = NULL, rcov = ~ units,
 
 
 
-
-
-
-
 #FIXME ensure grep() is best way and won't mess up when multiple Gs and Rs
   thetaG <- grep("G", thetaGorR, ignore.case = FALSE)
   thetaR <- grep("R", thetaGorR, ignore.case = FALSE)
@@ -1035,6 +1032,13 @@ if(!skipR){
 
 
 if(!skipcpp){
+
+#FIXME
+if(any(algit == "AI")){
+  warning("AI algorithm not yet implemented in c++, switching all instances to EM")
+  algit <- rep("EM", length(algit))
+}
+
 ###############*******    XXX   	END DELETE 	 XXX  ******############
     Cout <- .C("ugremlin", PACKAGE = "gremlin",
 		as.double(modMats$y),
@@ -1096,7 +1100,8 @@ if(!skipcpp){
 
 
 
-if(!skipR){cat("\n\n********R below R below R below R below R below********\n\n")
+if(!skipR){
+cat("\n\n********R below R below R below R below R below********\n\n")
 
 
 
@@ -1175,7 +1180,7 @@ if(!skipR){cat("\n\n********R below R below R below R below R below********\n\n"
 
       # chol2inv: Cinv in same permutation as C (not permutation of sLc/sLm)
       #Cinv <<- chol2inv(sLc) #<-- XXX ~10x slower than `solve(C)` atleast for warcolak
-      Cinv <<- solve(a = sLc, b = Ic, system = "A") #<-- XXX comparable speed to `solve(C)` at least for warcolak
+#      Cinv <<- solve(a = sLc, b = Ic, system = "A") #<-- XXX comparable speed to `solve(C)` at least for warcolak
       #Cinv <<- solve(C)
       ##XXX NOTE Above Cinv is in original order of C and NOT permutation of M
 
@@ -1230,7 +1235,7 @@ if(!skipR){cat("\n\n********R below R below R below R below R below********\n\n"
 
 
 
-  ## `em2` doesn't require Cinv to be made, but replaces Lc with lower triangle of all that is necessary of the Cinv for calculations below
+  ## `em` doesn't require Cinv to be made, but replaces Lc with lower triangle of all that is necessary of the Cinv for calculations below
   em <- function(thetain){
     ## go "backwards" so can fill in Lc with lower triangle of Cinv
     ei <- modMats$nb + sum(sapply(modMats$Zg, FUN = ncol))
@@ -1265,6 +1270,12 @@ if(!skipR){cat("\n\n********R below R below R below R below R below********\n\n"
     thetain[[thetaR]] <- crossprod(modMats$y, r) / nminffx
    thetain
   }
+
+
+
+
+
+
 
 
 
@@ -1364,6 +1375,91 @@ if(!skipR){cat("\n\n********R below R below R below R below R below********\n\n"
 
 
 
+
+
+
+
+
+  ############################################
+  # See: Meyer 1997 GSE 29 AND Johnson & Thompson 1995 J Dairy Science 78
+  ## equation numbers: square brackets == Meyer 1997  | parentheses == J&T 1995
+  ### (e.g., 'eqn [20]') below == Meyer 1997 equation numbers
+  ### (e.g., 'eqn ()') below == J&T 1995 equation numbers
+  ai2 <- function(thetavin){
+
+    p <- length(thetavin)
+    B <- matrix(0, nrow = modMats$ny, ncol = p)
+#    thetain <- vech2matlist(thetavin, skel)
+    si <- modMats$nb+1
+    for(g in thetaG){ #FIXME assumes UNIVARIATE (thetaG is same length as thetavin)
+      qi <- ncol(modMats$Zg[[g]])
+      ei <- si - 1 + qi
+#      isln <- sln[si:ei, , drop = FALSE]
+      B[, g] <- ((modMats$Zg[[g]] %*% sln[si:ei, , drop = FALSE]) / thetavin[g])@x #<-- eqn [20] (9c)
+      si <- ei+1
+    }  #<-- end 'for(g ...)'
+    # residual #FIXME assumes UNIVARIATE
+    B[, p] <- r / thetavin[p]  #<-- eqn [21] (9d)
+    # Johnson & Thompson (1995) == AI1
+    ## eqn [22] (7 & 8), but when variance ratios use Appendix (B5)
+AI2 <- AI1 <- matrix(NA, nrow = p, ncol = p)
+    for(g in 1:p){  #<-- 'j' in eqn [22]
+      Pb_j <- B[, g] - W %*% solve(sLc, b = Matrix(crossprod(W, B[, g]), sparse = TRUE), system = "A")
+      ## do lower triangle (non-residual covariances/variance)
+    for(k in g:p){  #<-- 'i' in eqn [22]
+        AI_kg <- (crossprod(B[, k], Pb_j) / sigma2e)@x
+        if(k == g) AI1[k, k] <- AI_kg else AI1[k, g] <- AI1[g, k] <- AI_kg
+      }  #<-- end 'for(k ...)'
+    }  #<-- end 'for(g ...)'
+    #### ALTERNATIVELY:
+#    Rinv <- Diagonal(n = modMats$ny, x = 1 / thetavin[p])
+#    tBRinvB <- crossprod(B, Rinv) %*% B
+#    tWRinvB <- crossprod(W, Rinv) %*% B
+#    tBRinvB - crossprod(expand(sLc)$P %*% solve(t(expand(sLc)$L), b = tWRinvB, system = "Lt"))
+    tBB <- crossprod(B)
+    tWB <- crossprod(W, B)
+    T <- solve(sLc, b = tWB, system = "A")  #<-- T of eqn 25 Jensen et al. 1997
+    AI <- tBB - crossprod(T, tWB)  #<-- somehow need to incorporate sigma2e/thetavin[p] as in eqn B5 of Johnson & Thompson 1995 XXX This is close to AI, but not the same 
+# ALTERNATIVELY
+    #sLtWB <- solve(t(expand(sLc)$L), b = expand(sLc)$P %*% tWB, system = "Lt")
+    #sLBB <- Cholesky(as(tBB - crossprod(sLtWB[invPerm(sLc@perm, zero.p = TRUE, zero.res = FALSE), ]), "sparseMatrix"), perm = FALSE, LDL = FALSE, super = FALSE)
+    # ALTERNATIVELY
+    #M_B <- as(rbind(cbind(C, tWB),
+    #	cbind(t(tWB), tBB)), "sparseMatrix")
+    #sLmb <- Cholesky(M_B, perm = FALSE, LDL = FALSE, super = FALSE)
+
+
+    # TODO Need to calculate gradient!!!!! (1st derivatives)
+    #XXX
+    rcondAI <- rcond(AI)
+    if(rcondAI < ezero){
+      if(v > 1){
+        cat("Reciprocal condition number of AI matrix is", signif(rcondAI , 2), "\n\tAI matrix may be singular - switching to an iteration of the EM algorithm\n")
+      }
+      thetavout <- sapply(sapply(em(vech2matlist(thetavin, skel)), FUN = stTrans), FUN = slot, name = "x")
+    } else{
+        AIinv <- solve(AI)
+#TODO need a check that not proposing negative/0 variance or |correlation|>1
+## Require restraining naughty components
+        thetavout <- matrix(thetavin, ncol = 1) + AIinv %*% dLdtheta
+        zeroV <- which(thetavout < ezero) #FIXME check variances & cov/corr separately
+        if(length(zeroV) > 0L){
+          if(v > 1) cat("Variance component(s)", zeroV, "fixed to zero\n")
+          thetavout[zeroV] <- ezero #FIXME TODO!!!??
+        }
+      }
+   thetavout
+  }
+    
+
+
+
+
+
+
+
+
+
   ############################################
   gradFun <- function(thetav){
     dLdtheta <- matrix(NA, nrow = p, ncol = 1)
@@ -1436,10 +1532,21 @@ if(!skipR){cat("\n\n********R below R below R below R below R below********\n\n"
 
 
 
+
+
+
+if(i==4)browser() # XXX DELETEME
+
+
+
+
     if(!all(cc, na.rm = TRUE)){
       if(algit[i] == "EM"){
         if(v > 1 && i %in% vitseq) cat("\t EM iteration\n")
-        thetaout <- emCinv(theta)
+#        Cinv <<- solve(a = sLc, b = Ic, system = "A")
+#        Cinv_ii <- diag(Cinv)
+#        thetaout <- emCinv(theta)
+	thetaout <- em(theta)
       }
 
       if(algit[i] == "AI"){
@@ -1448,6 +1555,8 @@ if(!skipR){cat("\n\n********R below R below R below R below R below********\n\n"
 if(nrow(theta[[thetaR]]) != 1){
   stop("AI algorithm currently only works for a single residual variance")
 }
+        Cinv <<- solve(a = sLc, b = Ic, system = "A")
+        Cinv_ii <- diag(Cinv)
         aiout <- ai(thetav)
         thetaout <- vech2matlist(aiout, skel)
 #TODO need to evaluate cc criteria now? 
@@ -1524,7 +1633,7 @@ if(skipcpp){
  return(structure(list(call = as.call(mc),
 		modMats = modMats,
 		itMat = itMat,
-		sln = cbind(Est = sln, Var = diag(Cinv)),#Cinv_ii),
+		sln = cbind(Est = sln, Var = Cinv_ii),
 		AI = AI, dLdtheta = dLdtheta),
 	class = "gremlin"))
 }
@@ -1533,7 +1642,6 @@ if(skipcpp){
 }
 
 if(!skipcpp){
-#TODO Make sln variances come from another source (eliminate Cinv)?
 #TODO return residuals
   return(structure(list(call = as.call(mc),
 		modMats = modMats,

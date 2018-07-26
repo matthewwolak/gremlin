@@ -709,7 +709,7 @@ if(v[0] > 3){
       // Average Information
       // Appendix 5 WOMBAT manual:how to modify AI matrix ensure improvements of logLik
       if(algit[i] == 1){
-        if(v[0] > 1 && i%vit[0] == 0) Rprintf("\tAI to find next theta");
+        //if(v[0] > 1 && i%vit[0] == 0) Rprintf("\tAI to find next theta");
         //TODO do I need to check convergence criteria here (i.e., cc[3:4])
 
         //TODO if AI not successful, then change algit[i] = 0 (if EM was successful)

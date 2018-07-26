@@ -10,19 +10,29 @@ extern "C" {
 
 
 
+/* Average Information Algorithm:
+     replaces elements in theta. Returns 1=success else 0 */
+/*csi cs_ai(const cs *BLUXs, double *theta, double *Cinv_ii,
+	csi nG, csi nR, csi *rfxlvls, csi nb, csi *ndgeninv,
+	cs **geninv, cs *Lc, csi *P, csi *Pinv);
+*/
+
+
 /* Expectation Maximization Algorithm:
      replaces elements in theta. Returns 1=success else 0 */
 csi cs_em(const cs *BLUXs, double *theta, double *Cinv_ii,
 	csi nG, csi *rfxlvls, csi nb, csi *ndgeninv,
 	cs **geninv, cs *Lc, csi *P, csi *Pinv);
-// cs_emCinv deprecated
+// cs_emCinv and cs_chol2inv deprecated
 //// requires Cinv, whereas above only calculates required elements of Cinv
+/*
 csi cs_emCinv(const cs *BLUXs, double *theta,
 	csi nG, csi *rfxlvls, csi nb, csi *ndgeninv,
 	cs **geninv, cs *Cinv);
 
+*/
+cs *cs_chol2inv(const cs *L);  //FIXME delete if only used for cs_emCinv
 
-cs *cs_chol2inv(const cs *L);
 
 /*******************************************************************/
 /* Below are functions from MCMCglmm-2.25 by Jarrod Hadfield       */
