@@ -135,8 +135,6 @@ vech2matlist <- function(vech, skeleton){
 #' @param v An \code{integer} value specifying the verbosity of screen output
 #'   regarding the model fitting process. A value of zero gives no details and
 #'   larger values increase the amount of information printed on the screen.
-#' @param Mout A \code{logical} value that indicates if the model should quit
-#'   and return the mixed model array (or M-matrix) once it is formed.
 #' @param na.action What to do with NAs.
 #' @param offset Should an offset be specified.
 #' @param contrasts Specify the type of contrasts for the fixed effects.
@@ -201,7 +199,7 @@ gremlinR <- function(formula, random = NULL, rcov = ~ units,
 		data = NULL, ginverse = NULL,
 		Gstart = NULL, Rstart = NULL,
 		maxit = 20, algit = NULL,
-		vit = 10, v = 1, Mout = FALSE, ...){
+		vit = 10, v = 1, ...){
 #FIXME USE?		control = gremlinControl(), ...){
 
   stopifnot(inherits(formula, "formula"), length(formula) == 3L)
@@ -347,8 +345,6 @@ gremlinR <- function(formula, random = NULL, rcov = ~ units,
     RHS <- Matrix(crossprod(W, modMats$y), sparse = TRUE)  # <-- Same every iteration
     M <- as(cbind(rbind(C, t(RHS)),
 	    rbind(RHS, D)), "symmetricMatrix")
-    #TODO delete `Mout` option entirely?
-    if(Mout) return(M)
 
     ##1d Find best order of MMA/C/pivots!
     # Graser et al. 1987 (p1363) when singular C, |C| not invariant to order
@@ -870,7 +866,7 @@ gremlin <- function(formula, random = NULL, rcov = ~ units,
 		data = NULL, ginverse = NULL,
 		Gstart = NULL, Rstart = NULL,
 		maxit = 20, algit = NULL,
-		vit = 10, v = 1, Mout = FALSE, ...){
+		vit = 10, v = 1, ...){
 #FIXME USE?		control = gremlinControl(), ...){
 
   stopifnot(inherits(formula, "formula"), length(formula) == 3L)
