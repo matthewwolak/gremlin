@@ -735,7 +735,7 @@ gremlinR <- function(formula, random = NULL, rcov = ~ units,
 if(nrow(theta[[thetaR]]) != 1){
   stop("AI algorithm currently only works for a single residual variance")
 }
-        Cinv <<- solve(a = sLc, b = Ic, system = "A")
+        Cinv <- solve(a = sLc, b = Ic, system = "A")
         Cinv_ii <- diag(Cinv)
         aiout <- ai(thetav)
         thetaout <- vech2matlist(aiout, skel)
