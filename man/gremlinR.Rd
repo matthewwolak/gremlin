@@ -84,8 +84,6 @@ A \code{list} of class \code{gremlin} or \code{gremlinModMats}:
       sampling variances of the (co)variance components.}
     \item{dLdtheta }{A single column \code{matrix} of first derivatives of
       the (co)variance parameters with respect to the log-Likelihood.}
-    \item{Cinv }{The inverse coefficient \code{matrix}, in sparse matrix
-      format, of the mixed model equations.}
 
     \item{y }{The response vector.}
     \item{ny }{The number of responses.}
