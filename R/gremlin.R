@@ -433,13 +433,12 @@ gremlinR <- function(formula, random = NULL, rcov = ~ units,
 	  sapply(1:modMats$nG, FUN = function(u){kronecker(modMats$listGeninv[[u]], solve(Ginv[[u]]))}))), "symmetricMatrix")
       } else C <<- as(tWW + Bpinv, "symmetricMatrix")
       #TODO do I need `diag(Bpinv)` because it was `diag(zero)`
-#XXX Gives wrong/different answer sLc <<- update(object = sLc, parent = crossprod(Pc, C) %*% Pc)
 
       M <<- as(cbind(rbind(C, t(RHS)),
 	    rbind(RHS, D)), "symmetricMatrix")
       sLm <<- Cholesky(M, perm = TRUE, LDL = FALSE, super = FALSE)
-      #TODO see note/idea in "../myNotesInsights/invFromChol.Rmd"
-      # 5 record log-like, check convergence, & determine next varcomps to evaluate  
+
+     # 5 record log-like, check convergence, & determine next varcomps to evaluate  
       ##5a determine log(|C|) and y'Py
       ### Meyer & Smith 1996, eqns 12-14 (and 9)
       #### Also see Meyer & Kirkpatrick 2005 GSE. eqn. 18: if cholesky of MMA = LL'
@@ -560,13 +559,6 @@ gremlinR <- function(formula, random = NULL, rcov = ~ units,
 
   ############################################
   ai <- function(thetavin){
-    # Deprecated setting up `Vinv` indirectly
-    #V <- kronecker(modMats$Zr, thetain[[thetaR]])
-    #for(u in 1:modMats$nG){
-    #  V[] <- V + with(modMats, tcrossprod(Zg[[u]] %*% kronecker(solve(listGeninv[[u]]), thetain[[u]]), Zg[[u]]))
-    #}
-    #Vinv <- solve(V)
-
     p <- length(thetavin)
     thetain <- vech2matlist(thetavin, skel)
     # setup Vinv directly [See Johnson & Thompson 1995, Appendix 1 (eqn A1)]
@@ -582,7 +574,6 @@ gremlinR <- function(formula, random = NULL, rcov = ~ units,
     PorVinv <<- with(modMats, Rinv - tcrossprod(Rinv %*% W[, -c(1:nb)] %*% solve(tZRinvZ + tmptmpGinv), W[, -c(1:nb)]) %*% Rinv)  #<-- FIXME move outside?
 #FIXME why P and P2 different?
     PorVinv <<- with(modMats, PorVinv - PorVinv %*% X %*% tcrossprod(solve(crossprod(X, PorVinv) %*% X), X) %*% PorVinv)
-#Cinv <- chol2inv(sLc)
 #    P2 <- Rinv - tcrossprod(Rinv %*% W %*% Cinv, W) %*% Rinv #<-- See Gilmour et al. 1995 end of p.1441
 #    P3 <- Diagonal(n = nrow(Rinv), x = 1) - W %*% solve(C) %*% t(W) #<-- AIreml_heritabilityPkg
 
