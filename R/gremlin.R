@@ -823,7 +823,9 @@ stop("Not allowing `minqa::bobyqa()` right now")
 
 
 
-#FIXME FIXME FIXME
+ endTime <- Sys.time()
+ if(v > 0) cat("gremlin ended:\t\t", format(endTime, "%H:%M:%S"), "\n")
+
  return(structure(list(call = as.call(mc),
 		modMats = modMats,
 		itMat = itMat,
@@ -831,7 +833,7 @@ stop("Not allowing `minqa::bobyqa()` right now")
 		residuals = c(r),
 		AI = AI, dLdtheta = dLdtheta),
 	class = "gremlin",
-	startTime = startTime))
+	startTime = startTime, endTime = endTime))
 }
 
 
@@ -1051,8 +1053,10 @@ if(any(algit == "AI")){
 
 
   maxit <- Cout[[36L]]  #<-- record number of REML iterations run
+ endTime <- Sys.time()
+ if(v > 0) cat("gremlin ended:\t\t", format(endTime, "%H:%M:%S"), "\n")
 
-  return(structure(list(call = as.call(mc),
+ return(structure(list(call = as.call(mc),
 		modMats = modMats,
 		itMat = matrix(Cout[[34L]][1:((p+5)*maxit)], nrow = maxit, ncol = p+5,
 		  byrow = TRUE,
@@ -1062,7 +1066,7 @@ if(any(algit == "AI")){
 		residuals = Cout[[33L]],
 		AI = Cout[[30L]], dLdtheta = Cout[[29L]]),
 	class = "gremlin",
-	startTime = startTime))
+	startTime = startTime, endTime = endTime))
 
 
 }
