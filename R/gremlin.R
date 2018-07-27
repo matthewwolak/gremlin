@@ -124,6 +124,7 @@ vech2matlist <- function(vech, skeleton){
 #'   G-structure or random terms.
 #' @param Rstart A \code{list} of starting (co)variance values for the
 #'   R-structure or residual terms.
+#' @param Bp A prior specification for fixed effects.
 #' @param maxit An \code{integer} specifying the maximum number of likelihood
 #'   iterations.
 #' @param algit A \code{character} vector of length 1 or more or an expression
@@ -200,7 +201,7 @@ vech2matlist <- function(vech, skeleton){
 #' @export
 gremlinR <- function(formula, random = NULL, rcov = ~ units,
 		data = NULL, ginverse = NULL,
-		Gstart = NULL, Rstart = NULL,
+		Gstart = NULL, Rstart = NULL, Bp = NULL,
 		maxit = 20, algit = NULL,
 		vit = 10, v = 1, ...){
 #FIXME USE?		control = gremlinControl(), ...){
@@ -292,7 +293,12 @@ gremlinR <- function(formula, random = NULL, rcov = ~ units,
     # Rand Fx incidence matrix part of 'log(|G|)'
     #FIXME: Only works for independent random effects right now!
     rfxIncContrib2loglik <- sum(unlist(modMats$logDetG))
-    Bp <- as(diag(x = 0, nrow = modMats$nb, ncol = modMats$nb), "dgCMatrix") 
+    if(is.null(mc$Bp) && is.null(Bp)){
+      Bp <- as(diag(x = 0, nrow = modMats$nb, ncol = modMats$nb), "dgCMatrix")
+    } else{
+       #TODO check and maybe create prior from Bp specified in call
+       stop("Currently can't take fixed effect prior")
+      } 
     Bpinv <- if(all(Bp@x == 0)) Bp + diag(0, nrow(Bp)) else solve(Bp)
       # Bpinv <-- used every iteration
       ## `Bpinv` replaces `zero` in earlier version of `gremlinR()`
@@ -874,7 +880,7 @@ stop("Not allowing `minqa::bobyqa()` right now")
 #' @export
 gremlin <- function(formula, random = NULL, rcov = ~ units,
 		data = NULL, ginverse = NULL,
-		Gstart = NULL, Rstart = NULL,
+		Gstart = NULL, Rstart = NULL, Bp = NULL,
 		maxit = 20, algit = NULL,
 		vit = 10, v = 1, ...){
 #FIXME USE?		control = gremlinControl(), ...){
@@ -963,7 +969,12 @@ gremlin <- function(formula, random = NULL, rcov = ~ units,
     # Rand Fx incidence matrix part of 'log(|G|)'
     #FIXME: Only works for independent random effects right now!
     rfxIncContrib2loglik <- sum(unlist(modMats$logDetG))
-    Bp <- as(diag(x = 0, nrow = modMats$nb, ncol = modMats$nb), "dgCMatrix") 
+    if(is.null(mc$Bp) && is.null(Bp)){
+      Bp <- as(diag(x = 0, nrow = modMats$nb, ncol = modMats$nb), "dgCMatrix")
+    } else{
+       #TODO check and maybe create prior from Bp specified in call
+       stop("Currently can't take fixed effect prior")
+      } 
     Bpinv <- if(all(Bp@x == 0)) Bp + diag(0, nrow(Bp)) else solve(Bp)
       # Bpinv <-- used every iteration
       ## `Bpinv` replaces `zero` in earlier version
