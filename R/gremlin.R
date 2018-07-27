@@ -299,7 +299,15 @@ gremlinR <- function(formula, random = NULL, rcov = ~ units,
        #TODO check and maybe create prior from Bp specified in call
        stop("Currently can't take fixed effect prior")
       } 
-    Bpinv <- if(all(Bp@x == 0)) Bp + diag(0, nrow(Bp)) else solve(Bp)
+    if(all(Bp@x == 0)){
+      Bpinv <- Bp + diag(0, nrow(Bp))
+        if(length(Bpinv@x) == 0){
+          # need to put explicit 0s on diagonal
+          Bpinv@x <- as.double(rep(0, nrow(Bp)))
+          Bpinv@i <- as.integer(seq(nrow(Bp))-1)
+          Bpinv@p <- as.integer(c(seq(nrow(Bp))-1, nrow(Bp)))
+        }
+    } else Bpinv <- solve(Bp)
       # Bpinv <-- used every iteration
       ## `Bpinv` replaces `zero` in earlier version of `gremlinR()`
       ## Can allow for prior on fixed effects
@@ -327,8 +335,6 @@ gremlinR <- function(formula, random = NULL, rcov = ~ units,
       C <- as(tWW + bdiag(c(Bpinv,
 	sapply(1:modMats$nG, FUN = function(u){kronecker(modMats$listGeninv[[u]], solve(Ginv[[u]]))}))), "symmetricMatrix")
     } else C <- as(tWW + Bpinv, "symmetricMatrix")
-    #TODO do I need `diag(Bpinv)` because it was `diag(zero)`
-#browser()
 
 
 #### DIVERSION #####################
@@ -432,7 +438,6 @@ gremlinR <- function(formula, random = NULL, rcov = ~ units,
         C <<- as(tWW + bdiag(c(Bpinv,
 	  sapply(1:modMats$nG, FUN = function(u){kronecker(modMats$listGeninv[[u]], solve(Ginv[[u]]))}))), "symmetricMatrix")
       } else C <<- as(tWW + Bpinv, "symmetricMatrix")
-      #TODO do I need `diag(Bpinv)` because it was `diag(zero)`
 
       M <<- as(cbind(rbind(C, t(RHS)),
 	    rbind(RHS, D)), "symmetricMatrix")
@@ -960,7 +965,15 @@ gremlin <- function(formula, random = NULL, rcov = ~ units,
        #TODO check and maybe create prior from Bp specified in call
        stop("Currently can't take fixed effect prior")
       } 
-    Bpinv <- if(all(Bp@x == 0)) Bp + diag(0, nrow(Bp)) else solve(Bp)
+    if(all(Bp@x == 0)){
+      Bpinv <- Bp + diag(0, nrow(Bp))
+        if(length(Bpinv@x) == 0){
+          # need to put explicit 0s on diagonal
+          Bpinv@x <- as.double(rep(0, nrow(Bp)))
+          Bpinv@i <- as.integer(seq(nrow(Bp))-1)
+          Bpinv@p <- as.integer(c(seq(nrow(Bp))-1, nrow(Bp)))
+        }
+    } else Bpinv <- solve(Bp)
       # Bpinv <-- used every iteration
       ## `Bpinv` replaces `zero` in earlier version
       ## Can allow for prior on fixed effects
