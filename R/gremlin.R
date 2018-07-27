@@ -1022,9 +1022,11 @@ if(any(algit == "AI")){
 		as.integer(W@i), 					     #W
 		as.integer(W@p),
 		as.double(W@x),
-		as.integer(sapply(seq(modMats$nG)[ndgeninv], FUN = function(g){modMats$listGeninv[[g]]@i})), #geninv (generalized inverses)
-		as.integer(sapply(seq(modMats$nG)[ndgeninv], FUN = function(g){modMats$listGeninv[[g]]@p})),
-		as.double(sapply(seq(modMats$nG)[ndgeninv], FUN = function(g){modMats$listGeninv[[g]]@x})),
+		as.integer(unlist(lapply(modMats$listGeninv[ndgeninv], FUN = function(g){g@i}))), #geninv (generalized inverses)
+
+
+		as.integer(unlist(lapply(modMats$listGeninv[ndgeninv], FUN = function(g){g@p}))),
+		as.double(unlist(lapply(modMats$listGeninv[ndgeninv], FUN = function(g){g@x}))),
 		as.double(rfxIncContrib2loglik),		# Random Fx contribution to log-Likelihood
 		as.integer(p),					#p=No. theta params
 		as.integer(c(length(thetaG), length(thetaR))),	#No. G and R thetas
