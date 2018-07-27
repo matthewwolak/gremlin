@@ -1053,8 +1053,14 @@ if(any(algit == "AI")){
 		as.integer(v),					#verbosity
 		as.integer(vit))				#when to output status
 
-
+  
   maxit <- Cout[[36L]]  #<-- record number of REML iterations run
+  
+  if(Cout[[35L]][maxit] == 1){  #<-- if last iteration was AI
+    AI <- matrix(NA, nrow = p, ncol = p)
+    AI[lower.tri(AI, diag = TRUE)] <- Cout[[30L]] 
+    AI[upper.tri(AI, diag = FALSE)] <- t(AI)[upper.tri(AI, diag = FALSE)] 
+  } else AI <- NULL 
  endTime <- Sys.time()
  if(v > 0) cat("gremlin ended:\t\t", format(endTime, "%H:%M:%S"), "\n")
 
@@ -1066,7 +1072,7 @@ if(any(algit == "AI")){
 		  c(names(thetav), "sigma2e", "tyPy", "logDetC", "loglik", "itTime"))),
 		sln = cbind(Est = Cout[[31L]], Var = Cout[[32L]]),
 		residuals = Cout[[33L]],
-		AI = Cout[[30L]], dLdtheta = Cout[[29L]]),
+		AI = AI, dLdtheta = matrix(Cout[[29L]], ncol = 1)),
 	class = "gremlin",
 	startTime = startTime, endTime = endTime))
 
