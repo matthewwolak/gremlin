@@ -235,10 +235,9 @@ gremlinR <- function(formula, random = NULL, rcov = ~ units,
   if(length(algit) == 1 && algit %in% c("EM", "AI", "bobyqa")) algit <- rep(algit, maxit)
   if(is.null(mc$ezero)) ezero <- 1e-8 else ezero <- eval(mc$ezero)
 
-  start <- list(G = Gstart, R = Rstart)
 #TODO change `R.` to `R1` that way will match G1, G2, etc. for >1 G sections
 ##XXX then change how find thetaGorR by grep or something like it versus strsplit on `.`
-  theta <- c(G = sapply(start$G, FUN = stTrans), R. = stTrans(start$R))
+  theta <- c(G = sapply(Gstart, FUN = stTrans), R. = stTrans(Rstart))
   thetaGorR <- sapply(strsplit(names(theta), ".", fixed = TRUE), FUN = "[[", i = 1)
 
 #XXX Do above TODO sooner rather than later!
@@ -269,7 +268,6 @@ gremlinR <- function(formula, random = NULL, rcov = ~ units,
 #FIXME make below uni=TRUE if R=I sigma2e
 #TODO put `uni` in `mkModMats()`
     if(modMats$ncy == 1) uni <- TRUE else stop("gremlin isn't old enough to play with multivariate models")
-#TODO is `start` even necessary any more? Can I just keep `Gstart` and `Rstart`
 
 #FIXME: change G to cholesky of G with log(diagonals)
 ## e.g., parameterisation to ensure postive-definiteness
@@ -455,13 +453,13 @@ gremlinR <- function(formula, random = NULL, rcov = ~ units,
       # 'log(|R|)'
       #TODO: assumes X of full rank
       loglik <- loglik + nminfrfx * log(sigma2e)
-      #ALTERNATIVELY: If Rinv NOT factored out of MMA `loglik <- loglik + ny * log(start$R)`
+      #ALTERNATIVELY: If Rinv NOT factored out of MMA `loglik <- loglik + ny * log(Rstart)`
 
       # 'log(|G|)'
       #FIXME: Only works for independent random effects right now!
       loglik <- -0.5 * (loglik + if(modMats$nG == 0) 0 else sum(sapply(seq(modMats$nG), FUN = function(x){rfxlvls[x] * log(as.vector(Ginv[[x]]*sigma2e))})) + rfxIncContrib2loglik)
       # Below uses original starting value for residual variances - for agreement with WOMBAT
-      #loglik <- -0.5 * (loglik + sum(sapply(seq(nG), FUN = function(x){rfxlvls[x] * log(as.vector(start$G[[x]]))})) + rfxIncContrib2loglik)
+      #loglik <- -0.5 * (loglik + sum(sapply(seq(nG), FUN = function(x){rfxlvls[x] * log(as.vector(Gstart[[x]]))})) + rfxIncContrib2loglik)
 
 
 
@@ -909,13 +907,11 @@ gremlin <- function(formula, random = NULL, rcov = ~ units,
   if(length(algit) == 1 && algit %in% c("EM", "AI")) algit <- rep(algit, maxit)
   if(is.null(mc$ezero)) ezero <- 1e-8 else ezero <- eval(mc$ezero)
 
-  start <- list(G = Gstart, R = Rstart)
 #TODO change `R.` to `R1` that way will match G1, G2, etc. for >1 G sections
 ##XXX then change how find thetaGorR by grep or something like it versus strsplit on `.`
-  theta <- c(G = sapply(start$G, FUN = stTrans), R. = stTrans(start$R))
+  theta <- c(G = sapply(Gstart, FUN = stTrans), R. = stTrans(Rstart))
   thetaGorR <- sapply(strsplit(names(theta), ".", fixed = TRUE), FUN = "[[", i = 1)
   gtheta <- lapply(theta, FUN = as, "dgCMatrix") #FIXME do this directly to begin with or just use dense matrices (class="matrix") instead
-
 #XXX Do above TODO sooner rather than later!
 
 
@@ -938,7 +934,6 @@ gremlin <- function(formula, random = NULL, rcov = ~ units,
 #TODO put `uni` in `mkModMats()`
     if(modMats$ncy == 1) uni <- TRUE else stop("gremlin isn't old enough to play with multivariate models")
 #TODO once multivariate allowed: change cpp code/name from ugremlin
-#TODO is `start` even necessary any more? Can I just keep `Gstart` and `Rstart`
 
 
 
