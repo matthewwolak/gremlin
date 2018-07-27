@@ -1030,10 +1030,10 @@ if(any(algit == "AI")){
 		as.double(rfxIncContrib2loglik),		# Random Fx contribution to log-Likelihood
 		as.integer(p),					#p=No. theta params
 		as.integer(c(length(thetaG), length(thetaR))),	#No. G and R thetas
-		as.integer(sapply(seq(length(gtheta)), FUN = function(g){slot(gtheta[[g]], "Dim")[[1L]]})),							#dim GRs
-		as.integer(sapply(seq(length(gtheta)), FUN = function(g){slot(gtheta[[g]], "i")})),							#i GRs
-		as.integer(sapply(seq(length(gtheta)), FUN = function(g){slot(gtheta[[g]], "p")})),							#p GRs
-		as.integer(sapply(seq(length(gtheta)), FUN = function(g){length(slot(gtheta[[g]], "x"))})),							#no. non-zero GRs
+		as.integer(unlist(lapply(gtheta, FUN = function(g) g@Dim[[1L]]))),							#dim GRs
+		as.integer(unlist(lapply(gtheta, FUN = function(g) g@i))),							#i GRs
+		as.integer(unlist(lapply(gtheta, FUN = function(g) g@p))),							#p GRs
+		as.integer(unlist(lapply(gtheta, FUN = function(g) length(g@x)))),							#no. non-zero GRs
 		as.double(thetav),				#theta vector
 		as.integer(length(Bpinv@x)),			#Bpinv (fixed fx prior inverse)
 		as.integer(Bpinv@i),
