@@ -292,12 +292,12 @@ gremlinR <- function(formula, random = NULL, rcov = ~ units,
     # Rand Fx incidence matrix part of 'log(|G|)'
     #FIXME: Only works for independent random effects right now!
     rfxIncContrib2loglik <- sum(unlist(modMats$logDetG))
-    Bp <- as(diag(x = 0, nrow = modMats$nb, ncol = modMats$nb), "dgCMatrix") #<-- used every iteration
-      #TODO: `Bp` replaces `zero` in earlier version
-      ## Can allow for prior on fixed effects; need Bpinv
-      ## (see Schaeffer 1991 summary of Henderson's result)
+    Bp <- as(diag(x = 0, nrow = modMats$nb, ncol = modMats$nb), "dgCMatrix") 
     Bpinv <- if(all(Bp@x == 0)) Bp + diag(0, nrow(Bp)) else solve(Bp)
-
+      # Bpinv <-- used every iteration
+      ## `Bpinv` replaces `zero` in earlier version of `gremlinR()`
+      ## Can allow for prior on fixed effects
+      ## (see Schaeffer 1991 summary of Henderson's result)
     # Find Non-diagonal ginverses
     ndGinv <- sapply(seq(modMats$nG),
 	FUN = function(g){class(modMats$listGinv[[g]]) != "ddiMatrix"})  #0=I; 1=A 
@@ -314,7 +314,6 @@ gremlinR <- function(formula, random = NULL, rcov = ~ units,
 #
 
     tWW <- crossprod(W)  #TODO Add statement to include `Rinv`
-    zero <- Diagonal(n = modMats$nb, x = 0)  #<-- used every iteration
     # transform starting parameters to 'nu' scale
     ## cholesky of covariance matrices, then take log of transformed diagonals
     cRinv <- solve(chol(theta[[thetaR]]))
@@ -323,9 +322,12 @@ gremlinR <- function(formula, random = NULL, rcov = ~ units,
     ##1c Now make coefficient matrix of MME
     ##`sapply()` to invert G_i and multiply with ginverse element (e.g., I or Ginv)
     if(modMats$nG > 0){
-      C <- as(tWW + bdiag(c(zero,
+      C <- as(tWW + bdiag(c(Bpinv,
 	sapply(1:modMats$nG, FUN = function(u){kronecker(modMats$listGinv[[u]], solve(Ginv[[u]]))}))), "symmetricMatrix")
-    } else C <- as(tWW + diag(zero), "symmetricMatrix")
+    } else C <- as(tWW + Bpinv, "symmetricMatrix")
+    #TODO do I need `diag(Bpinv)` because it was `diag(zero)`
+#browser()
+
 
 #### DIVERSION #####################
 
@@ -335,7 +337,7 @@ gremlinR <- function(formula, random = NULL, rcov = ~ units,
 #KRinv <- kronecker(Rinv, Diagonal(x = 1, n = modMats$Zr@Dim[[2L]])) # Same as I %x% Rinv, but be careful of order!!
 #tWKRinvW <- crossprod(W, KRinv) %*% W
 #Gs <- lapply(thetaG, FUN = function(x){as(theta[[x]], "symmetricMatrix")}) 
-#C2 <- as(tWKRinvW + bdiag(c(zero,
+#C2 <- as(tWKRinvW + bdiag(c(Bpinv,
 #	sapply(1:modMats$nG, FUN = function(u){kronecker(modMats$listGinv[[u]], solve(Gs[[u]]))}))), "symmetricMatrix")
 #XXX Gives different answer (C2 != C) -> Rinv is in first ncol(X) rows and columns
 ## different format of MME -> with respect to where Rinv factored into/out of
@@ -425,9 +427,10 @@ gremlinR <- function(formula, random = NULL, rcov = ~ units,
       ##1c Now make coefficient matrix of MME
       ##`sapply()` to invert G_i and multiply with ginverse element (e.g., I or Ginv)
       if(modMats$nG > 0){
-        C <<- as(tWW + bdiag(c(zero,
+        C <<- as(tWW + bdiag(c(Bpinv,
 	  sapply(1:modMats$nG, FUN = function(u){kronecker(modMats$listGinv[[u]], solve(Ginv[[u]]))}))), "symmetricMatrix")
-      } else C <<- as(tWW + diag(zero), "symmetricMatrix")
+      } else C <<- as(tWW + Bpinv, "symmetricMatrix")
+      #TODO do I need `diag(Bpinv)` because it was `diag(zero)`
 #XXX Gives wrong/different answer sLc <<- update(object = sLc, parent = crossprod(Pc, C) %*% Pc)
 
       M <<- as(cbind(rbind(C, t(RHS)),
@@ -485,7 +488,7 @@ gremlinR <- function(formula, random = NULL, rcov = ~ units,
 
       sln[] <<- solve(a = sLc, b = RHS, system = "A")
       ## Cholesky is more efficient and computationally stable
-      ### see Matrix::CHMfactor-class expand note about fill-in causing many more non-zeros of very small magnitude to occur
+      ### see Matrix::CHMfactor-class expand note about fill-in causing many more non-zeroes of very small magnitude to occur
       #### see Matrix file "CHMfactor.R" method for "determinant" (note differences with half the logdet of original matrix) and the functions:
       ##### `ldetL2up` & `destructive_Chol_update`
 
@@ -960,11 +963,12 @@ gremlin <- function(formula, random = NULL, rcov = ~ units,
     # Rand Fx incidence matrix part of 'log(|G|)'
     #FIXME: Only works for independent random effects right now!
     rfxIncContrib2loglik <- sum(unlist(modMats$logDetG))
-    Bp <- as(diag(x = 0, nrow = modMats$nb, ncol = modMats$nb), "dgCMatrix") #<-- used every iteration
-      #TODO: `Bp` replaces `zero` in earlier version
-      ## Can allow for prior on fixed effects; need Bpinv
-      ## (see Schaeffer 1991 summary of Henderson's result)
+    Bp <- as(diag(x = 0, nrow = modMats$nb, ncol = modMats$nb), "dgCMatrix") 
     Bpinv <- if(all(Bp@x == 0)) Bp + diag(0, nrow(Bp)) else solve(Bp)
+      # Bpinv <-- used every iteration
+      ## `Bpinv` replaces `zero` in earlier version
+      ## Can allow for prior on fixed effects
+      ## (see Schaeffer 1991 summary of Henderson's result)
 
     # Find Non-diagonal ginverses
     ndGinv <- sapply(seq(modMats$nG),

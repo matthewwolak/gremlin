@@ -253,7 +253,8 @@ if(v[0] > 3) t = tic();
 
   //// Construct C
   if(nG > 0){
-    Ctmp = cs_omega(KGRinv, nG, Bpinv); 
+    Ctmp = cs_omega(KGRinv, nG, Bpinv);
+cs_print(Ctmp, 1);
     C = cs_add(tWW, Ctmp, 1.0, 1.0);
   }else{
     C = cs_add(tWW, Bpinv, 1.0, 1.0);
