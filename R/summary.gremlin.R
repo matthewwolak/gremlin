@@ -77,7 +77,10 @@ summary.gremlin <- function(object, ...){
       invAI <- solve(object$AI)
       varcompSummary[, "SE"] <- sqrt(diag(invAI))
       varcompSampCor <- cov2cor(invAI)
-    } else varcompSampCor <- AI
+    } else{
+        varcompSampCor <- matrix(NA, nrow = nvc, ncol = nvc)
+          dimnames(varcompSampCor) <- list(dimnames(varcompSummary)[[1L]], dimnames(varcompSummary)[[1L]])
+      }
 
   fxdSummary <- object$sln[1:object$modMats$nb, , drop = FALSE]
     fxdSummary[, 2] <- sqrt(fxdSummary[, 2])

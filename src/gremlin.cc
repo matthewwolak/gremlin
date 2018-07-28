@@ -75,7 +75,7 @@ void ugremlin(
 
   double t, T, took, dsLc, tyPy, logDetC, sigma2e, loglik, d, cc2, cc2d;
 
-  int 	 g, i, k, rw, si, si2, ei,
+  int 	 g, i, k, rw, si, si2, ei, vitout,
 	 itc = 0,
          dimM,
 	 nminffx = ny[0] - dimXZWG[1],
@@ -253,7 +253,7 @@ if(v[0] > 3) t = tic();
 
   //// Construct C
   if(nG > 0){
-    Ctmp = cs_omega(KGRinv, nG, Bpinv); 
+    Ctmp = cs_omega(KGRinv, nG, Bpinv);
     C = cs_add(tWW, Ctmp, 1.0, 1.0);
   }else{
     C = cs_add(tWW, Bpinv, 1.0, 1.0);
@@ -348,7 +348,8 @@ if(v[0] > 3){
   //////////////////////////////////////////////////////////////////////////////
   for(i = 0; i < maxit[0]; i++){
     T = tic();
-    if(v[0] > 0 && i%vit[0] == 0){
+    if(i == 0){vitout = 0;}else{vitout = (i+1)%vit[0];}  // always do first iteration
+    if(v[0] > 0 && vitout == 0){
       Rprintf("  %i of max %i\n", i+1, maxit[0]); //TODO TIME of DAY?
     }
 
@@ -694,7 +695,7 @@ if(v[0] > 3){
       // XXX note Hofer eqn 12 missing sigma2e in last term of non-residual formula
       ////XXX see instead Mrode 2005 (p. 241-245)
       if(algit[i] == 0){
-        if(v[0] > 1 && i%vit[0] == 0) Rprintf("\tEM to find next theta");
+        if(v[0] > 1 && vitout == 0) Rprintf("\tEM to find next theta");
         if(!cs_em(BLUXs, theta, Cinv_ii,
 	  nG, rfxlvls, dimXZWG[1], ndgeninv, geninv, Lc, P, Pinv)){
           error("Unusccessful EM algorithm in iteration %i\n");
@@ -709,7 +710,7 @@ if(v[0] > 3){
       // Average Information
       // Appendix 5 WOMBAT manual:how to modify AI matrix ensure improvements of logLik
       if(algit[i] == 1){
-        //if(v[0] > 1 && i%vit[0] == 0) Rprintf("\tAI to find next theta");
+        //if(v[0] > 1 && vitout == 0) Rprintf("\tAI to find next theta");
         //TODO do I need to check convergence criteria here (i.e., cc[3:4])
 
         //TODO if AI not successful, then change algit[i] = 0 (if EM was successful)
@@ -721,7 +722,7 @@ if(v[0] > 3){
   took = toc(t);
   Rprintf(": %6.4f sec. (CPU clock)\n", took, i);
   t = tic();
-} else Rprintf("\n");  // end the line
+}
 
     }  // end if REML did not converge
 
@@ -736,9 +737,9 @@ if(v[0] > 3){
 
     took = toc(T);                 // Capture cpu clock time for i REML iteration
     // V=1 LEVEL of OUTPUT
-    if(v[0] > 0 && i%vit[0] == 0){ 
+    if(v[0] > 0 && vitout == 0){ 
       Rprintf("\n\tlL:%6.6f", loglik);
-      Rprintf("\ttook %6.3f sec. (CPU clock)\n", took); //TODO format units if >60 (and do for all Rprintf(took))
+      Rprintf("\t\ttook %6.3f sec. (CPU clock)\n", took); //TODO format units if >60 (and do for all Rprintf(took))
       // To format units see const *char in: http://www.cplusplus.com/reference/cmath/round/
 
       // V=2 LEVEL of OUTPUT
