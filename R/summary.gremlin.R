@@ -24,7 +24,7 @@
 logLik.gremlin <- function(object, ...){
   val <- object$itMat[nrow(object$itMat), "loglik"]
   #TODO attr(val, "nall") <- object$
-  #TODO attr(val, "df") <- object$
+  attr(val, "df") <- object$nb + nrow(object$dLdtheta)
   class(val) <- "logLik"
  val
 }
