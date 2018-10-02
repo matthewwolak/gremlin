@@ -1074,7 +1074,7 @@ if(any(algit == "AI")){
 		  c(names(thetav), "sigma2e", "tyPy", "logDetC", "loglik", "itTime"))),
 		sln = cbind(Est = Cout[[31L]], Var = Cout[[32L]]),
 		residuals = Cout[[33L]],
-		theta = matrix(thetav, nrow = p, ncol = 1,
+		theta = matrix(Cout[[24L]], nrow = p, ncol = 1,
 		  dimnames = list(names(thetav), NULL)),
 		AI = AI, dLdtheta = matrix(Cout[[29L]], ncol = 1)),
 	class = "gremlin",
