@@ -1587,14 +1587,19 @@ csi *cs_randperm (csi n, csi seed)
     if (!p) return (NULL) ;             /* out of memory */
     for (k = 0 ; k < n ; k++) p [k] = n-k-1 ;
     if (seed == -1) return (p) ;        /* return reverse permutation */
-    srand (seed) ;                      /* get new random number seed */
+/* Substitute `GetRNGstate()` for use in R: MEW 2018 10 02     
+    srand (seed) ;    */                /* get new random number seed */
+GetRNGstate();
     for (k = 0 ; k < n ; k++)
     {
-        j = k + (rand ( ) % (n-k)) ;    /* j = rand integer in range k to n-1 */
+/* Substitute `unif_rand()` for use in R: MEW 2018 10 02     
+        j = k + (rand ( ) % (n-k)) ;  */   /* j = rand integer in range k to n-1 */
+j = k + (unif_rand() % (n-k));
         t = p [j] ;                     /* swap p[k] and p[j] */
         p [j] = p [k] ;
         p [k] = t ;
     }
+PutRNGstate();
     return (p) ;
 }
 
