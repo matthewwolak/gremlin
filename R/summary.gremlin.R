@@ -10,7 +10,9 @@
 #' @param object An object of \code{class} \sQuote{gremlin}.
 #' @param \dots Additional arguments to be passed to control the model fitting.
 #'
-#' @return A \code{numeric} value for the log-likelihood.
+#' @return A \code{numeric} value for the log-likelihood and the number of
+#'   parameters estimated by the model (sum of fixed effects and random effect
+#'   (co)variance components).
 #' @author \email{matthewwolak@@gmail.com}
 #' @examples
 #' mod11 <- gremlinR(WWG11 ~ sex - 1,
