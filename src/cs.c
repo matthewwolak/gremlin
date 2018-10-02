@@ -1402,39 +1402,40 @@ csi *cs_post (const csi *parent, csi n)
 }
 
 /* print a sparse matrix; use %g for integers to avoid differences with csi */
+/* 2018 10 02 MEW change all `printf ()` below to `Rprintf ()`  */
 csi cs_print (const cs *A, csi brief)
 {
     csi p, j, m, n, nzmax, nz, *Ap, *Ai ;
     double *Ax ;
-    if (!A) { printf ("(null)\n") ; return (0) ; }
+    if (!A) { Rprintf ("(null)\n") ; return (0) ; }
     m = A->m ; n = A->n ; Ap = A->p ; Ai = A->i ; Ax = A->x ;
     nzmax = A->nzmax ; nz = A->nz ;
-    printf ("CSparse Version %d.%d.%d, %s.  %s\n", CS_VER, CS_SUBVER,
+    Rprintf ("CSparse Version %d.%d.%d, %s.  %s\n", CS_VER, CS_SUBVER,
         CS_SUBSUB, CS_DATE, CS_COPYRIGHT) ;
     if (nz < 0)
     {
-        printf ("%g-by-%g, nzmax: %g nnz: %g, 1-norm: %g\n", (double) m,
+        Rprintf ("%g-by-%g, nzmax: %g nnz: %g, 1-norm: %g\n", (double) m,
             (double) n, (double) nzmax, (double) (Ap [n]), cs_norm (A)) ;
         for (j = 0 ; j < n ; j++)
         {
-            printf ("    col %g : locations %g to %g\n", (double) j, 
+            Rprintf ("    col %g : locations %g to %g\n", (double) j, 
                 (double) (Ap [j]), (double) (Ap [j+1]-1)) ;
             for (p = Ap [j] ; p < Ap [j+1] ; p++)
             {
-                printf ("      %g : %g\n", (double) (Ai [p]), Ax ? Ax [p] : 1) ;
-                if (brief && p > 20) { printf ("  ...\n") ; return (1) ; }
+                Rprintf ("      %g : %g\n", (double) (Ai [p]), Ax ? Ax [p] : 1) ;
+                if (brief && p > 20) { Rprintf ("  ...\n") ; return (1) ; }
             }
         }
     }
     else
     {
-        printf ("triplet: %g-by-%g, nzmax: %g nnz: %g\n", (double) m,
+        Rprintf ("triplet: %g-by-%g, nzmax: %g nnz: %g\n", (double) m,
             (double) n, (double) nzmax, (double) nz) ;
         for (p = 0 ; p < nz ; p++)
         {
-            printf ("    %g %g : %g\n", (double) (Ai [p]), (double) (Ap [p]),
+            Rprintf ("    %g %g : %g\n", (double) (Ai [p]), (double) (Ap [p]),
                 Ax ? Ax [p] : 1) ;
-            if (brief && p > 20) { printf ("  ...\n") ; return (1) ; }
+            if (brief && p > 20) { Rprintf ("  ...\n") ; return (1) ; }
         }
     }
     return (1) ;
@@ -1586,14 +1587,19 @@ csi *cs_randperm (csi n, csi seed)
     if (!p) return (NULL) ;             /* out of memory */
     for (k = 0 ; k < n ; k++) p [k] = n-k-1 ;
     if (seed == -1) return (p) ;        /* return reverse permutation */
-    srand (seed) ;                      /* get new random number seed */
+/* Substitute `GetRNGstate()` for use in R: MEW 2018 10 02     
+    srand (seed) ;    */                /* get new random number seed */
+GetRNGstate();
     for (k = 0 ; k < n ; k++)
     {
-        j = k + (rand ( ) % (n-k)) ;    /* j = rand integer in range k to n-1 */
+/* Substitute `unif_rand()` for use in R: MEW 2018 10 02     
+        j = k + (rand ( ) % (n-k)) ;  */   /* j = rand integer in range k to n-1 */
+j = k + ((int)(unif_rand()+0.5) % (n-k));
         t = p [j] ;                     /* swap p[k] and p[j] */
         p [j] = p [k] ;
         p [k] = t ;
     }
+PutRNGstate();
     return (p) ;
 }
 

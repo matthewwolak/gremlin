@@ -8,12 +8,12 @@
 \title{Mixed-effect modeling functions.}
 \usage{
 gremlinR(formula, random = NULL, rcov = ~units, data = NULL,
-  ginverse = NULL, Gstart = NULL, Rstart = NULL, maxit = 20,
-  algit = NULL, vit = 10, v = 1, ...)
+  ginverse = NULL, Gstart = NULL, Rstart = NULL, Bp = NULL,
+  maxit = 20, algit = NULL, vit = 10, v = 1, ...)
 
 gremlin(formula, random = NULL, rcov = ~units, data = NULL,
-  ginverse = NULL, Gstart = NULL, Rstart = NULL, maxit = 20,
-  algit = NULL, vit = 10, v = 1, ...)
+  ginverse = NULL, Gstart = NULL, Rstart = NULL, Bp = NULL,
+  maxit = 20, algit = NULL, vit = 10, v = 1, ...)
 
 mkModMats(formula, random = NULL, rcov = ~units, data = NULL,
   subset = NULL, ginverse = NULL, na.action = na.pass, offset = NULL,
@@ -40,6 +40,8 @@ G-structure or random terms.}
 
 \item{Rstart}{A \code{list} of starting (co)variance values for the
 R-structure or residual terms.}
+
+\item{Bp}{A prior specification for fixed effects.}
 
 \item{maxit}{An \code{integer} specifying the maximum number of likelihood
 iterations.}
@@ -68,8 +70,6 @@ larger values increase the amount of information printed on the screen.}
 
 \item{Xsparse}{Should sparse matrices be used for the fixed effects design
 matrix.}
-
-\item{x}{An object of \code{class} \sQuote{gremlin}.}
 }
 \value{
 A \code{list} of class \code{gremlin} or \code{gremlinModMats}:
@@ -85,13 +85,18 @@ A \code{list} of class \code{gremlin} or \code{gremlinModMats}:
       \item{Zr }{The residual design matrix.}
       \item{Zg }{A list of the design matrices for each random term.}
       \item{nG }{The number of parameters in the G structure.}
-      \item{listGinv }{A list of genearlized inverse matrices.}
+      \item{listGeninv }{A list of generalized inverse matrices.}
       \item{logDetG }{The log-determinants of the generalized inverse 
       matrices - necessary to calculate the log-likelihood.}
 
     \item{itMat }{A \code{matrix} of details about each iteration.}
     \item{sln }{A two column \code{matrix} of solutions and their sampling
       variances from the mixed model.}
+    \item{residuals }{A \code{vector} of residual deviations, response minus
+      the values expected based on the solutions, corresponding to the order
+      in \code{modMats$y}.} 
+    \item{theta }{A \code{matrix} of (co)variance components at the last
+      iteration.}
     \item{AI }{A \code{matrix} of values containing the Average Information
       matrix, or second partial derivatives of the likelihood with respect to
       the (co)variance components. The inverse of this matrix gives the

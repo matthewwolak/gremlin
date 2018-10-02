@@ -14,10 +14,9 @@
 #'
 #' @aliases gremlin-package
 #' @useDynLib gremlin, .registration = TRUE
+#' @importFrom methods as is slot
 #' @import Matrix
 #' @importFrom stats var
-#' @importFrom methods slot
-#' @importFrom methods as
 #' @references
 #'   Mrode. 2005.
 #'   Meyer & Smith. 1996.
@@ -108,7 +107,6 @@ vech2matlist <- function(vech, skeleton){
 #' object is a fitted model.
 #'
 #' @aliases gremlin
-#' @param x An object of \code{class} \sQuote{gremlin}.
 #' @param formula A \code{formula} for the response variable and fixed effects.
 #' @param random A \code{formula} for the random effects.
 #' @param rcov A \code{formula} for the residual covariance structure.
@@ -166,6 +164,8 @@ vech2matlist <- function(vech, skeleton){
 #'     \item{residuals }{A \code{vector} of residual deviations, response minus
 #'       the values expected based on the solutions, corresponding to the order
 #'       in \code{modMats$y}.} 
+#'     \item{theta }{A \code{matrix} of (co)variance components at the last
+#'       iteration.}
 #'     \item{AI }{A \code{matrix} of values containing the Average Information
 #'       matrix, or second partial derivatives of the likelihood with respect to
 #'       the (co)variance components. The inverse of this matrix gives the
@@ -831,6 +831,8 @@ stop("Not allowing `minqa::bobyqa()` right now")
 		itMat = itMat,
 		sln = cbind(Est = sln, Var = Cinv_ii),
 		residuals = c(r),
+		theta = matrix(thetav, nrow = p, ncol = 1,
+		  dimnames = list(names(thetav), NULL)),
 		AI = AI, dLdtheta = dLdtheta),
 	class = "gremlin",
 	startTime = startTime, endTime = endTime))
@@ -1072,6 +1074,8 @@ if(any(algit == "AI")){
 		  c(names(thetav), "sigma2e", "tyPy", "logDetC", "loglik", "itTime"))),
 		sln = cbind(Est = Cout[[31L]], Var = Cout[[32L]]),
 		residuals = Cout[[33L]],
+		theta = matrix(Cout[[24L]], nrow = p, ncol = 1,
+		  dimnames = list(names(thetav), NULL)),
 		AI = AI, dLdtheta = matrix(Cout[[29L]], ncol = 1)),
 	class = "gremlin",
 	startTime = startTime, endTime = endTime))
