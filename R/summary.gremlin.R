@@ -64,6 +64,92 @@ AIC.gremlin <- function(object, ..., k = 2, fxdDf = FALSE){
 
 
 
+
+
+
+
+
+
+
+
+############          Number of observations in fitted model    ################
+#' Number of observations in data from gremlin model fit objects
+#'
+#' Extract the number of 'observations' in a gremlin model fit.
+#' 
+#' @aliases nobs.gremlin
+#' @param object An object of \code{class} \sQuote{gremlin}.
+#' @param use.fallback logical: should fallback methods be used to try to guess
+#'   the value? Included for compatibility.
+#' @param \dots Further arguments to be passed to the methods.
+#'
+#' @return A single number, usually an \code{integer}, but can be \code{NA}.
+#' @author \email{matthewwolak@@gmail.com}
+#' @examples
+#' mod11 <- gremlinR(WWG11 ~ sex - 1,
+#'	random = ~ calf,
+#'	data = Mrode11,
+#'	Gstart = matrix(0.1), Rstart = matrix(0.4),
+#'	maxit = 50, v = 2, algit = "EM")
+#' nobs(mod11)
+#' @export
+#' @importFrom stats nobs
+nobs.gremlin <- function(object, use.fallback = FALSE, ...){
+  object$modMats$ny
+}
+
+
+
+
+############          REML Likelihood Ratio Tests using `anova()`    ##########
+#' anova() for gremlin objects
+#'
+#' REML Likelihood Ratio Tests for gremlin models using anova()
+#' 
+#' @aliases anova.gremlin
+#' @param object An object of \code{class} \sQuote{gremlin}.
+#' @param \dots Additional objects of \code{class} \sQuote{gremlin}.
+#' @param model.names Optional character vector with model names to be used in
+#'   the anova table
+#'
+#' @return A \code{data.frame} containing the nested comparison of model
+#'   \code{object}s via a REML likelihood ratio test.
+#' @author \email{matthewwolak@@gmail.com}
+#' @examples
+#' mod11 <- gremlinR(WWG11 ~ sex - 1,
+#'	random = ~ calf,
+#'	data = Mrode11,
+#'	Gstart = matrix(0.1), Rstart = matrix(0.4),
+#'	maxit = 50, v = 2, algit = "EM")
+#' logLik(mod11) ##TODO FIXME
+#' @export
+#' @importFrom stats anova
+#adapted from `lme4::anovaLmer()`
+anova.gremlin <- function(object, ..., model.names = NULL){
+  mCall <- match.call(expand.dots = TRUE)
+  dots <- list(...)
+  browser()
+  #TODO reconcile likelihoods with `lm()` where REML = TRUE so can compare
+  ##TODO add `|` below to allow lm
+  grMods <- as.logical(vapply(dots, is, NA, "gremlin"))
+  if(sum(c(is(object) == "gremlin", grMods)) < 2){
+    stop("At least 2 models must be of class 'gremlin' (`is(object) == gremlin`)")
+  }
+
+  mods <- ifelse(is(object) == "gremlin", c(list(object), dots[grMods]), dots[grMods])
+
+
+
+}
+
+
+
+
+
+
+
+
+
 ################################################################################
 ################  Extract Residuals    #############
 # Create S3methods that use generic in package `stats`
@@ -224,6 +310,11 @@ print.summary.gremlin <- function(x,
     print(as.data.frame(x$fxdSummary), digits = digits, ...)
 
 }
+
+
+
+
+
 
 
 
