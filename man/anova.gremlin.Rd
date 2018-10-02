@@ -27,7 +27,7 @@ random = ~ calf,
 data = Mrode11,
 Gstart = matrix(0.1), Rstart = matrix(0.4),
 maxit = 50, v = 2, algit = "EM")
-logLik(mod11) ##TODO FIXME
+logLik(mod11)
 }
 \author{
 \email{matthewwolak@gmail.com}
