@@ -186,7 +186,9 @@ anova.gremlin <- function(object, ..., model.names = NULL){
 
   fxdForms <- lapply(calls, FUN = "[[", "formula")
   if(!all(vapply(fxdForms, FUN = identical, FUN.VALUE = NA, fxdForms[[1]]))){
-    stop("All models must use the same fixed effects formula")
+    badFxd <- which(!vapply(fxdForms, FUN = identical, FUN.VALUE = NA, fxdForms[[1]]))
+    cat("Different fixed effect formulas for model(s)", names(mods)[badFxd], ":\n")
+    stop(cat("All models must use the same fixed effects formula (as compared to model '", names(mods)[1], "')\n"))
   }
 
   header <- paste("Data:", .abbrDeparse(data[[1]]))
