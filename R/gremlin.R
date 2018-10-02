@@ -164,6 +164,8 @@ vech2matlist <- function(vech, skeleton){
 #'     \item{residuals }{A \code{vector} of residual deviations, response minus
 #'       the values expected based on the solutions, corresponding to the order
 #'       in \code{modMats$y}.} 
+#'     \item{theta }{A \code{matrix} of (co)variance components at the last
+#'       iteration.}
 #'     \item{AI }{A \code{matrix} of values containing the Average Information
 #'       matrix, or second partial derivatives of the likelihood with respect to
 #'       the (co)variance components. The inverse of this matrix gives the
@@ -829,6 +831,8 @@ stop("Not allowing `minqa::bobyqa()` right now")
 		itMat = itMat,
 		sln = cbind(Est = sln, Var = Cinv_ii),
 		residuals = c(r),
+		theta = matrix(thetav, nrow = p, ncol = 1,
+		  dimnames = list(names(thetav), NULL)),
 		AI = AI, dLdtheta = dLdtheta),
 	class = "gremlin",
 	startTime = startTime, endTime = endTime))
@@ -1070,6 +1074,8 @@ if(any(algit == "AI")){
 		  c(names(thetav), "sigma2e", "tyPy", "logDetC", "loglik", "itTime"))),
 		sln = cbind(Est = Cout[[31L]], Var = Cout[[32L]]),
 		residuals = Cout[[33L]],
+		theta = matrix(thetav, nrow = p, ncol = 1,
+		  dimnames = list(names(thetav), NULL)),
 		AI = AI, dLdtheta = matrix(Cout[[29L]], ncol = 1)),
 	class = "gremlin",
 	startTime = startTime, endTime = endTime))
