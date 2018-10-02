@@ -107,7 +107,6 @@ vech2matlist <- function(vech, skeleton){
 #' object is a fitted model.
 #'
 #' @aliases gremlin
-#' @param x An object of \code{class} \sQuote{gremlin}.
 #' @param formula A \code{formula} for the response variable and fixed effects.
 #' @param random A \code{formula} for the random effects.
 #' @param rcov A \code{formula} for the residual covariance structure.
