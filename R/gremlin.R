@@ -14,10 +14,9 @@
 #'
 #' @aliases gremlin-package
 #' @useDynLib gremlin, .registration = TRUE
+#' @importFrom methods as is slot
 #' @import Matrix
 #' @importFrom stats var
-#' @importFrom methods slot
-#' @importFrom methods as
 #' @references
 #'   Mrode. 2005.
 #'   Meyer & Smith. 1996.
