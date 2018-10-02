@@ -70,8 +70,6 @@ larger values increase the amount of information printed on the screen.}
 
 \item{Xsparse}{Should sparse matrices be used for the fixed effects design
 matrix.}
-
-\item{x}{An object of \code{class} \sQuote{gremlin}.}
 }
 \value{
 A \code{list} of class \code{gremlin} or \code{gremlinModMats}:
