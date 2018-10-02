@@ -126,9 +126,9 @@ nobs.gremlin <- function(object, use.fallback = FALSE, ...){
 #'	data = Mrode11,
 #'	Gstart = matrix(0.1), Rstart = matrix(0.4),
 #'	maxit = 50, v = 2, algit = "EM")
-#' logLik(mod11) ##TODO FIXME
+#' logLik(mod11)
 #' @export
-#' @importFrom stats anova
+#' @importFrom stats anova getCall pchisq
 #adapted from `lme4::anovaLmer()`
 anova.gremlin <- function(object, ..., model.names = NULL){
   mCall <- match.call(expand.dots = TRUE)
@@ -254,7 +254,7 @@ anova.gremlin <- function(object, ..., model.names = NULL){
 #'	maxit = 50, v = 2, algit = "EM")
 #' residuals(mod11)
 #' @export
-#' @importFrom stats residuals
+#' @importFrom stats naresid residuals
 # type = c("working", "response", "deviance", "pearson", "partial")
 residuals.gremlin <- function(object,
 	type = "response",
@@ -311,6 +311,7 @@ residuals.gremlin <- function(object,
 #' @author \email{matthewwolak@@gmail.com}
 #' @seealso \code{\link{gremlin}}
 #' @export
+#' @importFrom stats quantile
 #' @method summary gremlin
 summary.gremlin <- function(object, ...){
   nit <- nrow(object$itMat)
@@ -365,6 +366,7 @@ summary.gremlin <- function(object, ...){
 #' @method print summary.gremlin
 #' @rdname summary.gremlin
 #' @export
+#' @importFrom stats setNames
 print.summary.gremlin <- function(x, 
 	digits = max(3, getOption("digits") - 3), ...){
 #TODO calculate convergence criteria & print if REML converged
