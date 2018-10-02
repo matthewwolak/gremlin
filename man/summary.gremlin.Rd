@@ -6,9 +6,10 @@
 \alias{print.summary.gremlin}
 \title{Gremlin model summary.}
 \usage{
-summary.gremlin(object, ...)
+\method{summary}{gremlin}(object, ...)
 
-print.summary.gremlin(x, digits = max(3, getOption("digits") - 3), ...)
+\method{print}{summary.gremlin}(x, digits = max(3, getOption("digits") - 3),
+  ...)
 }
 \arguments{
 \item{object, x}{An object of \code{class} \sQuote{gremlin} or

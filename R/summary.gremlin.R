@@ -312,6 +312,7 @@ residuals.gremlin <- function(object,
 #' @seealso \code{\link{gremlin}}
 #' @export
 #' @importFrom stats quantile
+#' @method summary gremlin
 summary.gremlin <- function(object, ...){
   nit <- nrow(object$itMat)
   nvc <- nrow(object$dLdtheta)     # No. of (co)variance components
@@ -362,6 +363,7 @@ summary.gremlin <- function(object, ...){
 
 
 ################################################################################
+#' @method print summary.gremlin
 #' @rdname summary.gremlin
 #' @export
 #' @importFrom stats setNames
