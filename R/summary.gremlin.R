@@ -94,9 +94,14 @@ AIC.gremlin <- function(object, ..., k = 2, fxdDf = FALSE){
 #' nobs(mod11)
 #' @export
 #' @importFrom stats nobs
+#TODO check that calculates correct value if NAs are dropped: see `modMats()`
 nobs.gremlin <- function(object, use.fallback = FALSE, ...){
   object$modMats$ny
 }
+
+
+
+
 
 
 
@@ -128,18 +133,72 @@ nobs.gremlin <- function(object, use.fallback = FALSE, ...){
 anova.gremlin <- function(object, ..., model.names = NULL){
   mCall <- match.call(expand.dots = TRUE)
   dots <- list(...)
-  browser()
+  # Define temporary/internal function to unlist an `lapply()`
+  .sapply <- function(L, FUN, ...) unlist(lapply(L, FUN, ...))
   #TODO reconcile likelihoods with `lm()` where REML = TRUE so can compare
   ##TODO add `|` below to allow lm
-  grMods <- as.logical(vapply(dots, is, NA, "gremlin"))
+  grMods <- as.logical(vapply(dots, FUN = is, FUN.VALUE = NA, "gremlin"))
   if(sum(c(is(object) == "gremlin", grMods)) < 2){
     stop("At least 2 models must be of class 'gremlin' (`is(object) == gremlin`)")
   }
 
   mods <- ifelse(is(object) == "gremlin", c(list(object), dots[grMods]), dots[grMods])
+  nobs.vec <- vapply(mods, nobs, 1L)
+  if(var(nobs.vec) > 0)
+    stop("Models were not all fitted to the same size of dataset")
+
+  if(is.null(mNms <- model.names))
+    mNms <- vapply(as.list(mCall)[c(FALSE, TRUE, modp)], safeDeparse, "")  
+
+  if(any(duplicated(mNms)) || max(nchar(mNms)) > 200){
+    warning("Failed to find model names, assigning generic names")
+    nNms <- paste0("model", seq_along(mNms))
+  }
+
+  if(length(mNms) != length(mods))
+    stop("Number of models and 'model.names' vector are not of the same length")
+
+  ###########
+  lls <- lapply(mods, logLik)
+  ## Order models by increasing degrees of freedom
+  llo <- order(Df <- vapply(lls, FUN = attr, FUN.VALUE = numeric(1), "df"))
+  mods <- mods[llo]
+  lls <- lls[llo]
+  Df <- Df[llo]
+  calls <- lapply(mods, getCall)
+  data <- lapply(calls, FUN = "[[", "data")
+  if(!all(vapply(data, FUN = identical, FUN.VALUE = NA, data[[1]]))){
+    stop("All models must be fit to the same data object")
+  }
+  header <- paste("Data:", abbrDeparse(data[[1]]))
+  subset <- lapply(calls, FUN = "[[", "subset")
+  if(!all(vapply(subset, FUN = identical, FUN.VALUE = NA, subset[[1]]))){
+    stop("All models must use the same subset")
+  }
+  if(!is.null(subset[[1]])){
+    header <- c(header, paste("Subset:", abbrDeparse(subset[[1]])))
+  }
+  
+  llk <- unlist(lls)
+  chisq <- 2 * pmax(0, c(NA, diff(llk)))
+  dfChisq <- c(NA, diff(Df))
+  tabout <- data.frame(Df = Df,
+    AIC = .sapply(lls, AIC),
+#TODO    BIC = .sapply(lls, BIC),
+    logLik = llk,
+    deviance = -2*llk,
+    Chisq = chisq,
+    "Chi Df" = dfChisq,
+    "Pr(>Chisq)" = pchisq(chisq, dfChisq, lower.tail = FALSE),
+    row.names = names(mods), check.names = FALSE)
+  class(tabout) <- c("anova", class(tabout))
+  forms <- lapply(lapply(calls, FUN = "[[", "formula"), FUN = deparse)
+  structure(val,
+    heading = c(header, "Models:",
+      paste(rep.int(names(mods), length(forms)), unlist(forms), sep = ": ")))
 
 
-
+  
 }
 
 
