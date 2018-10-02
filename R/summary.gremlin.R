@@ -127,23 +127,28 @@ summary.gremlin <- function(object, ...){
   formulae <- list(fxd = object$call[["formula"]],
 	random = object$call[["random"]]) #FIXME need to include R (or combine with G)
 
+  ########
   residQuants <- quantile(residuals(object, "response", scaled = TRUE), na.rm=TRUE)
 
-  varcompSummary <- cbind(Est = object$itMat[nit, 1:nvc, drop = TRUE],
-		SE = NA)
+  ########
+  varcompSummary <- cbind("Estimate" = object$itMat[nit, 1:nvc, drop = TRUE],
+		"Std. Error" = NA)
     dimnames(varcompSummary)[[1L]] <- dimnames(object$itMat[nit, 1:nvc, drop = FALSE])[[2L]]
     if(!is.null(object$AI)){
       invAI <- solve(object$AI)
-      varcompSummary[, "SE"] <- sqrt(diag(invAI))
+      varcompSummary[, "Std. Error"] <- sqrt(diag(invAI))
       varcompSampCor <- cov2cor(invAI)
     } else{
         varcompSampCor <- matrix(NA, nrow = nvc, ncol = nvc)
           dimnames(varcompSampCor) <- list(dimnames(varcompSummary)[[1L]], dimnames(varcompSummary)[[1L]])
       }
 
+  ########
   fxdSummary <- object$sln[1:object$modMats$nb, , drop = FALSE]
     fxdSummary[, 2] <- sqrt(fxdSummary[, 2])
-    colnames(fxdSummary) <- c("Estimate", "Std. Error")
+    #TODO consider reporting `|z value|` instead
+    fxdSummary <- cbind(fxdSummary, fxdSummary[, 1] / fxdSummary[, 2])
+    colnames(fxdSummary) <- c("Solution", "Std. Error", "z value")
 	dimnames(fxdSummary)[[1L]] <- object$modMats$X@Dimnames[[2L]]
 
  return(structure(list(logLik = logLik(object),
