@@ -1594,7 +1594,7 @@ GetRNGstate();
     {
 /* Substitute `unif_rand()` for use in R: MEW 2018 10 02     
         j = k + (rand ( ) % (n-k)) ;  */   /* j = rand integer in range k to n-1 */
-j = k + (unif_rand() % (n-k));
+j = k + ((int)(unif_rand()+0.5) % (n-k));
         t = p [j] ;                     /* swap p[k] and p[j] */
         p [j] = p [k] ;
         p [k] = t ;
