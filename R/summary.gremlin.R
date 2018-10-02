@@ -4,9 +4,9 @@
 #' Methods to extract log-likelihood and information criterion of a gremlin
 #' model.
 #'
-#' Extracts the log-likelihood from a gremlin model fit.
+#' Extracts the log-likelihood or AIC from a gremlin model fit.
 #' 
-#' @aliases logLik.gremlin
+#' @aliases logLik.gremlin AIC.gremlin
 #' @param object An object of \code{class} \sQuote{gremlin}.
 #' @param \dots Additional arguments.
 #' @param k A numeric value for the penalty per parameter. Default is 2, as in
@@ -27,6 +27,7 @@
 #'	Gstart = matrix(0.1), Rstart = matrix(0.4),
 #'	maxit = 50, v = 2, algit = "EM")
 #' logLik(mod11)
+#' AIC(mod11)
 #' @export
 #' @importFrom stats logLik
 logLik.gremlin <- function(object, ...){

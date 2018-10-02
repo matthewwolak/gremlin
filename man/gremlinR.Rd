@@ -95,6 +95,8 @@ A \code{list} of class \code{gremlin} or \code{gremlinModMats}:
     \item{residuals }{A \code{vector} of residual deviations, response minus
       the values expected based on the solutions, corresponding to the order
       in \code{modMats$y}.} 
+    \item{theta }{A \code{matrix} of (co)variance components at the last
+      iteration.}
     \item{AI }{A \code{matrix} of values containing the Average Information
       matrix, or second partial derivatives of the likelihood with respect to
       the (co)variance components. The inverse of this matrix gives the
