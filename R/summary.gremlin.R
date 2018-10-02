@@ -9,10 +9,16 @@
 #' @aliases logLik.gremlin
 #' @param object An object of \code{class} \sQuote{gremlin}.
 #' @param \dots Additional arguments.
+#' @param k A numeric value for the penalty per parameter. Default is 2, as in
+#'   classic AIC.
+#' @param fxdDf A logical indicating whether to penalize according to the number
+#'   of fixed effect parameters. Since only models fit by REML can be compared,
+#'   these must always be the same and so become a constant. Hence, the default
+#'   is \code{FALSE}.
 #'
-#' @return A \code{numeric} value for the log-likelihood and the number of
+#' @return A \code{numeric} value for either the log-likelihood and the number of
 #'   parameters estimated by the model (sum of fixed effects and random effect
-#'   (co)variance components).
+#'   (co)variance components) or Akaike's Information Criterion.
 #' @author \email{matthewwolak@@gmail.com}
 #' @examples
 #' mod11 <- gremlinR(WWG11 ~ sex - 1,
@@ -26,15 +32,34 @@
 logLik.gremlin <- function(object, ...){
   val <- object$itMat[nrow(object$itMat), "loglik"]
   #TODO attr(val, "nall") <- object$
-  attr(val, "df") <- object$nb + nrow(object$dLdtheta)
+  attr(val, "df") <- object$modMats$nb + nrow(object$theta)
   class(val) <- "logLik"
  val
 }
-#TODO######   AIC    ############
-#TODO?######   BIC    ############
 
 
-
+######   AIC   ######
+#' @rdname logLik.gremlin
+#' @export
+#' @importFrom stats AIC
+AIC.gremlin <- function(object, ..., k = 2, fxdDf = FALSE){
+  ll <- logLik(object)
+    df <- attr(ll, "df")
+  #TODO determine which is better: asreml (not including fixed df) or lme4 (includes)
+  ## might depend on REML vs ML
+  if(fxdDf) p <- df else p <- df - object$modMats$nb  
+  #TODO implement conditional AIC (df=n-1 levels of each random effect)
+  ## I think below does what `lme4::lmer()` implements
+  ###TODO Will need to accommodate covariance parameters (count lower triangles)
+  val <- -2*ll[[1L]] + k*p
+  #TODO document type = c("mAIC") attribute and reference (see GLMM faq for refs)
+  attr(val, "type") <- "mAIC"
+  class(val) <- "AIC"
+ val
+}
+#TODO BIC
+## See how asreml calculates this (equation 2.15): -2ll + t * log(residual df)
+#TODO make an extractor for all 3 (like `lme4::llikAIC()`)
 
 
 
