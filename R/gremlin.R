@@ -1,4 +1,4 @@
-#' Mixed-Effects REML incoporating Generalized Inverses
+#' Mixed-Effects REML Incorporating Generalized Inverses
 #'
 #' Fit linear mixed-effects models using restricted (or residual) maximum
 #' likelihood (REML) and with generalized inverse matrices to specify covariance
