@@ -1,7 +1,7 @@
 #include "gremlincc.h"
 /*******************************************************************/
 /* 2 clock functions from SuiteSparse 5.1.0 by Tim Davis           */
-static double tic (void) { return (clock () / (double) CLOCKS_PER_SEC) ; }
+static double tic (void) { return ((clock_t) clock () / (double) CLOCKS_PER_SEC) ; }
 static double toc (double t) { double s = tic () ; return (CS_MAX (0, s-t)) ; }
 /*******************************************************************/
 
