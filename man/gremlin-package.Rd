@@ -24,12 +24,12 @@ matrix techniques can potentially make model fitting very efficient.
 \dontrun{
   library(nadiv)
   Ainv <- makeAinv(Mrode3[-c(1:2), 1:3])$Ainv
-  mod11 <- gremlinR(WWG11 ~ sex - 1,
+  mod11 <- gremlin(WWG11 ~ sex - 1,
 random = ~ calf,
 data = Mrode11,
 ginverse = list(calf = Ainv),
 Gstart = matrix(0.2), Rstart = matrix(0.4),
-maxit = 10, v = 2, algit = "AI")
+maxit = 10, v = 2)
 }
 }
 \references{
@@ -42,6 +42,6 @@ Mrode. 2005.
 \code{\link[MCMCglmm:MCMCglmm-package]{MCMCglmm}}
 }
 \author{
-\strong{Maintainer}: Matthew Wolak \email{matthewwolak@gmail.com}
+\strong{Maintainer}: Matthew Wolak \email{matthewwolak@gmail.com} (0000-0002-7962-0071)
 
 }

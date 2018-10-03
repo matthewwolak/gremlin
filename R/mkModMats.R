@@ -30,7 +30,6 @@
 ################################################################################
 #' @describeIn gremlinR Generates model matrices. 
 #' @export
-#' @import Matrix
 #' @importFrom stats na.pass model.response model.matrix lm reformulate na.omit
 mkModMats <- function(formula, random = NULL, rcov = ~ units,
 		data = NULL, subset = NULL,
@@ -206,8 +205,8 @@ if(length(sing.rm)){
     Gnames <- strsplit(deparse(gForm[[-1]]), split = " \\+ ")[[1]]
     nG <- length(Gnames)
     #TODO: logDetG as a simple vector or scalar (1 element) that is added to!
-    Zg <- listGinv <- logDetG <- vector("list", length = nG)
-    names(Zg) <- names(listGinv) <- names(logDetG) <- Gnames
+    Zg <- listGeninv <- logDetG <- vector("list", length = nG)
+    names(Zg) <- names(listGeninv) <- names(logDetG) <- Gnames
 
     for(g in 1:nG){
       ggf <- gf # temporary gf
@@ -225,8 +224,8 @@ if(length(sing.rm)){
 		transpose = FALSE,
 		drop.unused.levels = FALSE,	#TODO correct?
 		row.names = TRUE)
-        listGinv[[g]] <- ginverse[[which(names(ginverse) == Gnames[g])]]
-        # calculate log(det(G)) from Ginv; log(det(G)) = -1*log(det(G^-1))
+        listGeninv[[g]] <- ginverse[[which(names(ginverse) == Gnames[g])]]
+        # calculate log(det(G)) from geninv; log(det(G)) = -1*log(det(G^-1))
 	#TODO: make check to see if ginverse[[g]] has attribute=logdet (from nadiv)
         logDetG[[g]] <- -1 * determinant(ginverse[[which(names(ginverse) == Gnames[g])]], logarithm = TRUE)$modulus[1]
       } else{
@@ -236,8 +235,8 @@ if(length(sing.rm)){
 		row.names = TRUE)
           #XXX Might want to do this in c++, see cs_kroneckerI
           #TODO check `n = ` value!?
-          ## listGinv need to be same dimensions as crossprod (in W) when making MMA
-          listGinv[[g]] <- Diagonal(x = 1, n = ncol(Zg[[g]])) 
+          ## listGeninv need to be same dimensions as crossprod (in W) when making MMA
+          listGeninv[[g]] <- Diagonal(x = 1, n = ncol(Zg[[g]])) 
           logDetG[[g]] <- 0
         }
 
@@ -254,7 +253,7 @@ if(any(nrowZi != ny)){
 
 
   } else{
-      Zg <- listGinv <- logDetG <- NULL
+      Zg <- listGeninv <- logDetG <- NULL
       nG <- 0
     }
 
@@ -262,7 +261,7 @@ if(any(nrowZi != ny)){
  structure(list(y = y, ny = ny, ncy = ncy,
 	X = X, nb = ncol(X),
 	Zr = Zr,
-	Zg = Zg, nG = nG, listGinv = listGinv, logDetG = logDetG),
+	Zg = Zg, nG = nG, listGeninv = listGeninv, logDetG = logDetG),
 	class = "gremlinModMats")
 }
 
