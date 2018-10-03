@@ -1,4 +1,4 @@
-#' Mixed-Effects REML incoporating Generalized Inverses
+#' Mixed-Effects REML Incorporating Generalized Inverses
 #'
 #' Fit linear mixed-effects models using restricted (or residual) maximum
 #' likelihood (REML) and with generalized inverse matrices to specify covariance
@@ -283,11 +283,11 @@ gremlinR <- function(formula, random = NULL, rcov = ~ units,
 
     # 1 Create mixed model array (M) and coefficient matrix of MME (C)
     # quadratic at bottom-right (Meyer & Smith 1996, eqn 6)
-    ##1a form W by `cBind()` X and each Z_i
-    if(modMats$nG < 1) W <- modMats$X else  W <- cBind(modMats$X, modMats$Zg[[1]]) 
+    ##1a form W by `cbind()` X and each Z_i
+    if(modMats$nG < 1) W <- modMats$X else  W <- cbind(modMats$X, modMats$Zg[[1]]) 
     if(modMats$nG > 1){
       for(g in 2:modMats$nG){
-        W <- cBind(W, modMats$Zg[[g]])
+        W <- cbind(W, modMats$Zg[[g]])
       }
     }
     # Rand Fx incidence matrix part of 'log(|G|)'
@@ -953,11 +953,11 @@ gremlin <- function(formula, random = NULL, rcov = ~ units,
 
     # 1 Create mixed model array (M) and coefficient matrix of MME (C)
     # quadratic at bottom-right (Meyer & Smith 1996, eqn 6)
-    ##1a form W by `cBind()` X and each Z_i
-    if(modMats$nG < 1) W <- modMats$X else  W <- cBind(modMats$X, modMats$Zg[[1]]) 
+    ##1a form W by `cbind()` X and each Z_i
+    if(modMats$nG < 1) W <- modMats$X else  W <- cbind(modMats$X, modMats$Zg[[1]]) 
     if(modMats$nG > 1){
       for(g in 2:modMats$nG){
-        W <- cBind(W, modMats$Zg[[g]])
+        W <- cbind(W, modMats$Zg[[g]])
       }
     }
     # Rand Fx incidence matrix part of 'log(|G|)'
