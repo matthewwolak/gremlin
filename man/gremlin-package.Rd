@@ -4,7 +4,7 @@
 \name{gremlin-package}
 \alias{gremlin-package}
 \alias{_PACKAGE}
-\title{Mixed-Effects REML incoporating Generalized Inverses}
+\title{Mixed-Effects REML Incorporating Generalized Inverses}
 \description{
 Fit linear mixed-effects models using restricted (or residual) maximum
 likelihood (REML) and with generalized inverse matrices to specify covariance
