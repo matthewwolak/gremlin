@@ -1,7 +1,7 @@
 #include "gremlincc.h"
 /*******************************************************************/
 /* 2 clock functions from SuiteSparse 5.1.0 by Tim Davis           */
-static double tic (void) { return (clock () / (double) CLOCKS_PER_SEC) ; }
+static double tic (void) { return ((clock_t) clock () / (double) CLOCKS_PER_SEC) ; }
 static double toc (double t) { double s = tic () ; return (CS_MAX (0, s-t)) ; }
 /*******************************************************************/
 
@@ -64,7 +64,8 @@ void ugremlin(
   csi    Cn, *P;
   csi    *Pinv = new csi[dimXZWG[5]];
 
-  int    nG = nGR[0], nR = nGR[1];
+  int    nG = nGR[0];
+//  int    nR = nGR[1];
 
   cs*    *geninv = new cs*[nG];
   cs*    *G = new cs*[nG];
@@ -75,7 +76,7 @@ void ugremlin(
 
   double t, T, took, dsLc, tyPy, logDetC, sigma2e, loglik, d, cc2, cc2d;
 
-  int 	 g, i, k, rw, si, si2, ei, vitout,
+  int 	 g, i, k, rw, si, si2, vitout,
 	 itc = 0,
          dimM,
 	 nminffx = ny[0] - dimXZWG[1],
@@ -83,8 +84,6 @@ void ugremlin(
 	 nminfrfx;
 
   int	 *cc = new int[5];
-
-  char   tookUnits;
 
 
 
