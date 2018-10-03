@@ -3,15 +3,10 @@
 \name{gremlinR}
 \alias{gremlinR}
 \alias{gremlin}
-\alias{gremlin}
 \alias{mkModMats}
 \title{Mixed-effect modeling functions.}
 \usage{
 gremlinR(formula, random = NULL, rcov = ~units, data = NULL,
-  ginverse = NULL, Gstart = NULL, Rstart = NULL, Bp = NULL,
-  maxit = 20, algit = NULL, vit = 10, v = 1, ...)
-
-gremlin(formula, random = NULL, rcov = ~units, data = NULL,
   ginverse = NULL, Gstart = NULL, Rstart = NULL, Bp = NULL,
   maxit = 20, algit = NULL, vit = 10, v = 1, ...)
 

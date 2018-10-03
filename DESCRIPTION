@@ -10,7 +10,7 @@ Depends:
 Imports:
     methods
 LazyData: yes
-NeedsCompilation: yes
+NeedsCompilation: no
 Description: Fit linear mixed-effects models using restricted (or residual)
     maximum likelihood (REML) and with generalized inverse matrices to specify
     covariance structures for random effects. In particular, the package is suited
