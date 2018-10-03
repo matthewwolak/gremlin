@@ -76,7 +76,7 @@ void ugremlin(
 
   double t, T, took, dsLc, tyPy, logDetC, sigma2e, loglik, d, cc2, cc2d;
 
-  int 	 g, i, k, rw, si, si2, ei, vitout,
+  int 	 g, i, k, rw, si, si2, vitout,
 	 itc = 0,
          dimM,
 	 nminffx = ny[0] - dimXZWG[1],
@@ -84,8 +84,6 @@ void ugremlin(
 	 nminfrfx;
 
   int	 *cc = new int[5];
-
-  char   tookUnits;
 
 
 
