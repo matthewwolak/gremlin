@@ -18,7 +18,7 @@ csi cs_em(const cs *BLUXs, double *theta, double *Cinv_ii,
 ){
 
   double  *Bx, r, o, tr;
-  csi     g, i, j, k, m, n, si, qi, ei;
+  csi     g, i, j, k, n, si, qi, ei;
   if(!CS_CSC (BLUXs) || !nb || !theta) return (0);    // check arguments
   n = BLUXs->m;
   double  *tmp_sln = new double[n];
@@ -127,7 +127,7 @@ csi cs_emCinv(const cs *BLUXs, double *theta,
 
   double  *Bx, r, o, tr;
   cs      *preTR, *preTRprod;
-  csi     g, i, j, k, m, si, qi, ei;
+  csi     g, i, j, k, si, qi, ei;
   if(!CS_CSC (BLUXs) || !nb || !theta) return (0);    // check arguments
   double  *tmp_sln = new double[BLUXs->m];
     for(k = 0; k < BLUXs->m; k++) tmp_sln[k] = 0.0;
