@@ -64,7 +64,8 @@ void ugremlin(
   csi    Cn, *P;
   csi    *Pinv = new csi[dimXZWG[5]];
 
-  int    nG = nGR[0], nR = nGR[1];
+  int    nG = nGR[0];
+//  int    nR = nGR[1];
 
   cs*    *geninv = new cs*[nG];
   cs*    *G = new cs*[nG];
