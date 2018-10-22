@@ -24,16 +24,14 @@
 #' @seealso \code{\link[MCMCglmm:MCMCglmm-package]{MCMCglmm}}
 #' @examples
 #' #TODO: simple examples of the most important functions
-#' \dontrun{
-#'   library(nadiv)
+#'   require(nadiv)
 #'   Ainv <- makeAinv(Mrode3[-c(1:2), 1:3])$Ainv
-#'   mod11 <- gremlin(WWG11 ~ sex - 1,
+#'   mod11 <- gremlinR(WWG11 ~ sex - 1,
 #'	random = ~ calf,
 #'	data = Mrode11,
 #'	ginverse = list(calf = Ainv),
 #'	Gstart = matrix(0.2), Rstart = matrix(0.4),
 #'	maxit = 10, v = 2)
-#' }
 "_PACKAGE"
 
 
@@ -178,10 +176,9 @@ vech2matlist <- function(vech, skeleton){
 #' Mrode. 2005.
 #' @author \email{matthewwolak@@gmail.com}
 #' @examples
-#' \dontrun{
-#'   library(nadiv)
+#'   require(nadiv)
 #'   Ainv <- makeAinv(Mrode3[-c(1:2), 1:3])$Ainv
-#'   mod11 <- gremlin(WWG11 ~ sex - 1,
+#'   mod11 <- gremlinR(WWG11 ~ sex - 1,
 #'   	random = ~ calf,
 #'   	data = Mrode11,
 #'   	ginverse = list(calf = Ainv),
@@ -189,14 +186,6 @@ vech2matlist <- function(vech, skeleton){
 #'   	maxit = 10, v = 2)
 #'
 #'   is(mod11)
-#'
-#'   mod11R <- gremlinR(WWG11 ~ sex - 1,
-#'   	random = ~ calf,
-#'   	data = Mrode11,
-#'   	ginverse = list(calf = Ainv),
-#'   	Gstart = matrix(0.2), Rstart = matrix(0.4),
-#'   	maxit = 10, v = 2)
-#' }
 #' @export
 gremlinR <- function(formula, random = NULL, rcov = ~ units,
 		data = NULL, ginverse = NULL,
