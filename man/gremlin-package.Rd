@@ -22,7 +22,6 @@ Meyer & Smith 1996). The average information algorithm combined with sparse
 matrix techniques can potentially make model fitting very efficient.
 }
 \examples{
-#TODO: simple examples of the most important functions
   require(nadiv)
   Ainv <- makeAinv(Mrode3[-c(1:2), 1:3])$Ainv
   mod11 <- gremlinR(WWG11 ~ sex - 1,
