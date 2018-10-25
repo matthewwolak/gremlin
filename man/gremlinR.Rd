@@ -110,7 +110,7 @@ object is a fitted model.
 }}
 
 \examples{
-  require(nadiv)
+  library(nadiv)
   Ainv <- makeAinv(Mrode3[-c(1:2), 1:3])$Ainv
   mod11 <- gremlinR(WWG11 ~ sex - 1,
   	random = ~ calf,
