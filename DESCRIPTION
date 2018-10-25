@@ -14,8 +14,10 @@ NeedsCompilation: no
 Description: Fit linear mixed-effects models using restricted (or residual)
     maximum likelihood (REML) and with generalized inverse matrices to specify
     covariance structures for random effects. In particular, the package is suited
-    to fit quantitative genetic mixed models, often referred to as 'animal models' (Kruuk 2004 <DOI: 10.1098/rstb.2003.1437>).
+    to fit quantitative genetic mixed models, often referred to as 'animal models' 
+    (Kruuk. 2004 <DOI: 10.1098/rstb.2003.1437>).
     Implements the average information algorithm as the main tool to maximize the
-    restricted likelihood, but with other algorithms available (Meyer. 1997. Gen. Sel. Evol. 29:97; Meyer & Smith. 1998. Gen. Sel. Evol. 28:23.).
+    restricted likelihood, but with other algorithms available (Meyer. 1997.
+    Genet Sel Evol 29:97; Meyer & Smith. 1998. Genet Sel Evol 28:23.).
 License: GPL-3
 RoxygenNote: 6.0.1

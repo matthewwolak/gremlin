@@ -9,9 +9,11 @@
 Fit linear mixed-effects models using restricted (or residual) maximum
 likelihood (REML) and with generalized inverse matrices to specify covariance
 structures for random effects. In particular, the package is suited to fit
-quantitative genetic mixed models, often referred to as 'animal models'.
-Implements the average information algorithm as the main tool to maximize the
-restricted likelihood, but with other algorithms available.
+quantitative genetic mixed models, often referred to as 'animal models'
+(Kruuk 2004 <DOI: 10.1098/rstb.2003.1437>). Implements the average information
+algorithm as the main tool to maximize the restricted likelihood, but with
+other algorithms available (Meyer. 1997. Genet Sel Evol 29:97; Meyer &
+Smith. 1998. Genet Sel Evol 28:23.).
 }
 \details{
 The package also implements the average information algorithm to efficiently
@@ -31,10 +33,17 @@ Gstart = matrix(0.2), Rstart = matrix(0.4),
 maxit = 10, v = 2)
 }
 \references{
-Mrode. 2005.
-  Meyer & Smith. 1996.
-  Gilmour et al. 1995.
-  Thompson & Johnson. 1995.
+Mrode, RA. 2005. Linear Models for the Prediction of Animal Breeding Values,
+    2nd ed. CABI Publishing, Cambridge.
+  Meyer, K & Smith, SP. 1996. Restricted maximum likelihood estimation for
+    animal models using derivatives of the likelihood. Genetics Selection
+    Evolution 28:23-49.
+  Gilmour, AR, Thompson, R, & Cullis, BR. 1995. Average information REML: An
+    efficient algorithm for variance parameter estimation in linear mixed
+    models. Biometrics 51:1440-1450.
+  Johnson, DL, & Thompson, R. 1995. Restricted maximum likelihood estimation
+    of variance components for univariate animal models using sparse matrix
+    techniques and average information. Journal of Dairy Science 78:449-456.
 }
 \seealso{
 \code{\link[MCMCglmm:MCMCglmm-package]{MCMCglmm}}
