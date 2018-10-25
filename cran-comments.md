@@ -1,3 +1,14 @@
+# Resubmission
+This package was initially submitted to CRAN a few weeks ago. It was suggested that the following changes be made before resubmission:
+
+  - DESCRIPTION file
+    - Add a reference for the method in the 'Description:' field
+    - Edit the 'License:' field to state 'GPL-3' instead of noting the file containing the standard GPL-3 license.
+  - add more examples to help documentation and/or remove `\dontrun{}` from existing examples
+
+These changes have now been made. It was decided to not change the package version number, since the changes were extremely minor.
+
+
 # Test environments
   -  Ubuntu 18.04
     - R 3.4.4 (2018-03-15) x86_64-pc-linux-gnu (64-bit)
