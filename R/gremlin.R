@@ -32,7 +32,6 @@
 #'     techniques and average information. Journal of Dairy Science 78:449-456.
 #' @seealso \code{\link[MCMCglmm:MCMCglmm-package]{MCMCglmm}}
 #' @examples
-#' #TODO: simple examples of the most important functions
 #'   require(nadiv)
 #'   Ainv <- makeAinv(Mrode3[-c(1:2), 1:3])$Ainv
 #'   mod11 <- gremlinR(WWG11 ~ sex - 1,
