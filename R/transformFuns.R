@@ -36,7 +36,8 @@ stTrans <- function(x){
 #' @return A list of matrices of the same structure as \code{skeleton}.
 #' @author \email{matthewwolak@@gmail.com}
 #' @export
-#' @import Matrixvech2matlist <- function(vech, skeleton){
+#' @import Matrix
+vech2matlist <- function(vech, skeleton){
   newmatlist <- vector("list", length = length(skeleton))
   si <- 1
   for(s in 1:length(skeleton)){
