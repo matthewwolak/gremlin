@@ -7,6 +7,8 @@
 #' @param x A \code{list} of starting parameters.
 #' @return A sparse \sQuote{dsCMatrix}
 #' @author \email{matthewwolak@@gmail.com}
+#' @export
+#' @import Matrix
 stTrans <- function(x){
   if(is.numeric(x) && !is.matrix(x)) x <- as.matrix(x)
   if(!isSymmetric(x)) stop(cat("Element", x, "must be a symmetric matrix or a number\n")) 
@@ -29,7 +31,8 @@ stTrans <- function(x){
 #' @param skeleton An example structure to map \code{vech} onto.
 #' @return A list of matrices of the same structure as \code{skeleton}.
 #' @author \email{matthewwolak@@gmail.com}
-vech2matlist <- function(vech, skeleton){
+#' @export
+#' @import Matrixvech2matlist <- function(vech, skeleton){
   newmatlist <- vector("list", length = length(skeleton))
   si <- 1
   for(s in 1:length(skeleton)){
