@@ -11,11 +11,8 @@
 #' @import Matrix
 stTrans <- function(x){
   if(is.numeric(x) && !is.matrix(x)) x <- as.matrix(x)
-  if(any(dimnames(x)[[1L]] != dimnames(x)[[2L]])){
-    warning(cat("Changing element", x, "to have the same column names as row names\n"))
-    dimnames(x)[[2L]] <- dimnames(x)[[1L]]
-  }
-  if(!isSymmetric(x)) stop(cat("Element", x, "must be a symmetric matrix or a number\n")) 
+  xnonames <- unname(x)
+  if(!isSymmetric(xnonames)) stop(cat("Element", x, "must be a symmetric matrix or a number\n")) 
   x <- as(x, "symmetricMatrix")
   x@uplo <- "L"
   x <- as(x, "dsCMatrix")
