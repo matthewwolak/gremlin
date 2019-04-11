@@ -1,3 +1,6 @@
+# 0.1.0.1
+Quick fix for issue arising when `R`'s code changed with the new version of `R`
+
 # 0.1.0.0
 ## NEW
   - methods for `gremlin` objects
