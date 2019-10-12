@@ -327,9 +327,14 @@ summary.gremlin <- function(object, ...){
 		"Std. Error" = NA)
     dimnames(varcompSummary)[[1L]] <- dimnames(object$itMat[nit, 1:nvc, drop = FALSE])[[2L]]
     if(!is.null(object$AI)){
+#FIXME: Temporary hack to return entire summary even if AI is singular
+##TODO use `tryCatchWE()` in the future
+AIeigvals <- eigen(object$AI)$values
+if(all(AIeigvals > 1e-5)){
       invAI <- solve(object$AI)
       varcompSummary[, "Std. Error"] <- sqrt(diag(invAI))
       varcompSampCor <- cov2cor(invAI)
+} else varcompSampCor <- matrix(NA, nrow = nrow(AI), ncol = ncol(AI))
     } else{
         varcompSampCor <- matrix(NA, nrow = nvc, ncol = nvc)
           dimnames(varcompSampCor) <- list(dimnames(varcompSummary)[[1L]], dimnames(varcompSummary)[[1L]])
