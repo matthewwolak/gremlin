@@ -373,6 +373,7 @@ summary.gremlin <- function(object, ...){
 
  return(structure(list(logLik = logLik(object),
 		formulae = formulae,
+		runtime = runtime(object),
 		residQuants = residQuants,
 		varcompSummary = varcompSummary,
 		varcompSampCor = varcompSampCor,
@@ -401,6 +402,7 @@ print.summary.gremlin <- function(x,
 ## also print if parameters changed by >XX%
   cat("\nLinear mixed model fit by REML ['gremlin']")
   cat("\nREML log-likelihood:", round(x$logLik, digits), "\n")
+  cat("\nelapsed time for model:", round(x$runtime, digits), "\n")
 
   # Adapted from `lme4::.prt.resids`
     cat("\nScaled residuals:\n")
