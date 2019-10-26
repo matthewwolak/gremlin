@@ -11,8 +11,8 @@ gremlinR(formula, random = NULL, rcov = ~units, data = NULL,
   maxit = 20, algit = NULL, vit = 10, v = 1, ...)
 
 mkModMats(formula, random = NULL, rcov = ~units, data = NULL,
-  subset = NULL, ginverse = NULL, na.action = na.pass, offset = NULL,
-  contrasts = NULL, Xsparse = TRUE, ...)
+  subset = NULL, ginverse = NULL, na.action = na.pass,
+  offset = NULL, contrasts = NULL, Xsparse = TRUE, ...)
 }
 \arguments{
 \item{formula}{A \code{formula} for the response variable and fixed effects.}

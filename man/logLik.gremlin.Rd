@@ -3,7 +3,6 @@
 \name{logLik.gremlin}
 \alias{logLik.gremlin}
 \alias{AIC.gremlin}
-\alias{AIC.gremlin}
 \title{Methods to extract log-likelihood and information criterion of a gremlin
 model.}
 \usage{

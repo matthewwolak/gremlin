@@ -5,9 +5,6 @@
 \alias{tr.default}
 \alias{tr.dgCMatrix}
 \alias{tr.dsCMatrix}
-\alias{tr.default}
-\alias{tr.dgCMatrix}
-\alias{tr.dsCMatrix}
 \title{Matrix trace methods.}
 \usage{
 tr(X, ...)
