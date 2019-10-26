@@ -3,7 +3,10 @@
 \name{gremlinR}
 \alias{gremlinR}
 \alias{gremlin}
-\alias{gremlin}
+\alias{reml}
+\alias{em}
+\alias{ai}
+\alias{gradFun}
 \alias{mkModMats}
 \title{Mixed-effect modeling functions.}
 \usage{
@@ -11,13 +14,17 @@ gremlinR(formula, random = NULL, rcov = ~units, data = NULL,
   ginverse = NULL, Gstart = NULL, Rstart = NULL, Bp = NULL,
   maxit = 20, algit = NULL, vit = 10, v = 1, ...)
 
-gremlin(formula, random = NULL, rcov = ~units, data = NULL,
-  ginverse = NULL, Gstart = NULL, Rstart = NULL, Bp = NULL,
-  maxit = 20, algit = NULL, vit = 10, v = 1, ...)
+reml(thetav, skel)
+
+em(thetain)
+
+ai(thetavin)
+
+gradFun(thetav)
 
 mkModMats(formula, random = NULL, rcov = ~units, data = NULL,
-  subset = NULL, ginverse = NULL, na.action = na.pass, offset = NULL,
-  contrasts = NULL, Xsparse = TRUE, ...)
+  subset = NULL, ginverse = NULL, na.action = na.pass,
+  offset = NULL, contrasts = NULL, Xsparse = TRUE, ...)
 }
 \arguments{
 \item{formula}{A \code{formula} for the response variable and fixed effects.}
@@ -59,6 +66,10 @@ regarding the model fitting process. A value of zero gives no details and
 larger values increase the amount of information printed on the screen.}
 
 \item{\dots}{Additional arguments to be passed to control the model fitting.}
+
+\item{thetav, thetavin, skel}{variance component parameters or structure on
+which to evaluate a model likelihood or derivatives of the likelihood with
+respect to these parameters}
 
 \item{subset}{An expression for the subset of \code{data} to use.}
 
