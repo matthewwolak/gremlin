@@ -106,6 +106,34 @@ nobs.gremlin <- function(object, use.fallback = FALSE, ...){
 
 
 
+############          Time to run model    ################
+#' Time to execute the model
+#'
+#' Extract the length of time to fit the model.
+#' 
+#' @aliases runtime.gremlin
+#' @param object An object of \code{class} \sQuote{gremlin}.
+#' @param \dots Further arguments to be passed to the methods.
+#'
+#' @return A numeric of class \code{\sQuote{difftime}} with an attribute of units
+#' (e.g., seconds or minutes).
+#' @author \email{matthewwolak@@gmail.com}
+#' @examples
+#' mod11 <- gremlinR(WWG11 ~ sex - 1,
+#'	random = ~ calf,
+#'	data = Mrode11, algit = "EM")
+#' runtime(mod11)
+#' @export
+runtime.gremlin <- function(object, ...){
+  attr(object, "endTime") - attr(object, "startTime")
+}
+
+
+
+
+
+
+
 ############          REML Likelihood Ratio Tests using `anova()`    ##########
 #' anova() for gremlin objects
 #'
