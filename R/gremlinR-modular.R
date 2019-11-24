@@ -1,4 +1,91 @@
-
+#' Modular mixed-effect modeling functions.
+#'
+#' Create and fit linear mixed-effect model (Gaussian data) in modular steps
+#'
+#' @aliases gremlinRmod
+#' @param formula A \code{formula} for the response variable and fixed effects.
+#' @param random A \code{formula} for the random effects.
+#' @param rcov A \code{formula} for the residual covariance structure.
+#' @param data A \code{data.frame} in which to look for the terms in
+#'   \code{formula}, \code{random}, and \code{rcov}.
+#' @param subset An expression for the subset of \code{data} to use.
+#' @param ginverse A \code{list} of (preferably sparse) inverse matrices that
+#'   are proportional to the covariance structure of the random effects.
+#'   The name of each element in the list should match a column in \code{data}
+#'   that is associated with a random term. All levels of the random term should
+#'   appear as \code{rownames} for the matrices.
+#' @param Gstart A \code{list} of starting (co)variance values for the the
+#'   G-structure or random terms.
+#' @param Rstart A \code{list} of starting (co)variance values for the
+#'   R-structure or residual terms.
+#' @param Bp A prior specification for fixed effects.
+#' @param maxit An \code{integer} specifying the maximum number of likelihood
+#'   iterations.
+#' @param algit A \code{character} vector of length 1 or more or an expression
+#'   to be evaluated that specifies the algorithm to use for proposing
+#'   (co)variances in the next likelihood iteration.
+#' @param vit An \code{integer} value specifying the verbosity of screen output
+#'   on each iteration. A value of zero gives no iteration specific output and
+#'   larger values increase the amount of information printed on the screen.
+#' @param v An \code{integer} value specifying the verbosity of screen output
+#'   regarding the model fitting process. A value of zero gives no details and
+#'   larger values increase the amount of information printed on the screen.
+#' @param na.action What to do with NAs.
+#' @param offset Should an offset be specified.
+#' @param contrasts Specify the type of contrasts for the fixed effects.
+#' @param Xsparse Should sparse matrices be used for the fixed effects design
+#'   matrix.
+#' @param \dots Additional arguments to be passed to control the model fitting.
+#' @param thetav,thetavin,skel variance component parameters or structure on
+#' which to evaluate a model likelihood or derivatives of the likelihood with
+#' respect to these parameters
+#'
+#' @return A \code{list} of class \code{gremlin} or \code{gremlinModMats}:
+#'   \describe{
+#'     \item{call }{The model \code{call}.}
+#'     \item{modMats }{A \code{list} of the model matrices used to construct the
+#'       mixed model equations.}
+#'       \item{y }{The response vector.}
+#'       \item{ny }{The number of responses.}
+#'       \item{ncy }{The number of columns of the original response.}
+#'       \item{X }{ The fixed effects design matrix.}
+#'       \item{nb }{The number of columns in X.}
+#'       \item{Zr }{The residual design matrix.}
+#'       \item{Zg }{A list of the design matrices for each random term.}
+#'       \item{nG }{The number of parameters in the G structure.}
+#'       \item{listGeninv }{A list of generalized inverse matrices.}
+#'       \item{logDetG }{The log-determinants of the generalized inverse 
+#'       matrices - necessary to calculate the log-likelihood.}
+#'
+#'     \item{itMat }{A \code{matrix} of details about each iteration.}
+#'     \item{sln }{A two column \code{matrix} of solutions and their sampling
+#'       variances from the mixed model.}
+#'     \item{residuals }{A \code{vector} of residual deviations, response minus
+#'       the values expected based on the solutions, corresponding to the order
+#'       in \code{modMats$y}.} 
+#'     \item{theta }{A \code{matrix} of (co)variance components at the last
+#'       iteration.}
+#'     \item{AI }{A \code{matrix} of values containing the Average Information
+#'       matrix, or second partial derivatives of the likelihood with respect to
+#'       the (co)variance components. The inverse of this matrix gives the
+#'       sampling variances of the (co)variance components.}
+#'     \item{dLdtheta }{A single column \code{matrix} of first derivatives of
+#'       the (co)variance parameters with respect to the log-Likelihood.}
+#'   }
+#'
+#' @references
+#' Henderson
+#' Mrode. 2005.
+#' @author \email{matthewwolak@@gmail.com}
+#' @examples
+#'  TODO XXX XXX Make example of each modular component working with next
+#'   mod11 <- gremlinRmod(WWG11 ~ sex - 1,
+#'   	random = ~ calf,
+#'   	data = Mrode11,
+#'   	Gstart = matrix(0.2), Rstart = matrix(0.4),
+#'   	maxit = 10, v = 2)
+#'
+#' @export
 gremlinRmod <- function(formula, random = NULL, rcov = ~ units,
 		data = NULL, ginverse = NULL,
 		Gstart = NULL, Rstart = NULL, Bp = NULL,
@@ -170,7 +257,16 @@ gremlinRmod <- function(formula, random = NULL, rcov = ~ units,
     #TODO test if super=TRUE better
     ## supernodal might be better as coefficient matrix (C) becomes more dense
     #### e.g., with a genomic relatedness matrix (see Masuda et al. 2014 & 2015)
-    sLm <- Cholesky(M, perm = TRUE, LDL = FALSE, super = FALSE)
+
+
+
+
+
+
+
+
+#FIXME XXX Switch permutations back on == TRUE
+    sLm <- Cholesky(M, perm = FALSE, LDL = FALSE, super = FALSE)
     # original order obtained by: t(P) %*% L %*% P or `crossprod(P, L) %*% P`
     sLc <- sLm
       rm1 <- which(sLm@i != (sLm@Dim[1]-1))
@@ -294,9 +390,15 @@ if(nrow(theta[[thetaR]]) != 1){
         Cinv_ii <- diag(Cinv)
         aiout <- ai(thetav, skel, thetaG, thetaR, modMats, W, Cinv, nminfrfx,
           sln, r, ezero)
+browser()
+aiNew(thetav, skel, thetaG, thetaR, remlOut$sigma2e, modMats, W, sLc, sln)
         thetaout <- vech2matlist(aiout$thetav, skel)
         AI <- aiout$AI
         dLdtheta <- aiout$dLdtheta
+        AIinv <- solve(AI)
+#TODO need a check that not proposing negative/0 variance or |correlation|>1
+## Require restraining naughty components
+        thetaout <- matrix(thetav, ncol = 1) + AIinv %*% dLdtheta
 #TODO need to evaluate cc criteria now? 
 ## How will it work so last iteration gives AI matrix of last set of parameters and not previous
       }

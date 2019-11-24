@@ -139,9 +139,6 @@ vech2matlist <- function(vech, skeleton){
 #' @param Xsparse Should sparse matrices be used for the fixed effects design
 #'   matrix.
 #' @param \dots Additional arguments to be passed to control the model fitting.
-#' @param thetav,thetavin,skel variance component parameters or structure on
-#' which to evaluate a model likelihood or derivatives of the likelihood with
-#' respect to these parameters
 #'
 #' @return A \code{list} of class \code{gremlin} or \code{gremlinModMats}:
 #'   \describe{
