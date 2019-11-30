@@ -507,12 +507,9 @@ aiNew2 <- function(thetavin, skel, thetaG, thetaR, sigma2e, modMats, W, sLc, sln
     tBPB <- tBRinvB - crossprod(solve(sLc, BRHS, system = "A"), BRHS)
     AI <- 0.5 * tBPB 
 
- return(structure(list(AI = AI),
+ return(structure(list(AI = as(AI, "matrix")),
 	class = "gremlin"))
-#   return(structure(list(thetav = thetavout, AI = AI, dLdtheta = dLdtheta),
-#	class = "gremlin"))
-
-  }
+}
 ################################################################################    
 
 
