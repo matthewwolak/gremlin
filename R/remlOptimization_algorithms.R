@@ -195,8 +195,8 @@ reml2 <- function(thetav, skel, thetaG, thetaR, sLc,
       # calculate residuals
       r <- modMats$y - W %*% sln
 
-     return(structure(list(loglik = loglik,
-		sigma2e = sigma2e, tyPy = tyPy, logDetC = logDetC,
+     return(structure(list(loglik = loglik@x,
+		sigma2e = sigma2e@x, tyPy = tyPy@x, logDetC = logDetC@x,
 		sln = sln, r = r, sLc = sLc),
 	class = "gremlin"))
 }  #<-- end `reml()` 

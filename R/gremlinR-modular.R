@@ -738,9 +738,8 @@ gremlinRmod2 <- function(formula, random = NULL, rcov = ~ units,
       sln <- remlOut$sln
       r <- remlOut$r
       sLc <- remlOut$sLc
-#FIXME change from `@x` when allow covariance matrices
-    itMat[i, -ncol(itMat)] <- c(thetav, remlOut$sigma2e@x, remlOut$tyPy@x,
-      remlOut$logDetC, loglik@x) 
+    itMat[i, -ncol(itMat)] <- c(thetav, remlOut$sigma2e, remlOut$tyPy,
+      remlOut$logDetC, loglik) 
     # 5c check convergence criteria
     ## Knight 2008 (ch. 6) says Searle et al. 1992 and Longford 1993 discuss diff types of converg. crit.
     ## See Appendix 2 of WOMBAT help manual for 4 convergence criteria used
