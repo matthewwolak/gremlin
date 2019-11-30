@@ -803,6 +803,7 @@ if(nrow(theta[[thetaR]]) != 1){
 #TODO need a check that not proposing negative/0 variance or |correlation|>1
 ## Require restraining naughty components
             ## Find next set of parameters using a quasi-Newton method/algorithm
+            ### Meyer 1989 pp. 326-327 describes quasi-Newton methods 
 #TODO see Meyer 1997 eqn 58 for Marquardt 1963: theta_t+1=theta_t - (H_t + k_t * I)^{-1} g_t 
             ### Mrode 2005 eqn 11.4
             ### Johnson and Thompson 1995 eqn 12
