@@ -196,7 +196,7 @@ reml2 <- function(thetav, skel, thetaG, thetaR, sLc,
       r <- modMats$y - W %*% sln
 
      return(structure(list(loglik = loglik@x,
-		sigma2e = sigma2e@x, tyPy = tyPy@x, logDetC = logDetC@x,
+		sigma2e = sigma2e@x, tyPy = tyPy@x, logDetC = logDetC,
 		sln = sln, r = r, sLc = sLc),
 	class = "gremlin"))
 }  #<-- end `reml()` 
