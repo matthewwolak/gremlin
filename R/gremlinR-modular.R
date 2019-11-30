@@ -738,8 +738,9 @@ gremlinRmod2 <- function(formula, random = NULL, rcov = ~ units,
       sln <- remlOut$sln
       r <- remlOut$r
       sLc <- remlOut$sLc
-    itMat[i, -ncol(itMat)] <- c(thetav, remlOut$sigma2e, remlOut$tyPy,
-      remlOut$logDetC, loglik) 
+#FIXME change from `@x` when allow covariance matrices
+    itMat[i, -ncol(itMat)] <- c(thetav, remlOut$sigma2e@x, remlOut$tyPy@x,
+      remlOut$logDetC, loglik@x) 
     # 5c check convergence criteria
     ## Knight 2008 (ch. 6) says Searle et al. 1992 and Longford 1993 discuss diff types of converg. crit.
     ## See Appendix 2 of WOMBAT help manual for 4 convergence criteria used
@@ -781,7 +782,7 @@ if(nrow(theta[[thetaR]]) != 1){
         Cinv <- solve(a = sLc, b = Ic, system = "A")
         Cinv_ii <- diag(Cinv)
         aiout <- aiNew2(thetav, skel, thetaG, thetaR, remlOut$sigma2e,
-          modMats, W, sLc, sln)
+        		modMats, W, sLc, sln, r)
         AI <- aiout$AI
         dLdtheta <- gradFun(thetav, thetaG, modMats, Cinv, nminfrfx, sln, r)
 
