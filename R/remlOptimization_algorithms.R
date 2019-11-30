@@ -479,9 +479,12 @@ return(list(AI = AI))
 #### first and second partial derivatives of log|C| and tyPy: eqn 15-18
 #####XXX All above is before AI algorithm
 #XXX `aiNew2()` used for when Rinv is NOT factored out of MME
-aiNew2 <- function(thetavin, skel, thetaG, thetaR, sigma2e, modMats, W, sLc, sln){
+aiNew2 <- function(thetavin, skel, thetaG, thetaR, sigma2e,
+		   modMats, W, sLc, sln, r){
     p <- length(thetavin)
-#    thetain <- vech2matlist(thetavin, skel)
+    thetain <- vech2matlist(thetavin, skel)
+    Rinv <- as(solve(thetain[[thetaR]]), "symmetricMatrix")
+    Ginv <- lapply(thetaG, FUN = function(x){as(solve(thetain[[x]]), "symmetricMatrix")}) # Meyer 1991, p.77 (<-- also see MMA on p70/eqn4)
     si <- modMats$nb+1
     B <- Matrix(0, nrow = modMats$ny, ncol = p, sparse = TRUE)
     for(g in thetaG){ #FIXME assumes thetaG is same length as thetavin
