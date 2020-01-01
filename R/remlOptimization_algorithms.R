@@ -164,16 +164,27 @@ reml2 <- function(thetav, skel, thetaG, thetaR, sLc,
 
       # tyPy + log(|C|)
       # nminffx is tyPy/sigma2e, simplified because sigma2e = tyPy / nminffx
-      loglik <- nminffx + logDetC
+#      loglik <- nminffx + logDetC
 
       # 'log(|R|)'
       #TODO: assumes X of full rank
-      loglik <- loglik + nminfrfx * log(sigma2e)
+#      loglik <- loglik + nminfrfx * log(sigma2e)
 
       # 'log(|G|)'
       #FIXME: Only works for independent random effects right now!
-      loglik <- -0.5 * (loglik + if(modMats$nG == 0) 0 else sum(sapply(seq(modMats$nG), FUN = function(x){rfxlvls[x] * log(as.vector(theta[[x]]))})) + rfxIncContrib2loglik)
+#      loglik <- -0.5 * (loglik + if(modMats$nG == 0) 0 else sum(sapply(seq(modMats$nG), FUN = function(x){rfxlvls[x] * log(as.vector(theta[[x]]))})) + rfxIncContrib2loglik)
 
+#      loglik <- -0.5 * (if(modMats$nG == 0) 0 else sum(sapply(seq(modMats$nG), FUN = function(x){rfxlvls[x] * log(as.vector(theta[[x]]))})) + rfxIncContrib2loglik +   #<-- log|G|
+#		nminfrfx * log(sigma2e) +  #<-- log|R|
+#		nminffx * log(sigma2e) +  #<-- (n - No. Fxd) * log(sigma2e)
+#		nminffx +  #<-- tyPy / sigma2e
+#		logDetC)  #<-- log|C|
+browser()
+      loglik <- -0.5 * (if(modMats$nG == 0) 0 else sum(sapply(seq(modMats$nG), FUN = function(x){rfxlvls[x] * log(as.vector(theta[[x]]))})) + rfxIncContrib2loglik +   #<-- log|G|
+		nminfrfx * log(sigma2e) +  #<-- log|R|
+#		nminffx * log(sigma2e) +  #<-- (n - No. Fxd) * log(sigma2e)
+		nminffx +  #<-- tyPy / sigma2e
+		logDetC)  #<-- log|C|
 
 
 

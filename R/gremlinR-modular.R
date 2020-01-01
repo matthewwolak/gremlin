@@ -390,7 +390,6 @@ if(nrow(theta[[thetaR]]) != 1){
         Cinv_ii <- diag(Cinv)
         aiout <- ai(thetav, skel, thetaG, thetaR, modMats, W, Cinv, nminfrfx,
           sln, r, ezero)
-browser()
 aiNew(thetav, skel, thetaG, thetaR, remlOut$sigma2e, modMats, W, sLc, sln)
         thetaout <- vech2matlist(aiout$thetav, skel)
         AI <- aiout$AI
@@ -672,7 +671,19 @@ gremlinRmod2 <- function(formula, random = NULL, rcov = ~ units,
     #TODO test if super=TRUE better
     ## supernodal might be better as coefficient matrix (C) becomes more dense
     #### e.g., with a genomic relatedness matrix (see Masuda et al. 2014 & 2015)
-    sLc <- Cholesky(C, perm = TRUE, LDL = FALSE, super = FALSE)
+
+
+
+
+
+
+
+
+
+
+
+#FIXME!!! Turn permutations 	BACK ON!!!!! XXX
+    sLc <- Cholesky(C, perm = FALSE, LDL = FALSE, super = FALSE)
     # original order obtained by: t(P) %*% L %*% P or `crossprod(P, L) %*% P`
     Ic <- Diagonal(x = 1, n = nrow(C))
 #TODO put these with `mkModMats()` - need to figure out multivariate version/format
@@ -780,6 +791,7 @@ if(nrow(theta[[thetaR]]) != 1){
 }
         Cinv <- solve(a = sLc, b = Ic, system = "A")
         Cinv_ii <- diag(Cinv)
+browser()
         aiout <- aiNew2(thetav, skel, thetaG, thetaR, remlOut$sigma2e,
         		modMats, W, sLc, sln, r)
         AI <- aiout$AI
