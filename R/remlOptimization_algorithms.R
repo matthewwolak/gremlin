@@ -154,37 +154,29 @@ reml2 <- function(thetav, skel, thetaG, thetaR, sLc,
 
      # 5 record log-like, check convergence, & determine next varcomps to evaluate  
       ##5a determine log(|C|) and y'Py
-      # Boldman and Van Vleck 1991 eqn. 6 (tyPy) and 7 (log|C|)
+      # Boldman and Van Vleck 1991 eqn. 6 (tyPy) and 7 (log|C|)    
+      # Meyer 1997 eqn. 13 (tyPy)
       tyPy <- tyRinvy - crossprod(solve(sLc, RHS, system = "A"), RHS)
       logDetC <- 2 * sum(log(sLc@x[sLc@p+1][1:sLc@Dim[[1L]]]))
       # alternatively see `determinant` method for CHMfactor
 
-      # Residual variance
-      sigma2e <- tyPy / nminffx
-
-      # tyPy + log(|C|)
-      # nminffx is tyPy/sigma2e, simplified because sigma2e = tyPy / nminffx
-#      loglik <- nminffx + logDetC
-
-      # 'log(|R|)'
+      # Construct the log-likelihood (Meyer 1997, eqn. 8)
+      ## (first put together as `-2log-likelihood`)
+      ## 'log(|R|)' Meyer 1997 eqn. 10
       #TODO: assumes X of full rank
-#      loglik <- loglik + nminfrfx * log(sigma2e)
+      loglik <- modMats$ny * log(theta[[thetaR]])
 
-      # 'log(|G|)'
+      ## 'log(|G|)' Meyer 1997 eqn. 9
       #FIXME: Only works for independent random effects right now!
-#      loglik <- -0.5 * (loglik + if(modMats$nG == 0) 0 else sum(sapply(seq(modMats$nG), FUN = function(x){rfxlvls[x] * log(as.vector(theta[[x]]))})) + rfxIncContrib2loglik)
+      logDetGfun <- function(x){rfxlvls[x] * log(as.vector(theta[[x]]))}
+      loglik <- loglik + if(modMats$nG == 0){ 0
+        } else{
+            sum(sapply(seq(modMats$nG), FUN = logDetGfun)) + rfxIncContrib2loglik
+          }
 
-#      loglik <- -0.5 * (if(modMats$nG == 0) 0 else sum(sapply(seq(modMats$nG), FUN = function(x){rfxlvls[x] * log(as.vector(theta[[x]]))})) + rfxIncContrib2loglik +   #<-- log|G|
-#		nminfrfx * log(sigma2e) +  #<-- log|R|
-#		nminffx * log(sigma2e) +  #<-- (n - No. Fxd) * log(sigma2e)
-#		nminffx +  #<-- tyPy / sigma2e
-#		logDetC)  #<-- log|C|
-browser()
-      loglik <- -0.5 * (if(modMats$nG == 0) 0 else sum(sapply(seq(modMats$nG), FUN = function(x){rfxlvls[x] * log(as.vector(theta[[x]]))})) + rfxIncContrib2loglik +   #<-- log|G|
-		nminfrfx * log(sigma2e) +  #<-- log|R|
-#		nminffx * log(sigma2e) +  #<-- (n - No. Fxd) * log(sigma2e)
-		nminffx +  #<-- tyPy / sigma2e
-		logDetC)  #<-- log|C|
+      ## log(|C|) + tyPy
+      ### and mulitply by -0.5 to calculate `loglik` from `-2loglik`
+      loglik <- -0.5 * (loglik + logDetC + tyPy)
 
 
 
