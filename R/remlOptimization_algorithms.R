@@ -199,7 +199,7 @@ reml2 <- function(thetav, skel, thetaG, thetaR, sLc,
       r <- modMats$y - W %*% sln
 
      return(structure(list(loglik = loglik@x,
-		sigma2e = sigma2e@x, tyPy = tyPy@x, logDetC = logDetC,
+		sigma2e = 1, tyPy = tyPy@x, logDetC = logDetC,
 		sln = sln, r = r, sLc = sLc),
 	class = "gremlin"))
 }  #<-- end `reml()` 
@@ -482,7 +482,7 @@ return(list(AI = AI))
 #### first and second partial derivatives of log|C| and tyPy: eqn 15-18
 #####XXX All above is before AI algorithm
 #XXX `aiNew2()` used for when Rinv is NOT factored out of MME
-aiNew2 <- function(thetavin, skel, thetaG, thetaR, sigma2e,
+aiNew2 <- function(thetavin, skel, thetaG, thetaR,
 		   modMats, W, sLc, sln, r){
     p <- length(thetavin)
     thetain <- vech2matlist(thetavin, skel)
