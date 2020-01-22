@@ -397,7 +397,7 @@ aiNew(thetav, skel, thetaG, thetaR, remlOut$sigma2e, modMats, W, sLc, sln)
         AIinv <- solve(AI)
 #TODO need a check that not proposing negative/0 variance or |correlation|>1
 ## Require restraining naughty components
-        thetaout <- matrix(thetav, ncol = 1) + AIinv %*% dLdtheta
+
 #TODO need to evaluate cc criteria now? 
 ## How will it work so last iteration gives AI matrix of last set of parameters and not previous
       }
@@ -793,14 +793,32 @@ if(nrow(theta[[thetaR]]) != 1){
         aiout <- aiNew2(thetav, skel, thetaG, thetaR,
         		modMats, W, sLc, sln, r)
         AI <- aiout$AI
+	AIinv <- solve(AI)
         dLdtheta <- gradFun(thetav, thetaG, modMats, Cinv, nminfrfx, sln, r)
 
+        ## Find next set of parameters using a quasi-Newton method/algorithm
+        ### Meyer 1989 pp. 326-327 describes quasi-Newton methods 
+#TODO see Meyer 1997 eqn 58 for Marquardt 1963: theta_t+1=theta_t - (H_t + k_t * I)^{-1} g_t 
+        ### Mrode 2005 eqn 11.4
+        ### Johnson and Thompson 1995 eqn 12
+        ####(though gremlin uses `+` instead of J & T '95 `-` because
+        ##### gremlin multiplies gradient by -0.5 in `gradFun()`)
+
+        ### Check/modify AI matrix to 'ensure' positive definiteness
+        ### `fI` is factor to adjust AI matrix
+        #### (e.g., Meyer 1997 eqn 58 and WOMBAT manual A.5 strategy 3b)
+        AIeigvals <- eigen(AI)$values
+          d <- (3*10^-6) * AIeigvals[1]
+          f <- max(0, d - AIeigvals[nrow(AI)])
+        fI <- f * diag(x = 1, nrow = nrow(AI))
+	##### modified 'Hessian'
+        H <- fI + AI
         # Check if AI can be inverted
-        rcondAI <- rcond(AI)
+        rcondH <- rcond(H)
         ## if AI cannot be inverted do EM
-        if(rcondAI < ezero){
+        if(rcondH < ezero){
           if(v > 1){
-            cat("Reciprocal condition number of AI matrix is", signif(rcondAI , 2), "\n\tAI matrix may be singular - switching to an iteration of the EM algorithm\n")
+            cat("Reciprocal condition number of AI matrix is", signif(rcondH , 2), "\n\tAI matrix may be singular - switching to an iteration of the EM algorithm\n")
           }  #<-- end `if v>1`
           if(v > 1 && vitout == 0) cat("\tEM to find next theta\n")
             emOut <- em(theta, thetaG, thetaR,
@@ -808,26 +826,18 @@ if(nrow(theta[[thetaR]]) != 1){
             thetaout <- emOut$theta
             Cinv_ii <- emOut$Cinv_ii
         } else{  #<-- end if AI cannot be inverted
-            AIinv <- solve(AI)
+            Hinv <- solve(H)
 #TODO need a check that not proposing negative/0 variance or |correlation|>1
 ## Require restraining naughty components
-            ## Find next set of parameters using a quasi-Newton method/algorithm
-            ### Meyer 1989 pp. 326-327 describes quasi-Newton methods 
-#TODO see Meyer 1997 eqn 58 for Marquardt 1963: theta_t+1=theta_t - (H_t + k_t * I)^{-1} g_t 
-            ### Mrode 2005 eqn 11.4
-            ### Johnson and Thompson 1995 eqn 12
-	    ####(though gremlin uses `+` instead of J & T '95 `-` because
-            ##### gremlin multiplies gradient by -0.5 in `gradFun()`)
-            thetavout <- matrix(thetav, ncol = 1) + AIinv %*% dLdtheta
+            thetavout <- matrix(thetav, ncol = 1) + Hinv %*% dLdtheta
             zeroV <- which(thetavout < ezero) #FIXME check variances & cov/corr separately
             if(length(zeroV) > 0L){
               if(v > 1) cat("Variance component(s)", zeroV, "fixed to zero\n")
               thetavout[zeroV] <- ezero #FIXME TODO!!!??
             }
           }  #<-- end else AI can be inverted
-#TODO need a check that not proposing negative/0 variance or |correlation|>1
-## Require restraining naughty components
-        thetaout <- matrix(thetav, ncol = 1) + AIinv %*% dLdtheta
+        thetaout <- vech2matlist(thetavout, skel)
+
       }  #<-- end if algorithm is "AI"
 
       if(algit[i] == "bobyqa"){
@@ -885,7 +895,8 @@ stop("Not allowing `minqa::bobyqa()` right now")
           sgd[rc, 3:(rc+2)] <- AI[rc, 1:rc]
           sgd[rc, (4+rc):(4+p)] <- AIinv[rc, rc:p]   
         }
-        cat("\tAI alpha", NA, "\n") #TODO add alpha/step-halving value
+#        cat("\tAI alpha", NA, "\n") #TODO add alpha/step-halving value
+        cat("\tAI modification", f, "\n")
         print(as.table(sgd), digits = 3, na.print = " | ", zero.print = ".")
         cat("\n")
       }  
@@ -902,8 +913,6 @@ stop("Not allowing `minqa::bobyqa()` right now")
   itMat <- itMat[1:i, , drop = FALSE]
     rownames(itMat) <- paste(seq(i), algit[1:i], sep = "-")
   dimnames(AI) <- list(rownames(dLdtheta), rownames(dLdtheta))
-#FIXME delete step: might be useful to know dimensions  if(all(is.na(AI))) AI <- NULL
-#FIXME delete: useful to know dimensions, e.g., `summary.gremlin()`  if(all(is.na(dLdtheta))) dLdtheta <- NULL
 
 
 #TODO calculate AI/AIinv for last set of parameters (sampling covariances for final varcomps
