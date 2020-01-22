@@ -790,7 +790,6 @@ if(nrow(theta[[thetaR]]) != 1){
 }
         Cinv <- solve(a = sLc, b = Ic, system = "A")
         Cinv_ii <- diag(Cinv)
-browser()
         aiout <- aiNew2(thetav, skel, thetaG, thetaR,
         		modMats, W, sLc, sln, r)
         AI <- aiout$AI
@@ -817,7 +816,8 @@ browser()
 #TODO see Meyer 1997 eqn 58 for Marquardt 1963: theta_t+1=theta_t - (H_t + k_t * I)^{-1} g_t 
             ### Mrode 2005 eqn 11.4
             ### Johnson and Thompson 1995 eqn 12
-	    ####(though `+` instead of `-` because multiply gradient by -0.5 in my `gradFun()`)
+	    ####(though gremlin uses `+` instead of J & T '95 `-` because
+            ##### gremlin multiplies gradient by -0.5 in `gradFun()`)
             thetavout <- matrix(thetav, ncol = 1) + AIinv %*% dLdtheta
             zeroV <- which(thetavout < ezero) #FIXME check variances & cov/corr separately
             if(length(zeroV) > 0L){
