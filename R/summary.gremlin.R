@@ -107,11 +107,11 @@ nobs.gremlin <- function(object, use.fallback = FALSE, ...){
 
 
 ############          Time to run model    ################
-#' Time to execute the model
+#' Time to execute the gremlin model
 #'
 #' Extract the length of time to fit the model.
 #' 
-#' @aliases runtime.gremlin
+#' @aliases runtime
 #' @param object An object of \code{class} \sQuote{gremlin}.
 #' @param \dots Further arguments to be passed to the methods.
 #'
@@ -122,9 +122,8 @@ nobs.gremlin <- function(object, use.fallback = FALSE, ...){
 #' mod11 <- gremlinR(WWG11 ~ sex - 1,
 #'	random = ~ calf,
 #'	data = Mrode11, algit = "EM")
-#' runtime(mod11)
-#' @export
-runtime.gremlin <- function(object, ...){
+#' gremlin:::runtime(mod11)
+runtime <- function(object, ...){
   attr(object, "endTime") - attr(object, "startTime")
 }
 
@@ -373,7 +372,7 @@ summary.gremlin <- function(object, ...){
 
  return(structure(list(logLik = logLik(object),
 		formulae = formulae,
-		runtime = runtime(object),
+		runtime = gremlin:::runtime(object),
 		residQuants = residQuants,
 		varcompSummary = varcompSummary,
 		varcompSampCor = varcompSampCor,

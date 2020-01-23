@@ -5,9 +5,11 @@
 \alias{gremlinRmod}
 \alias{gremlinRmod2}
 \alias{reml}
+\alias{reml2}
 \alias{em}
 \alias{ai}
 \alias{aiNew}
+\alias{aiNew2}
 \alias{gradFun}
 \title{Modular mixed-effect modeling functions.}
 \usage{
@@ -22,6 +24,9 @@ gremlinRmod2(formula, random = NULL, rcov = ~units, data = NULL,
 reml(thetav, skel, thetaG, thetaR, modMats, W, tWW, Bpinv, RHS, D, nminffx,
   nminfrfx, rfxlvls, rfxIncContrib2loglik, rm1, sLc)
 
+reml2(thetav, skel, thetaG, thetaR, sLc, modMats, W, Bpinv, nminffx,
+  nminfrfx, rfxlvls, rfxIncContrib2loglik)
+
 em(thetain, thetaG, thetaR, modMats, nminffx, sLc, ndgeninv, sln, r)
 
 ai(thetavin, skel, thetaG, thetaR, modMats, W, Cinv, nminfrfx, sln, r,
@@ -29,7 +34,9 @@ ai(thetavin, skel, thetaG, thetaR, modMats, W, Cinv, nminfrfx, sln, r,
 
 aiNew(thetavin, skel, thetaG, thetaR, sigma2e, modMats, W, sLc, sln)
 
-gradFun(thetav, thetaG, thetaR, modMats, Cinv, nminfrfx, sln, r)
+aiNew2(thetavin, skel, thetaG, thetaR, modMats, W, sLc, sln, r)
+
+gradFun(thetav, thetaG, modMats, Cinv, nminfrfx, sln, r)
 }
 \arguments{
 \item{formula}{A \code{formula} for the response variable and fixed effects.}
