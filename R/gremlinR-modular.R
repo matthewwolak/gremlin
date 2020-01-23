@@ -924,7 +924,7 @@ stop("Not allowing `minqa::bobyqa()` right now")
  return(structure(list(call = as.call(mc),
 		modMats = modMats,
 		itMat = itMat,
-		sln = cbind(Est = sln, Var = Cinv_ii),
+		sln = as(cbind(Est = sln, Var = Cinv_ii), "matrix"),
 		residuals = as(r, "matrix"),
 		theta = matrix(thetav, nrow = p, ncol = 1,
 		  dimnames = list(names(thetav), NULL)),
