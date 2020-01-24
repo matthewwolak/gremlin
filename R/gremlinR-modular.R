@@ -279,8 +279,8 @@ gremlinRmod <- function(formula, random = NULL, rcov = ~ units,
 
 
 
-  itMat <- matrix(NA, nrow = maxit, ncol = p+5) 
-    colnames(itMat) <- c(names(thetav), "sigma2e", "tyPy", "logDetC", "loglik", "itTime")
+  itMat <- matrix(NA, nrow = maxit, ncol = 2*p + 5) 
+    colnames(itMat) <- c(rep(names(thetav), 2), "sigma2e", "tyPy", "logDetC", "loglik", "itTime")
     #############################################################
     # REML doesn't change with any of above
     #############################################################
@@ -324,11 +324,13 @@ gremlinRmod <- function(formula, random = NULL, rcov = ~ units,
     remlOut <- reml(thetav, skel, thetaG, thetaR,
 	modMats, W, tWW, Bpinv, RHS, D,
 	nminffx, nminfrfx, rfxlvls, rfxIncContrib2loglik, rm1, sLc)
+      nuv <- remlOut$nuv
       loglik <- remlOut$loglik
+      sigma2e[] <- remlOut$sigma2e
       sln <- remlOut$sln
       r <- remlOut$r
       sLc <- remlOut$sLc
-    itMat[i, -ncol(itMat)] <- c(thetav, remlOut$sigma2e, remlOut$tyPy,
+    itMat[i, -ncol(itMat)] <- c(nuv, thetav, sigma2e, remlOut$tyPy,
       remlOut$logDetC, loglik) 
     # 5c check convergence criteria
     ## Knight 2008 (ch. 6) says Searle et al. 1992 and Longford 1993 discuss diff types of converg. crit.
@@ -370,10 +372,13 @@ if(nrow(theta[[thetaR]]) != 1){
 }
         Cinv <- solve(a = sLc, b = Ic, system = "A")
         Cinv_ii <- diag(Cinv)
+##TODO calculation ?should be done? with nu then later back-transformed to theta
         aiout <- aiNew(thetav, skel, thetaG, thetaR, sigma2e,
         		modMats, W, sLc, sln, r)
         AI <- aiout$AI
 	AIinv <- solve(AI)
+##TODO calculation ?should be done? with nu then later back-transformed to theta
+## XXX ALTERNATIVELY XXX transform AI_nu to AI_theta then do dLdtheta 
         dLdtheta <- gradFun(thetav, thetaG, modMats, Cinv, nminfrfx, sln, r)
 
         ## Find next set of parameters using a quasi-Newton method/algorithm
@@ -409,6 +414,8 @@ if(nrow(theta[[thetaR]]) != 1){
             Hinv <- solve(H)
 #TODO need a check that not proposing negative/0 variance or |correlation|>1
 ## Require restraining naughty components
+
+##TODO output/calculation should be done for nu then also back-transformed to theta
             thetavout <- matrix(thetav, ncol = 1) + Hinv %*% dLdtheta
             zeroV <- which(thetavout < ezero) #FIXME check variances & cov/corr separately
             if(length(zeroV) > 0L){
@@ -460,8 +467,6 @@ stop("Not allowing `minqa::bobyqa()` right now")
       cat("\tlL:", format(round(loglik, 6), nsmall = 6), "\ttook ",
 	round(itTime, 2), units(itTime), "\n")
       if(v > 1){
-#        cat("\t", colnames(itMat)[-match(c("loglik", "itTime"), colnames(itMat))], "\n", sep = "  ")
-#        cat("\t", round(itMat[i, -match(c("loglik", "itTime"), colnames(itMat))], 4))
         cat("\n")
         print(as.table(itMat[i, -match(c("loglik", "itTime"), colnames(itMat))]), digits = 4, zero.print = ".")
         cat("\tConvergence crit:", cc, "\n")
