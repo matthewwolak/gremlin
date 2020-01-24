@@ -370,7 +370,7 @@ if(nrow(theta[[thetaR]]) != 1){
 }
         Cinv <- solve(a = sLc, b = Ic, system = "A")
         Cinv_ii <- diag(Cinv)
-        aiout <- aiNew(thetav, skel, thetaG, thetaR, sigma2e
+        aiout <- aiNew(thetav, skel, thetaG, thetaR, sigma2e,
         		modMats, W, sLc, sln, r)
         AI <- aiout$AI
 	AIinv <- solve(AI)
