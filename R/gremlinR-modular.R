@@ -272,6 +272,7 @@ gremlinRmod <- function(formula, random = NULL, rcov = ~ units,
     nminfrfx <- nminffx - nr
 
     AI <- matrix(NA, nrow = p, ncol = p)
+    f <- NA
     dLdtheta <- matrix(NA, nrow = p, ncol = 1, dimnames = list(names(thetav), NULL))
     tyPy <- numeric(1)
     logDetC <- numeric(1)
@@ -704,6 +705,7 @@ gremlinRmod2 <- function(formula, random = NULL, rcov = ~ units,
     nminfrfx <- nminffx - nr
 
     AI <- matrix(NA, nrow = p, ncol = p)
+    f <- NA
     dLdtheta <- matrix(NA, nrow = p, ncol = 1, dimnames = list(names(thetav), NULL))
     tyPy <- numeric(1)
     logDetC <- numeric(1)
