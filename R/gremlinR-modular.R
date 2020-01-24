@@ -223,24 +223,6 @@ gremlinRmod <- function(formula, random = NULL, rcov = ~ units,
 	sapply(1:modMats$nG, FUN = function(u){kronecker(modMats$listGeninv[[u]], solve(Ginv[[u]]))}))), "symmetricMatrix")
     } else C <- as(tWW + Bpinv, "symmetricMatrix")
 
-
-#### DIVERSION #####################
-
-## How to include Rinv into C: above or below does it via Hadfield's code/algorithm
-#Rinv <- solve(theta[[thetaR]])
-## Kronecker with Diagonal/I
-#KRinv <- kronecker(Rinv, Diagonal(x = 1, n = modMats$Zr@Dim[[2L]])) # Same as I %x% Rinv, but be careful of order!!
-#tWKRinvW <- crossprod(W, KRinv) %*% W
-#Gs <- lapply(thetaG, FUN = function(x){as(theta[[x]], "symmetricMatrix")}) 
-#C2 <- as(tWKRinvW + bdiag(c(Bpinv,
-#	sapply(1:modMats$nG, FUN = function(u){kronecker(modMats$listGeninv[[u]], solve(Gs[[u]]))}))), "symmetricMatrix")
-#XXX Gives different answer (C2 != C) -> Rinv is in first ncol(X) rows and columns
-## different format of MME -> with respect to where Rinv factored into/out of
-
-
-###### END DIVERSION ###############
-
-
     RHS <- Matrix(crossprod(W, modMats$y), sparse = TRUE)  # <-- Same every iteration
     M <- as(cbind(rbind(C, t(RHS)),
 	    rbind(RHS, D)), "symmetricMatrix")
@@ -388,19 +370,55 @@ if(nrow(theta[[thetaR]]) != 1){
 }
         Cinv <- solve(a = sLc, b = Ic, system = "A")
         Cinv_ii <- diag(Cinv)
-        aiout <- ai(thetav, skel, thetaG, thetaR, modMats, W, Cinv, nminfrfx,
-          sln, r, ezero)
-aiNew(thetav, skel, thetaG, thetaR, remlOut$sigma2e, modMats, W, sLc, sln)
-        thetaout <- vech2matlist(aiout$thetav, skel)
+        aiout <- aiNew(thetav, skel, thetaG, thetaR, sigma2e
+        		modMats, W, sLc, sln, r)
         AI <- aiout$AI
-        dLdtheta <- aiout$dLdtheta
-        AIinv <- solve(AI)
+	AIinv <- solve(AI)
+        dLdtheta <- gradFun(thetav, thetaG, modMats, Cinv, nminfrfx, sln, r)
+
+        ## Find next set of parameters using a quasi-Newton method/algorithm
+        ### Meyer 1989 pp. 326-327 describes quasi-Newton methods 
+#TODO see Meyer 1997 eqn 58 for Marquardt 1963: theta_t+1=theta_t - (H_t + k_t * I)^{-1} g_t 
+        ### Mrode 2005 eqn 11.4
+        ### Johnson and Thompson 1995 eqn 12
+        ####(though gremlin uses `+` instead of J & T '95 `-` because
+        ##### gremlin multiplies gradient by -0.5 in `gradFun()`)
+
+        ### Check/modify AI matrix to 'ensure' positive definiteness
+        ### `fI` is factor to adjust AI matrix
+        #### (e.g., Meyer 1997 eqn 58 and WOMBAT manual A.5 strategy 3b)
+        AIeigvals <- eigen(AI)$values
+          d <- (3*10^-6) * AIeigvals[1]
+          f <- max(0, d - AIeigvals[nrow(AI)])
+        fI <- f * diag(x = 1, nrow = nrow(AI))
+	##### modified 'Hessian'
+        H <- fI + AI
+        # Check if AI can be inverted
+        rcondH <- rcond(H)
+        ## if AI cannot be inverted do EM
+        if(rcondH < ezero){
+          if(v > 1){
+            cat("Reciprocal condition number of AI matrix is", signif(rcondH , 2), "\n\tAI matrix may be singular - switching to an iteration of the EM algorithm\n")
+          }  #<-- end `if v>1`
+          if(v > 1 && vitout == 0) cat("\tEM to find next theta\n")
+            emOut <- em(theta, thetaG, thetaR,
+		modMats, nminffx, sLc, ndgeninv, sln, r)
+            thetaout <- emOut$theta
+            Cinv_ii <- emOut$Cinv_ii
+        } else{  #<-- end if AI cannot be inverted
+            Hinv <- solve(H)
 #TODO need a check that not proposing negative/0 variance or |correlation|>1
 ## Require restraining naughty components
+            thetavout <- matrix(thetav, ncol = 1) + Hinv %*% dLdtheta
+            zeroV <- which(thetavout < ezero) #FIXME check variances & cov/corr separately
+            if(length(zeroV) > 0L){
+              if(v > 1) cat("Variance component(s)", zeroV, "fixed to zero\n")
+              thetavout[zeroV] <- ezero #FIXME TODO!!!??
+            }
+          }  #<-- end else AI can be inverted
+        thetaout <- vech2matlist(thetavout, skel)
 
-#TODO need to evaluate cc criteria now? 
-## How will it work so last iteration gives AI matrix of last set of parameters and not previous
-      }
+      }  #<-- end if algorithm is "AI"
 
       if(algit[i] == "bobyqa"){
 stop("Not allowing `minqa::bobyqa()` right now")
@@ -654,10 +672,6 @@ gremlinRmod2 <- function(formula, random = NULL, rcov = ~ units,
     RHS <- Matrix(tWKRinv %*% modMats$y, sparse = TRUE)
     ## Meyer '97 eqn 11
     ### (Note different order of RHS from Meyer '89 eqn 6; Meyer '91 eqn 4)
-#TODO FIXME DO I NEED M OR CAN I JUST USE C?
-#XXX DELTEME after show get same answer
-#    M <- as(cbind(rbind(C, t(RHS)),
-#	    rbind(RHS, tyRinvy)), "symmetricMatrix")
 
     ##1d Find best order of MMA/C/pivots!
     # Graser et al. 1987 (p1363) when singular C, |C| not invariant to order
@@ -671,19 +685,7 @@ gremlinRmod2 <- function(formula, random = NULL, rcov = ~ units,
     #TODO test if super=TRUE better
     ## supernodal might be better as coefficient matrix (C) becomes more dense
     #### e.g., with a genomic relatedness matrix (see Masuda et al. 2014 & 2015)
-
-
-
-
-
-
-
-
-
-
-
-#FIXME!!! Turn permutations 	BACK ON!!!!! XXX
-    sLc <- Cholesky(C, perm = FALSE, LDL = FALSE, super = FALSE)
+    sLc <- Cholesky(C, perm = TRUE, LDL = FALSE, super = FALSE)
     # original order obtained by: t(P) %*% L %*% P or `crossprod(P, L) %*% P`
     Ic <- Diagonal(x = 1, n = nrow(C))
 #TODO put these with `mkModMats()` - need to figure out multivariate version/format
