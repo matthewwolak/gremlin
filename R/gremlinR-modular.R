@@ -280,7 +280,9 @@ gremlinRmod <- function(formula, random = NULL, rcov = ~ units,
 
 
   itMat <- matrix(NA, nrow = maxit, ncol = 2*p + 5) 
-    colnames(itMat) <- c(rep(names(thetav), 2), "sigma2e", "tyPy", "logDetC", "loglik", "itTime")
+    colnames(itMat) <- c(paste0(names(thetav), "_nu"),
+	paste0(names(thetav), "_theta"),
+	"sigma2e", "tyPy", "logDetC", "loglik", "itTime")
     #############################################################
     # REML doesn't change with any of above
     #############################################################
