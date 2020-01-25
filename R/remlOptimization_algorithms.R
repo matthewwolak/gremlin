@@ -565,7 +565,6 @@ aiNew2 <- function(thetavin, skel, thetaG, thetaR,
 #' @rdname gremlinRmod
 #' @export
   gradFun <- function(thetavin, thetaG, modMats, Cinv, nminfrfx, sln, r){
-#browser()
     p <- length(thetavin)
     dLdtheta <- matrix(NA, nrow = p, ncol = 1, dimnames = list(names(thetavin), NULL))
     # tee = e'e

@@ -273,11 +273,16 @@ gremlinRmod <- function(formula, random = NULL, rcov = ~ units,
 
     AI <- matrix(NA, nrow = p, ncol = p)
     f <- NA
-    dLdtheta <- matrix(NA, nrow = p, ncol = 1, dimnames = list(names(thetav), NULL))
+    dLdnu <- matrix(NA, nrow = p, ncol = 1, dimnames = list(names(thetav), NULL))
     tyPy <- numeric(1)
     logDetC <- numeric(1)
     sigma2e <- numeric(1)
 
+
+
+#TODO FIXME
+#XXX all of above pre-allocated objects need assignment using `[] <-` below XXX
+### See other function too
 
 
   itMat <- matrix(NA, nrow = maxit, ncol = 2*p + 5) 
@@ -347,6 +352,8 @@ gremlinRmod <- function(formula, random = NULL, rcov = ~ units,
       if(algit[i] == "AI"){
         # wombat 3 (eqn. A.2): Norm of the gradient vector
         # AI only
+
+#TODO use dLdtheta or dLdnu????
         cc[3] <- sqrt(sum(dLdtheta * dLdtheta)) < cctol[3]
         # wombat 4 (eqn A.3): Newton decrement (see Boyd & Vandenberghe 2004 cited in wombat)
         # AI only
@@ -361,6 +368,12 @@ gremlinRmod <- function(formula, random = NULL, rcov = ~ units,
     if(!all(cc, na.rm = TRUE)){
       if(algit[i] == "EM"){
         if(v > 1 && vitout == 0) cat("\tEM to find next theta\n")
+
+
+
+
+
+#TODO FIXME em for nu not theta
         emOut <- em(theta, thetaG, thetaR,
 		modMats, nminffx, sLc, ndgeninv, sln, r)
           thetaout <- emOut$theta
@@ -379,18 +392,7 @@ if(nrow(theta[[thetaR]]) != 1){
         		modMats, W, sLc, sln, r)
         AI <- aiout$AI
 	AIinv <- solve(AI)
-        dLdtheta <- gradFun_lambda(nuv, thetaG, modMats, Cinv, sln, sigma2e)
-
-
-
-
-
-
-
-##TODO back-transform nu to theta (what about AI for the theta parameters??)
-
-
-
+        dLdnu <- gradFun_lambda(nuv, thetaG, modMats, Cinv, sln, sigma2e)
 
         ## Find next set of parameters using a quasi-Newton method/algorithm
         ### Meyer 1989 pp. 326-327 describes quasi-Newton methods 
@@ -417,6 +419,9 @@ if(nrow(theta[[thetaR]]) != 1){
             cat("Reciprocal condition number of AI matrix is", signif(rcondH , 2), "\n\tAI matrix may be singular - switching to an iteration of the EM algorithm\n")
           }  #<-- end `if v>1`
           if(v > 1 && vitout == 0) cat("\tEM to find next theta\n")
+
+
+#TODO em for nu instead of theta
             emOut <- em(theta, thetaG, thetaR,
 		modMats, nminffx, sLc, ndgeninv, sln, r)
             thetaout <- emOut$theta
@@ -426,16 +431,16 @@ if(nrow(theta[[thetaR]]) != 1){
 #TODO need a check that not proposing negative/0 variance or |correlation|>1
 ## Require restraining naughty components
 
-##TODO output/calculation should be done for nu then also back-transformed to theta
-            thetavout <- matrix(thetav, ncol = 1) + Hinv %*% dLdtheta
-            zeroV <- which(thetavout < ezero) #FIXME check variances & cov/corr separately
+            nuvout <- matrix(nuv, ncol = 1) + Hinv %*% dLdnu
+            zeroV <- which(nuvout < ezero) #FIXME check variances & cov/corr separately
             if(length(zeroV) > 0L){
               if(v > 1) cat("Variance component(s)", zeroV, "fixed to zero\n")
-              thetavout[zeroV] <- ezero #FIXME TODO!!!??
+              nuvout[zeroV] <- ezero #FIXME TODO!!!??
             }
           }  #<-- end else AI can be inverted
-        thetaout <- vech2matlist(thetavout, skel)
 
+        nuout <- vech2matlist(nuvout, skel)      
+        thetaout <- vech2matlist(nuvout * sigma2e, skel)
       }  #<-- end if algorithm is "AI"
 
       if(algit[i] == "bobyqa"){
@@ -484,14 +489,15 @@ stop("Not allowing `minqa::bobyqa()` right now")
       }
       if(v > 2){#algit[i] == "AI" && 
         sgd <- matrix(NA, nrow = p, ncol = p+4)  #<-- `sgd` is summary.gremlinDeriv 
-          dimnames(sgd) <- list(row.names(dLdtheta), c("gradient", "", "AI", "", "AI-inv", rep("", p-1)))
-        sgd[, 1] <- dLdtheta
-        AIinv <- if(algit[i] == "EM") AI else solve(AI)
+          dimnames(sgd) <- list(row.names(dLdnu), c("gradient", "", "AI", "", "AI-inv", rep("", p-1)))
+        sgd[, 1] <- dLdnu
+        if(algit[i] == "EM") AIinv <- AI
         for(rc in 1:p){
           sgd[rc, 3:(rc+2)] <- AI[rc, 1:rc]
           sgd[rc, (4+rc):(4+p)] <- AIinv[rc, rc:p]   
         }
-        cat("\tAI alpha", NA, "\n") #TODO add alpha/step-halving value
+#        cat("\tAI alpha", NA, "\n") #TODO add alpha/step-halving value
+        cat("\tAI modification", f, "\n")
         print(as.table(sgd), digits = 3, na.print = " | ", zero.print = ".")
         cat("\n")
       }  
@@ -507,23 +513,31 @@ stop("Not allowing `minqa::bobyqa()` right now")
   #################################### 
   itMat <- itMat[1:i, , drop = FALSE]
     rownames(itMat) <- paste(seq(i), algit[1:i], sep = "-")
-  dimnames(AI) <- list(rownames(dLdtheta), rownames(dLdtheta))
-#FIXME delete step: might be useful to know dimensions  if(all(is.na(AI))) AI <- NULL
-#FIXME delete: useful to know dimensions, e.g., `summary.gremlin()`  if(all(is.na(dLdtheta))) dLdtheta <- NULL
+  dimnames(AI) <- list(rownames(dLdnu), rownames(dLdnu))
 
 
+#TODO calculate AI/AIinv for last set of parameters (sampling covariances for final varcomps
+###TODO make sure final varcomps returned are ones for which AI was evaluated (if using AI from above)
 
  endTime <- Sys.time()
  if(v > 0) cat("gremlin ended:\t\t", format(endTime, "%H:%M:%S"), "\n")
 
+
+
+
+
+#TODO fix return values:
+## are sln same as on theta scale?
+## are Cinv_ii (var of sln) same as on theta scale
+## what to do about dLdtheta vs nu so always consistent output between 2 gremlins
  return(structure(list(call = as.call(mc),
 		modMats = modMats,
 		itMat = itMat,
-		sln = cbind(Est = sln, Var = Cinv_ii),
-		residuals = c(r),
+		sln = as(cbind(Est = sln, Var = Cinv_ii), "matrix"),
+		residuals = as(r, "matrix"),
 		theta = matrix(thetav, nrow = p, ncol = 1,
 		  dimnames = list(names(thetav), NULL)),
-		AI = AI, dLdtheta = dLdtheta),
+		AI = AI, dLdtheta = dLdnu),
 	class = "gremlin",
 	startTime = startTime, endTime = endTime))
 }
