@@ -502,12 +502,11 @@ aiNew2 <- function(thetavin, skel, thetaG, thetaR,
 ################################################################################
 #' @rdname gremlinRmod
 #' @export
-  gradFun_lambda <- function(nuvin, thetaG, modMats, Cinv, nminfrfx, sln, r){
-#browser()
+  gradFun_lambda <- function(nuvin, thetaG, modMats, Cinv, sln, sigma2e){
     p <- length(nuvin)
-    dLdtheta <- matrix(NA, nrow = p, ncol = 1, dimnames = list(names(nuvin), NULL))
-    # tee = e'e
-    tee <- crossprod(r)
+    dLdtheta <- matrix(0.0, nrow = p, ncol = 1,
+	dimnames = list(names(nuvin), NULL))
+
     # `trCinvGeninv_gg` = trace[Cinv_gg %*% geninv_gg]
     # `tugug` = t(u_gg) %*% geninv_gg %*% u_gg
     ## `g` is the gth component of the G-structure to model
@@ -542,13 +541,9 @@ aiNew2 <- function(thetavin, skel, thetaG, thetaR,
     }  #<-- end `for g in thetaG`
 
     # First derivatives (gradient/score)
-#FIXME change `[p]` below to be number of residual (co)variances
-    ## Johnson and Thompson 1995 eqn 9b
-    dLdtheta[p] <- (nminfrfx / tail(nuvin, 1)) - (tee / tail(nuvin, 1)^2)
     for(g in thetaG){
-      dLdtheta[p] <- dLdtheta[p] + (1 / tail(nuvin, 1)) * (trCinvGeninv_gg[[g]] /nuvin[g]) 
-      # Johnson and Thompson 1995 eqn 9a and 10a
-      dLdtheta[g] <- (ncol(modMats$Zg[[g]]) / nuvin[g]) - (1 / nuvin[g]^2) * (trCinvGeninv_gg[[g]] + tugug[[g]])
+      # Johnson and Thompson 1995 Appendix 2 eqn B3 and eqn 9a and 10a
+      dLdtheta[g] <- (ncol(modMats$Zg[[g]]) / nuvin[g]) - (1 / nuvin[g]^2) * (trCinvGeninv_gg[[g]] + tugug[[g]] / sigma2e)
     }
  # Johnson and Thompson 1995 don't use -0.5, because likelihood is -2 log likelihood
  ## see `-2` on left-hand side of Johnson & Thompson eqn 3

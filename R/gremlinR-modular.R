@@ -375,14 +375,22 @@ if(nrow(theta[[thetaR]]) != 1){
 }
         Cinv <- solve(a = sLc, b = Ic, system = "A")
         Cinv_ii <- diag(Cinv)
-##TODO calculation ?should be done? with nu then later back-transformed to theta
-        aiout <- aiNew(thetav, skel, thetaG, thetaR, sigma2e,
+        aiout <- aiNew(nuv, skel, thetaG, thetaR, sigma2e,
         		modMats, W, sLc, sln, r)
         AI <- aiout$AI
 	AIinv <- solve(AI)
-##TODO calculation ?should be done? with nu then later back-transformed to theta
-## XXX ALTERNATIVELY XXX transform AI_nu to AI_theta then do dLdtheta 
-        dLdtheta <- gradFun(thetav, thetaG, modMats, Cinv, nminfrfx, sln, r)
+        dLdtheta <- gradFun_lambda(nuv, thetaG, modMats, Cinv, sln, sigma2e)
+
+
+
+
+
+
+
+##TODO back-transform nu to theta (what about AI for the theta parameters??)
+
+
+
 
         ## Find next set of parameters using a quasi-Newton method/algorithm
         ### Meyer 1989 pp. 326-327 describes quasi-Newton methods 
