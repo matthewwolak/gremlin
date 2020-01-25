@@ -15,14 +15,16 @@ reml <- function(thetav, skel, thetaG, thetaR,
 #		R = log(chol(theta$R)))
 #    } else nu <- theta
       cRinv <- solve(chol(nu[[thetaR]]))
-      Ginv <- lapply(thetaG, FUN = function(x){as(crossprod(cRinv, nu[[x]]) %*% cRinv, "symmetricMatrix")}) # Meyer 1991, p.77 (<-- ?p70/eqn4?)
+      #TODO what to do when R is a matrix
+      nu[[thetaR]] <- as(crossprod(cRinv, nu[[thetaR]]) %*% cRinv, "symmetricMatrix")
+      nu[thetaG] <- lapply(thetaG, FUN = function(x){as(crossprod(cRinv, nu[[x]]) %*% cRinv, "symmetricMatrix")}) # Meyer 1991, p.77 (<-- ?p70/eqn4?)
   
 
       ##1c Now make coefficient matrix of MME
       ##`sapply()` to invert G_i and multiply with ginverse element (e.g., I or geninv)
       if(modMats$nG > 0){
         C <- as(tWW + bdiag(c(Bpinv,
-	  sapply(1:modMats$nG, FUN = function(u){kronecker(modMats$listGeninv[[u]], solve(Ginv[[u]]))}))), "symmetricMatrix")
+	  sapply(1:modMats$nG, FUN = function(u){kronecker(modMats$listGeninv[[u]], solve(nu[[u]]))}))), "symmetricMatrix")
       } else C <- as(tWW + Bpinv, "symmetricMatrix")
 
       M <- as(cbind(rbind(C, t(RHS)),
@@ -54,14 +56,12 @@ reml <- function(thetav, skel, thetaG, thetaR,
       # 'log(|R|)'
       #TODO: assumes X of full rank
       loglik <- loglik + nminfrfx * log(sigma2e)
-      #ALTERNATIVELY: If Rinv NOT factored out of MMA `loglik <- loglik + ny * log(Rstart)`
 
       # 'log(|G|)'
       #FIXME: Only works for independent random effects right now!
-      loglik <- -0.5 * (loglik + if(modMats$nG == 0) 0 else sum(sapply(seq(modMats$nG), FUN = function(x){rfxlvls[x] * log(as.vector(Ginv[[x]]*sigma2e))})) + rfxIncContrib2loglik)
+      loglik <- -0.5 * (loglik + if(modMats$nG == 0) 0 else sum(sapply(seq(modMats$nG), FUN = function(x){rfxlvls[x] * log(as.vector(nu[[x]]*sigma2e))})) + rfxIncContrib2loglik)
       # Below uses original starting value for residual variances - for agreement with WOMBAT
       #loglik <- -0.5 * (loglik + sum(sapply(seq(nG), FUN = function(x){rfxlvls[x] * log(as.vector(Gstart[[x]]))})) + rfxIncContrib2loglik)
-
 
 
 
@@ -93,7 +93,10 @@ reml <- function(thetav, skel, thetaG, thetaR,
       # calculate residuals
       r <- modMats$y - W %*% sln
 
-     return(structure(list(loglik = loglik,
+      # vectorize variance ratios
+      nuv <- sapply(nu, FUN = slot, name = "x")
+
+     return(structure(list(nuv = nuv, loglik = loglik,
 		sigma2e = sigma2e, tyPy = tyPy, logDetC = logDetC,
 		sln = sln, r = r, sLc = sLc),
 	class = "gremlin"))
@@ -399,60 +402,39 @@ reml2 <- function(thetav, skel, thetaG, thetaR, sLc,
 #' @export
 #Meyer 1996:
 ## Likelihood eqn 3 <--> log determinants
-## partial first & second derivatives of likelihood wrt parameters <--> eqn 4 and 5
-##XXX This is broken down into sum of compoments: XXX
-### log|R| <--> eqns 20, 25 & 26 (see univariate simplification in text following)
-### log|G| <--> eqns 28, 31 & 32 (see univariate simplificaation in text following) 
-### log|C| and tyPy: eqns 6, 9, 12-14 give how to get aspects of C and tyPy from M
-#### log|C| <--> eqn 13
-#### tyPy <--> eqn 14
-#### first and second partial derivatives of log|C| and tyPy: eqn 15-18
-#####XXX All above is before AI algorithm
 #XXX `aiNew()` used for when Rinv HAS BEEN FACTORED OUT of MME
-aiNew <- function(thetavin, skel, thetaG, thetaR, sigma2e, modMats, W, sLc, sln){#Cinv, nminfrfx, r, ezero){
-# thetavin <- thetav; sigma2e <- remlOut$sigma2e
-    p <- length(thetavin)
-#    thetain <- vech2matlist(thetavin, skel)
-    AI <- matrix(NA, nrow = p, ncol = p)
+aiNew <- function(nuvin, skel, thetaG, thetaR, sigma2e,
+		   modMats, W, sLc, sln, r){
+    p <- length(nuvin)
+    nuin <- vech2matlist(nuvin, skel)
+    Rinv <- as(solve(matrix(sigma2e)), "symmetricMatrix")
+    Ginv <- lapply(thetaG, FUN = function(x){as(solve(nuin[[x]]), "symmetricMatrix")})
     si <- modMats$nb+1
     B <- Matrix(0, nrow = modMats$ny, ncol = p, sparse = TRUE)
     for(g in thetaG){ #FIXME assumes thetaG is same length as thetavin
       qi <- ncol(modMats$Zg[[g]])
       ei <- si - 1 + qi
-      # Meyer 1997 MS: eqn. 20 [also f(theta) in Johnson & Thompson 1995 eqn 9c)]
+      # Meyer 1997: eqn. 20 [also f(theta) in Johnson & Thompson 1995 eqn 9c)]
       # Knight 2008: eqn 2.32-2.35 and 3.11-3.13 (p.34)
-      B[, g] <- modMats$Zg[[g]] %*% sln[si:ei, , drop = FALSE] %*% Ginv[[g]] #FIXME is order correct?
-    }
-#FIXME TODO Check what to do if more than 1 residual variance parameter
+      #TODO for covariances see Johnson & Thompson 1995 eqn 11b
+      B[, g] <- modMats$Zg[[g]] %*% sln[si:ei, , drop = FALSE] %*% Ginv[[g]] #FIXME is order correct? See difference in order between Johnson & Thompson (e.g., eqn. 11b) and Meyer 1997 eqn 20
+    }  #<-- end `for g`
+
+    #FIXME TODO Check what to do if more than 1 residual variance parameter
     if(g < p){
-      B[, p] <- r / sigma2e
-    }      
-    iRHS <- Matrix(crossprod(W, B), sparse = TRUE)
-    isln <- solve(a = sLc, b = iRHS, system = "A")
-    # calculate residuals
-#TODO are residuals y-W%*%isln OR bi-W%*%isln?????????????XXX
-    PB <- B - W %*% isln
-    AI <- (1 / 2*sigma2e) * as(crossprod(B, PB), "matrix")
+      B[, p] <- modMats$y %*% Rinv
+    }
+    # Set up modified MME like the MMA of Meyer 1997 eqn. 23
+    ## Substitute `B` instead of `y`
+    BRHS <- Matrix(crossprod(W, B), sparse = TRUE)
+    ## tBPB
+    ### Meyer 1997 eqns 22-23 (extends Johnson & Thompson 1995 eqns 8,9b,9c)
+    tBPB <- crossprod(B) - crossprod(solve(sLc, BRHS, system = "A"), BRHS)
+    AI <- 0.5 * tBPB / sigma2e
 
-
-#    if((g+1) < p){
-#        for(k in (g+1):(p-1)){  #<-- fill upper triangle
-#          sk <- sum(sapply(seq(k-1), FUN = function(u){ncol(modMats$Zg[[u]])})) + modMats$nb + 1
-#          ek <- sk - 1 + ncol(modMats$Zg[[k]])
-#          AI[g, k] <- AI[k, g] <- 0.5 * ((crossprod(isln, crossprod(W[, si:ei], PorVinv)) %*% W[, sk:ek] %*% sln[sk:ek, , drop = FALSE]) / (thetavin[g]*thetavin[k]))@x    
-#        }  #<-- end 'for(k ...)`
-#      }  #<-- end `if()`
-#      AI[g, p] <- AI[p, g] <- 0.5 * ((crossprod(isln, crossprod(W[, si:ei], PorVinv)) %*% r) / (thetavin[g]*thetavin[p]))@x
-#      si <- ei+1
-#    }   #<-- end `for(g ...)`
-#    AI[p, p] <- 0.5 * ((crossprod(r, PorVinv) %*% r) / thetavin[p]^2)@x
-
-
-return(list(AI = AI))
-#   return(structure(list(thetav = thetavout, AI = AI, dLdtheta = dLdtheta),
-#	class = "gremlin"))
-
-  }
+ return(structure(list(AI = as(AI, "matrix")),
+	class = "gremlin"))
+}
 ################################################################################    
 
 
@@ -472,30 +454,22 @@ return(list(AI = AI))
 #' @export
 #Meyer 1996:
 ## Likelihood eqn 3 <--> log determinants
-## partial first & second derivatives of likelihood wrt parameters <--> eqn 4 and 5
-##XXX This is broken down into sum of compoments: XXX
-### log|R| <--> eqns 20, 25 & 26 (see univariate simplification in text following)
-### log|G| <--> eqns 28, 31 & 32 (see univariate simplificaation in text following) 
-### log|C| and tyPy: eqns 6, 9, 12-14 give how to get aspects of C and tyPy from M
-#### log|C| <--> eqn 13
-#### tyPy <--> eqn 14
-#### first and second partial derivatives of log|C| and tyPy: eqn 15-18
-#####XXX All above is before AI algorithm
 #XXX `aiNew2()` used for when Rinv is NOT factored out of MME
 aiNew2 <- function(thetavin, skel, thetaG, thetaR,
 		   modMats, W, sLc, sln, r){
     p <- length(thetavin)
     thetain <- vech2matlist(thetavin, skel)
     Rinv <- as(solve(thetain[[thetaR]]), "symmetricMatrix")
-    Ginv <- lapply(thetaG, FUN = function(x){as(solve(thetain[[x]]), "symmetricMatrix")}) # Meyer 1991, p.77 (<-- also see MMA on p70/eqn4)
+    Ginv <- lapply(thetaG, FUN = function(x){as(solve(thetain[[x]]), "symmetricMatrix")})
     si <- modMats$nb+1
     B <- Matrix(0, nrow = modMats$ny, ncol = p, sparse = TRUE)
     for(g in thetaG){ #FIXME assumes thetaG is same length as thetavin
       qi <- ncol(modMats$Zg[[g]])
       ei <- si - 1 + qi
-      # Meyer 1997 MS: eqn. 20 [also f(theta) in Johnson & Thompson 1995 eqn 9c)]
+      # Meyer 1997: eqn. 20 [also f(theta) in Johnson & Thompson 1995 eqn 9c)]
       # Knight 2008: eqn 2.32-2.35 and 3.11-3.13 (p.34)
-      B[, g] <- modMats$Zg[[g]] %*% sln[si:ei, , drop = FALSE] %*% Ginv[[g]] #FIXME is order correct?
+      #TODO for covariances see Johnson & Thompson 1995 eqn 11b
+      B[, g] <- modMats$Zg[[g]] %*% sln[si:ei, , drop = FALSE] %*% Ginv[[g]] #FIXME is order correct? See difference in order between Johnson & Thompson (e.g., eqn. 11b) and Meyer 1997 eqn 20
     }  #<-- end `for g`
 
     #FIXME TODO Check what to do if more than 1 residual variance parameter
@@ -525,13 +499,13 @@ aiNew2 <- function(thetavin, skel, thetaG, thetaR,
 
 
 
-
 ################################################################################
 #' @rdname gremlinRmod
 #' @export
-  gradFun <- function(thetav, thetaG, modMats, Cinv, nminfrfx, sln, r){
-    p <- length(thetav)
-    dLdtheta <- matrix(NA, nrow = p, ncol = 1, dimnames = list(names(thetav), NULL))
+  gradFun_lambda <- function(nuvin, thetaG, modMats, Cinv, nminfrfx, sln, r){
+#browser()
+    p <- length(nuvin)
+    dLdtheta <- matrix(NA, nrow = p, ncol = 1, dimnames = list(names(nuvin), NULL))
     # tee = e'e
     tee <- crossprod(r)
     # `trCinvGeninv_gg` = trace[Cinv_gg %*% geninv_gg]
@@ -570,11 +544,78 @@ aiNew2 <- function(thetavin, skel, thetaG, thetaR,
     # First derivatives (gradient/score)
 #FIXME change `[p]` below to be number of residual (co)variances
     ## Johnson and Thompson 1995 eqn 9b
-    dLdtheta[p] <- (nminfrfx / tail(thetav, 1)) - (tee / tail(thetav, 1)^2)
+    dLdtheta[p] <- (nminfrfx / tail(nuvin, 1)) - (tee / tail(nuvin, 1)^2)
     for(g in thetaG){
-      dLdtheta[p] <- dLdtheta[p] + (1 / tail(thetav, 1)) * (trCinvGeninv_gg[[g]] /thetav[g]) 
+      dLdtheta[p] <- dLdtheta[p] + (1 / tail(nuvin, 1)) * (trCinvGeninv_gg[[g]] /nuvin[g]) 
       # Johnson and Thompson 1995 eqn 9a and 10a
-      dLdtheta[g] <- (ncol(modMats$Zg[[g]]) / thetav[g]) - (1 / thetav[g]^2) * (trCinvGeninv_gg[[g]] + tugug[[g]])
+      dLdtheta[g] <- (ncol(modMats$Zg[[g]]) / nuvin[g]) - (1 / nuvin[g]^2) * (trCinvGeninv_gg[[g]] + tugug[[g]])
+    }
+ # Johnson and Thompson 1995 don't use -0.5, because likelihood is -2 log likelihood
+ ## see `-2` on left-hand side of Johnson & Thompson eqn 3
+ -0.5 * dLdtheta
+  }
+##########################
+# Changing ginverse elements to `dsCMatrix` doesn't speedup traces, since
+## they end up more or less as dense matrices but in dgCMatrix from the product
+##########################
+
+
+
+
+
+
+
+
+################################################################################
+#' @rdname gremlinRmod
+#' @export
+  gradFun <- function(thetavin, thetaG, modMats, Cinv, nminfrfx, sln, r){
+#browser()
+    p <- length(thetavin)
+    dLdtheta <- matrix(NA, nrow = p, ncol = 1, dimnames = list(names(thetavin), NULL))
+    # tee = e'e
+    tee <- crossprod(r)
+    # `trCinvGeninv_gg` = trace[Cinv_gg %*% geninv_gg]
+    # `tugug` = t(u_gg) %*% geninv_gg %*% u_gg
+    ## `g` is the gth component of the G-structure to model
+    ## `geninv` is the generalized inverse
+    ### (not the inverse of the G-matrix/(co)variance components)
+    trCinvGeninv_gg <- tugug <- as.list(rep(0, length(thetaG)))
+    si <- modMats$nb+1
+    for(g in thetaG){
+      qi <- ncol(modMats$Zg[[g]])
+      ei <- si - 1 + qi
+#TODO XXX for using covariance matrices, see Johnson & Thompson 1995 eqn 11a
+      ## Johnson & Thompson 1995 equations 9 & 10
+      if(class(modMats$listGeninv[[g]]) == "ddiMatrix"){
+      ### No generalized inverse associated with the random effects
+      ### Johnson & Thompson 1995 eqn 10a
+        #### 3rd term in the equation
+        tugug[[g]] <- crossprod(sln[si:ei, , drop = FALSE])
+        #### 2nd term in the equation
+        trCinvGeninv_gg[[g]] <- tr(Cinv[si:ei, si:ei])
+        
+      } else{
+        ### Generalized inverse associated with the random effects
+        ### Johnson & Thompson 1995 eqn 9a
+          #### 3rd term in the equation
+          tugug[[g]] <- crossprod(sln[si:ei, , drop = FALSE], modMats$listGeninv[[g]]) %*% sln[si:ei, , drop = FALSE]
+          #### 2nd term in the equation
+#TODO: DOES the trace of a product = the sum of the element-by-element product?
+          trCinvGeninv_gg[[g]] <- tr(modMats$listGeninv[[g]] %*% Cinv[si:ei, si:ei])
+      }  #<-- end if else whether a diagonal g-inverse associated with rfx
+
+      si <- ei+1
+    }  #<-- end `for g in thetaG`
+
+    # First derivatives (gradient/score)
+#FIXME change `[p]` below to be number of residual (co)variances
+    ## Johnson and Thompson 1995 eqn 9b
+    dLdtheta[p] <- (nminfrfx / tail(thetavin, 1)) - (tee / tail(thetavin, 1)^2)
+    for(g in thetaG){
+      dLdtheta[p] <- dLdtheta[p] + (1 / tail(thetavin, 1)) * (trCinvGeninv_gg[[g]] /thetavin[g]) 
+      # Johnson and Thompson 1995 eqn 9a and 10a
+      dLdtheta[g] <- (ncol(modMats$Zg[[g]]) / thetavin[g]) - (1 / thetavin[g]^2) * (trCinvGeninv_gg[[g]] + tugug[[g]])
     }
  # Johnson and Thompson 1995 don't use -0.5, because likelihood is -2 log likelihood
  ## see `-2` on left-hand side of Johnson & Thompson eqn 3
