@@ -354,9 +354,11 @@ gremlinRmod <- function(formula, random = NULL, rcov = ~ units,
         # AI only
 
 #TODO use dLdtheta or dLdnu????
-        cc[3] <- sqrt(sum(dLdtheta * dLdtheta)) < cctol[3]
+## Using dLdnu below to make it work
+        cc[3] <- sqrt(sum(dLdnu * dLdnu)) < cctol[3]
         # wombat 4 (eqn A.3): Newton decrement (see Boyd & Vandenberghe 2004 cited in wombat)
         # AI only
+#TODO use dLdtheta or dLdnu????
 #        cc[4] <- -1 * c(crossprod(dLdtheta, H) %*% dLdtheta)
       }
     } else cc[1] <- FALSE  #<-- ensures one of the EM/AI/etc algorithms used if i==1
