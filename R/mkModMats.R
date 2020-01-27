@@ -153,6 +153,8 @@ if(length(sing.rm)){
       if(!is.list(ginverse)){
         stop("ginverse must be an object of class 'list'")
       }
+      if(any(duplicated(names(ginverse)))){
+        stop("duplicated names in ginverse. Must have only one unique name per ginverse entry")
       for(i in 1:length(ginverse)){           
         if(is.null(rownames(ginverse[[i]]))){
           stop(paste(names(ginverse)[i], "ginverse must have non-null rownames"))
@@ -215,7 +217,9 @@ if(length(sing.rm)){
       # retain levels in ginverse if one is associated, else drop unused levels
       if(!is.null(ginverse) && Gnames[g] %in% names(ginverse)){
         Ggdata <- data
-        levels(Ggdata[, Gnames[g]]) <- union(ginverse[[g]]@Dimnames[[1]], levels(Ggdata[, Gnames[g]])) 
+        # index in `ginverse` when not every random term has a ginverse
+        ginvIndex <- which(names(ginverse) == Gnames[g])
+        levels(Ggdata[, Gnames[g]]) <- union(ginverse[[ginvIndex]]@Dimnames[[1]], levels(Ggdata[, Gnames[g]])) 
         ggf$data <- Ggdata
         ggf$drop.unused.levels <- FALSE
         ggf <- eval.parent(ggf)	# G[g] model frame
@@ -224,10 +228,10 @@ if(length(sing.rm)){
 		transpose = FALSE,
 		drop.unused.levels = FALSE,	#TODO correct?
 		row.names = TRUE)
-        listGeninv[[g]] <- ginverse[[which(names(ginverse) == Gnames[g])]]
+        listGeninv[[g]] <- ginverse[[ginvIndex]]
         # calculate log(det(G)) from geninv; log(det(G)) = -1*log(det(G^-1))
-	#TODO: make check to see if ginverse[[g]] has attribute=logdet (from nadiv)
-        logDetG[[g]] <- -1 * determinant(ginverse[[which(names(ginverse) == Gnames[g])]], logarithm = TRUE)$modulus[1]
+	#TODO: make check to see if ginverse[[ginvIndex]] has attribute=logdet (from nadiv)
+        logDetG[[g]] <- -1 * determinant(ginverse[[ginvIndex]], logarithm = TRUE)$modulus[1]
       } else{
           Zg[[g]] <- sparse.model.matrix(ggf$formula, eval.parent(ggf),
 		transpose = FALSE,
