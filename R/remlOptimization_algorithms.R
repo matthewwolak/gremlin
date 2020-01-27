@@ -365,7 +365,7 @@ ai <- function(thetavin, skel, thetaG, thetaR,
       #TODO for covariances see Johnson & Thompson 1995 eqn 11b
       B[, g] <- modMats$Zg[[g]] %*% sln[si:ei, , drop = FALSE] %*% Ginv[[g]] #FIXME is order correct? See difference in order between Johnson & Thompson (e.g., eqn. 11b) and Meyer 1997 eqn 20
     }  #<-- end `for g`
-
+browser()
     #FIXME TODO Check what to do if more than 1 residual variance parameter
     if(g < p){
       B[, p] <- r %*% Rinv

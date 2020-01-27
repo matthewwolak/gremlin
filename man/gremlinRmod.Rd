@@ -7,9 +7,9 @@
 \alias{reml}
 \alias{reml2}
 \alias{em}
+\alias{ai_lambda}
 \alias{ai}
-\alias{aiNew}
-\alias{aiNew2}
+\alias{gradFun_lambda}
 \alias{gradFun}
 \title{Modular mixed-effect modeling functions.}
 \usage{
@@ -29,14 +29,13 @@ reml2(thetav, skel, thetaG, thetaR, sLc, modMats, W, Bpinv, nminffx,
 
 em(thetain, thetaG, thetaR, modMats, nminffx, sLc, ndgeninv, sln, r)
 
-ai(thetavin, skel, thetaG, thetaR, modMats, W, Cinv, nminfrfx, sln, r,
-  ezero)
+ai_lambda(nuvin, skel, thetaG, thetaR, sigma2e, modMats, W, sLc, sln, r)
 
-aiNew(thetavin, skel, thetaG, thetaR, sigma2e, modMats, W, sLc, sln)
+ai(thetavin, skel, thetaG, thetaR, modMats, W, sLc, sln, r)
 
-aiNew2(thetavin, skel, thetaG, thetaR, modMats, W, sLc, sln, r)
+gradFun_lambda(nuvin, thetaG, modMats, Cinv, sln, sigma2e)
 
-gradFun(thetav, thetaG, modMats, Cinv, nminfrfx, sln, r)
+gradFun(thetavin, thetaG, modMats, Cinv, nminfrfx, sln, r)
 }
 \arguments{
 \item{formula}{A \code{formula} for the response variable and fixed effects.}
