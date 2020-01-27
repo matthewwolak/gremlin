@@ -348,7 +348,7 @@ ai_lambda <- function(nuvin, skel, thetaG, thetaR, sigma2e,
 #' @export
 #Meyer 1996:
 ## Likelihood eqn 3 <--> log determinants
-#XXX `aiNew2()` used for when Rinv is NOT factored out of MME
+#XXX `ai()` used for when Rinv is NOT factored out of MME
 ai <- function(thetavin, skel, thetaG, thetaR,
 		   modMats, W, sLc, sln, r){
     p <- length(thetavin)

@@ -390,7 +390,7 @@ if(nrow(theta[[thetaR]]) != 1){
 }
         Cinv <- solve(a = sLc, b = Ic, system = "A")
         Cinv_ii <- diag(Cinv)
-        aiout <- aiNew(nuv, skel, thetaG, thetaR, sigma2e,
+        aiout <- ai_lambda(nuv, skel, thetaG, thetaR, sigma2e,
         		modMats, W, sLc, sln, r)
         AI <- aiout$AI
 	AIinv <- solve(AI)
@@ -825,7 +825,7 @@ if(nrow(theta[[thetaR]]) != 1){
 }
         Cinv <- solve(a = sLc, b = Ic, system = "A")
         Cinv_ii <- diag(Cinv)
-        aiout <- aiNew2(thetav, skel, thetaG, thetaR,
+        aiout <- ai(thetav, skel, thetaG, thetaR,
         		modMats, W, sLc, sln, r)
         AI <- aiout$AI
 	AIinv <- solve(AI)
