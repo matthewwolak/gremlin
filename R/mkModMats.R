@@ -155,6 +155,7 @@ if(length(sing.rm)){
       }
       if(any(duplicated(names(ginverse)))){
         stop("duplicated names in ginverse. Must have only one unique name per ginverse entry")
+      }
       for(i in 1:length(ginverse)){           
         if(is.null(rownames(ginverse[[i]]))){
           stop(paste(names(ginverse)[i], "ginverse must have non-null rownames"))
