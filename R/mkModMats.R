@@ -93,14 +93,13 @@ if(ncy > 1) stop("gremlin isn't old enough to play with multivariate models") #F
 	contrasts)
   ## if any subsetting is done, retrieve the "contrasts" attribute here.
   #TODO: Figure out what this means in original context of lm and if applies
-  #TODO: use lm to find singularities in X (see `MCMCglmm()`, ~line 608 of v2.21)
-### FIXME ##
-sing.rm<-lm(y~ as(X, "matrix")-1)
-sing.rm<-which(is.na(sing.rm$coef))
-if(length(sing.rm)){
-   warning("Some fixed effects are not estimable and have been removed/set to 0")
-   X<-X[,-sing.rm, drop = FALSE]
-}
+  ### use lm to find singularities in X (see `MCMCglmm()`, ~line 608 of v2.21)
+  sing.rm <- lm(y ~ as(X, "matrix") - 1)
+  sing.rm <- which(is.na(sing.rm$coef))
+  if(length(sing.rm) > 0){
+    warning(paste(length(sing.rm), "fixed effects are not estimable and have been removed (set to 0)"))
+    X <- X[, -sing.rm, drop = FALSE]
+  }
 ###END FIXME
   #TODO OR created reduced rank X (see "./Wellham2008REML..." slide 15&16)
   #TODO see how lme4 deals with rank-deficiencies:
