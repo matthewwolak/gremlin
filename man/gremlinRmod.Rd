@@ -3,9 +3,9 @@
 %   R/remlOptimization_algorithms.R
 \name{gremlinRmod}
 \alias{gremlinRmod}
-\alias{gremlinRmod2}
+\alias{gremlinRmod_lambda}
+\alias{reml_lambda}
 \alias{reml}
-\alias{reml2}
 \alias{em}
 \alias{ai_lambda}
 \alias{ai}
@@ -17,25 +17,25 @@ gremlinRmod(formula, random = NULL, rcov = ~units, data = NULL,
   ginverse = NULL, Gstart = NULL, Rstart = NULL, Bp = NULL,
   maxit = 20, algit = NULL, vit = 10, v = 1, ...)
 
-gremlinRmod2(formula, random = NULL, rcov = ~units, data = NULL,
-  ginverse = NULL, Gstart = NULL, Rstart = NULL, Bp = NULL,
-  maxit = 20, algit = NULL, vit = 10, v = 1, ...)
+gremlinRmod_lambda(formula, random = NULL, rcov = ~units,
+  data = NULL, ginverse = NULL, Gstart = NULL, Rstart = NULL,
+  Bp = NULL, maxit = 20, algit = NULL, vit = 10, v = 1, ...)
 
-reml(thetav, skel, thetaG, thetaR, modMats, W, tWW, Bpinv, RHS, D, nminffx,
-  nminfrfx, rfxlvls, rfxIncContrib2loglik, rm1, sLc)
+reml_lambda(thetav, skel, thetaG, thetaR, sLc, modMats, W, tWW, Bpinv, RHS,
+  nminffx, nminfrfx, rfxlvls, rfxIncContrib2loglik)
 
-reml2(thetav, skel, thetaG, thetaR, sLc, modMats, W, Bpinv, nminffx,
+reml(thetav, skel, thetaG, thetaR, sLc, modMats, W, Bpinv, nminffx,
   nminfrfx, rfxlvls, rfxIncContrib2loglik)
 
 em(thetain, thetaG, thetaR, modMats, nminffx, sLc, ndgeninv, sln, r)
 
 ai_lambda(nuvin, skel, thetaG, thetaR, sigma2e, modMats, W, sLc, sln, r)
 
-ai(thetavin, skel, thetaG, thetaR, modMats, W, sLc, sln, r)
+ai(nuvin, skel, thetaG, thetaR, modMats, W, sLc, sln, r)
 
 gradFun_lambda(nuvin, thetaG, modMats, Cinv, sln, sigma2e)
 
-gradFun(thetavin, thetaG, modMats, Cinv, nminfrfx, sln, r)
+gradFun(nuvin, thetaG, modMats, Cinv, nminfrfx, sln, r)
 }
 \arguments{
 \item{formula}{A \code{formula} for the response variable and fixed effects.}
@@ -117,14 +117,17 @@ A \code{list} of class \code{gremlin} or \code{gremlinModMats}:
     \item{residuals }{A \code{vector} of residual deviations, response minus
       the values expected based on the solutions, corresponding to the order
       in \code{modMats$y}.} 
+    \item{nu }{A \code{matrix} of (co)variance components on the transformed
+      scale at the last iteration.}
     \item{theta }{A \code{matrix} of (co)variance components at the last
       iteration.}
     \item{AI }{A \code{matrix} of values containing the Average Information
       matrix, or second partial derivatives of the likelihood with respect to
-      the (co)variance components. The inverse of this matrix gives the
-      sampling variances of the (co)variance components.}
-    \item{dLdtheta }{A single column \code{matrix} of first derivatives of
-      the (co)variance parameters with respect to the log-Likelihood.}
+      the transformed (co)variance components. The inverse of this matrix
+      gives the sampling variances of these transformed (co)variance components.}
+    \item{dLdnu }{A single column \code{matrix} of first derivatives of
+      the transformed (co)variance parameters with respect to the
+      log-Likelihood.}
   }
 }
 \description{
