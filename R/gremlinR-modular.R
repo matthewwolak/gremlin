@@ -116,7 +116,7 @@ gremlinRmod <- function(formula, random = NULL, rcov = ~ units,
     cctol <- c(5*10^-4, 10^-8, 10^-3, NULL) # [1] for AI, alternatively 10^-5 (for EM)
   } else cctol <- eval(mc$cctol)
 #TODO check on validity of inputted algorithms (format and matching to actual ones)
-## Otherwise, get obscure warning about not finding `thetaout`
+## Otherwise, get obscure warning about not finding `thetaout`/`nuout`
 ## Something like the following line, but implement partial matching
   if(!all(unique(algit) %in% c("EM", "AI", "bobyqa", "NR"))){  #TODO Update choices of algorithm if add/subtract any
     stop(cat("Algorithms:", unique(algit)[which(!unique(algit) %in% c("EM", "AI", "bobyqa", "NR"))],
@@ -143,7 +143,7 @@ gremlinRmod <- function(formula, random = NULL, rcov = ~ units,
 
 
 
-#FIXME ensure grep() is best way and won't mess up when multiple Gs and Rs
+#FIXME ensure grep() is best way and won't mess up when multiple Gs and **Rs**
   thetaG <- grep("G", thetaGorR, ignore.case = FALSE)
   thetaR <- grep("R", thetaGorR, ignore.case = FALSE)
   thetav <- sapply(theta, FUN = slot, name = "x")
@@ -160,19 +160,35 @@ gremlinRmod <- function(formula, random = NULL, rcov = ~ units,
 #TODO put `uni` in `mkModMats()`
     if(modMats$ncy == 1) uni <- TRUE else stop("gremlin isn't old enough to play with multivariate models")
 
+
+
+
 #FIXME: change G to cholesky of G with log(diagonals)
 ## e.g., parameterisation to ensure postive-definiteness
 ### when to do cholesky factorization of G?
 #### is it easier to do direct product of cholesky's than direct product then cholesky?
 #### If the latter then save the symbolic factorization and just do updates?
+#XXX Don't need for EM algorithm
+  transform <- FALSE
+  if(transform){ 
+    #TODO FIXME need to take log of just diagonals
+    nu <- list(G = lapply(theta$G, FUN = function(x){log(chol(x))}),
+        	R = log(chol(theta$R)))
+    #TODO FIXME when converting back, do exp() of just diagonals
+    nu2theta <- function(nu){
+	list(G = lapply(nu[[1L]], FUN = function(x){exp(crossprod(x))},
+	     R = exp(crossprod(nu[[2L]])))
+    }
+  } else{
+      nu <- theta
+      nu2theta <- function(nu) nu #TODO FIXME
+    }
 
 
 
 
 
-
-    # 1 Create mixed model array (M) and coefficient matrix of MME (C)
-    # quadratic at bottom-right (Meyer & Smith 1996, eqn 6)
+    # 1 Create coefficient matrix of MME (C)
     ##1a form W by `cbind()` X and each Z_i
     if(modMats$nG < 1) W <- modMats$X else  W <- cbind(modMats$X, modMats$Zg[[1]]) 
     if(modMats$nG > 1){
@@ -213,8 +229,8 @@ gremlinRmod <- function(formula, random = NULL, rcov = ~ units,
 
     # transform starting parameters to 'nu' scale
     ## cholesky of covariance matrices, then take log of transformed diagonals
-    Rinv <- as(solve(theta[[thetaR]]), "symmetricMatrix")
-    Ginv <- lapply(thetaG, FUN = function(x){as(solve(theta[[x]]), "symmetricMatrix")}) # Meyer 1991, p.77 (<-- also see MMA on p70/eqn4)
+    Rinv <- as(solve(nu[[thetaR]]), "symmetricMatrix")
+    Ginv <- lapply(thetaG, FUN = function(x){as(solve(nu[[x]]), "symmetricMatrix")}) # Meyer 1991, p.77 (<-- also see MMA on p70/eqn4)
   
     ##1c Now make coefficient matrix of MME
     ### Rinv Kronecker with Diagonal/I
@@ -263,7 +279,7 @@ gremlinRmod <- function(formula, random = NULL, rcov = ~ units,
 
 
 
-  itMat <- matrix(NA, nrow = maxit, ncol = p+5) 
+  itMat <- matrix(NA, nrow = maxit, ncol = 2*p+5) 
     colnames(itMat) <- c(paste0(names(thetav), "_nu"),
 	paste0(names(thetav), "_theta"),
 	"sigma2e", "tyPy", "logDetC", "loglik", "itTime")
@@ -305,14 +321,15 @@ gremlinRmod <- function(formula, random = NULL, rcov = ~ units,
 	format(Sys.time(), "%H:%M:%S"), "\n")
     }
     stItTime <- Sys.time()
-    thetav <- sapply(theta, FUN = slot, name = "x")
-    remlOut <- reml(thetav, skel, thetaG, thetaR, sLc,
+    nuv <- sapply(nu, FUN = slot, name = "x")
+    remlOut <- reml(nuv, skel, thetaG, thetaR, sLc,
 	modMats, W, Bpinv, nminffx, nminfrfx, rfxlvls, rfxIncContrib2loglik)
       nuv <- remlOut$nuv
       sln <- remlOut$sln
       r <- remlOut$r
-      sLc <- remlOut$sLc #TODO use `update()`?
-    itMat[i, -ncol(itMat)] <- c(nuv, thetav, 1,  #<-- `1` is sigma2e placeholder
+      sLc <- remlOut$sLc #TODO to use `update()` need to return `C` in `remlOut`
+    itMat[i, -ncol(itMat)] <- c(nuv, sapply(nu2theta(nu), FUN = slot, name = "x"),
+      NA,  #<-- `NA` is sigma2e placeholder
       remlOut$tyPy, remlOut$logDetC, remlOut$loglik) 
     # 5c check convergence criteria
     ## Knight 2008 (ch. 6) says Searle et al. 1992 and Longford 1993 discuss diff types of converg. crit.
@@ -340,16 +357,11 @@ gremlinRmod <- function(formula, random = NULL, rcov = ~ units,
     if(!all(cc, na.rm = TRUE)){
       if(algit[i] == "EM"){
         if(v > 1 && vitout == 0) cat("\tEM to find next theta\n")
-
-
-
-
-
-#TODO FIXME em for nu not theta
-        emOut <- em(theta, thetaG, thetaR,
+        emOut <- em(nuv, thetaG, thetaR,
 		modMats, nminffx, sLc, ndgeninv, sln, r)
-          thetaout <- emOut$theta
+          nuvout <- emOut$nuv
           Cinv_ii <- emOut$Cinv_ii
+        nuout <- vech2matlist(nuvout, skel) 
       }
 
       if(algit[i] == "AI"){
@@ -391,12 +403,9 @@ if(nrow(theta[[thetaR]]) != 1){
             cat("Reciprocal condition number of AI matrix is", signif(rcondH , 2), "\n\tAI matrix may be singular - switching to an iteration of the EM algorithm\n")
           }  #<-- end `if v>1`
           if(v > 1 && vitout == 0) cat("\tEM to find next theta\n")
-
-
-#TODO em for nu instead of theta
-            emOut <- em(theta, thetaG, thetaR,
+            emOut <- em(nuv, thetaG, thetaR,
 		modMats, nminffx, sLc, ndgeninv, sln, r)
-            thetaout <- emOut$theta
+            nuvout <- emOut$nuv
             Cinv_ii <- emOut$Cinv_ii
         } else{  #<-- end if AI cannot be inverted
             Hinv <- solve(H)
@@ -411,17 +420,16 @@ if(nrow(theta[[thetaR]]) != 1){
           }  #<-- end else AI can be inverted
 
         nuout <- vech2matlist(nuvout, skel) 
-        thetaout <- vech2matlist(nuvout, skel) ##TODO FIXME need to convert from theta to nu here
       }  #<-- end if algorithm is "AI"
 
       if(algit[i] == "bobyqa"){
 stop("Not allowing `minqa::bobyqa()` right now")
 #        if(v > 1 && vitout == 0) cat("Switching to `minqa::bobyqa()`\n")
 #FIXME lower bounds if not transformed!
-#        bobyout <- bobyqa(par = thetav, fn = function(x) -1*reml(x, skel), lower = ezero,
+#        bobyout <- bobyqa(par = nuv, fn = function(x) -1*reml(x, skel), lower = ezero,
 #		control = list(iprint = v, maxfun = maxit))
 #        with(bobyout, cat("\t", msg, "after", feval, "iterations and with code:", ierr, "(0 desired)\n"))
-#        thetaout <- vech2matlist(bobyout$par, skel)
+#        nuout <- vech2matlist(bobyout$par, skel)
 #       loglik <- -1*bobyout$fval
 #FIXME do a better check of loglik and parameter changes
 #	cc <- diff(c(itMat[(i-1), "loglik"], loglik)) < cctol[1] #if(bobyout$ierr == 0) TRUE else FALSE
@@ -434,21 +442,25 @@ stop("Not allowing `minqa::bobyqa()` right now")
       if(algit[i] == "NR"){
         if(v > 1 && vitout == 0) cat("\tNR to find next theta\n")
 #        gr <- gradFun(nuv, thetaG, thetaR, modMats, Cinv, nminfrfx, sln, r)
-#        H <- hessian(func = reml, x = thetav, skel = skel) 
-#tmp <- numDeriv::genD(func = reml, x = thetav, skel = skel)
+#        H <- hessian(func = reml, x = nuv, skel = skel) 
+#tmp <- numDeriv::genD(func = reml, x = nuv, skel = skel)
 #FIXME instead of `solve(H)` can I solve linear equations to give product of inverse and grad?
-#        thetavout <- thetav - solve(H) %*% gr
-#        thetaout <- vech2matlist(thetavout, skel) 
+#        nuvout <- nuv - solve(H) %*% gr
+#        nuout <- vech2matlist(nuvout, skel) 
 #TODO change itnmax to correspond with algit
-#tmp <- optimx(par = thetav, fn = function(x) reml(x, skel), grad = gradFun, hess = NULL,
+#tmp <- optimx(par = nuv, fn = function(x) reml(x, skel), grad = gradFun, hess = NULL,
 #	lower = 0,
 #	method = "L-BFGS-B",
 #	itnmax = maxit, hessian = TRUE,
 #	control = list(maximize = FALSE, trace = v))
       }
-#        thetavout <- optim(par = thetav, fn = reml, hessian = TRUE, method = "BFGS", skel = skel)
+#        nuvout <- optim(par = nuv, fn = reml, hessian = TRUE, method = "BFGS", skel = skel)
+#        nuout <- vech2matlist(nuvout, skel) 
     }
-    theta <- sapply(thetaout, FUN = stTrans)
+
+
+    ############################################################################
+    nu <- sapply(nuout, FUN = stTrans)
     itTime <- Sys.time() - stItTime
     if(v > 0 && vitout == 0){
       cat("\tlL:", format(round(itMat[i, "loglik"], 6), nsmall = 6), "\ttook ",
@@ -485,7 +497,8 @@ stop("Not allowing `minqa::bobyqa()` right now")
   itMat <- itMat[1:i, , drop = FALSE]
     rownames(itMat) <- paste(seq(i), algit[1:i], sep = "-")
   dimnames(AI) <- list(rownames(dLdnu), rownames(dLdnu))
-
+  theta <- nu2theta(nu)
+    thetav <- sapply(theta, FUN = slot, name = "x") 
 
 #TODO calculate AI/AIinv for last set of parameters (sampling covariances for final varcomps
 ###TODO make sure final varcomps returned are ones for which AI was evaluated (if using AI from above)
@@ -560,7 +573,7 @@ gremlinRmod_lambda <- function(formula, random = NULL, rcov = ~ units,
     cctol <- c(5*10^-4, 10^-8, 10^-3, NULL) # [1] for AI, alternatively 10^-5 (for EM)
   } else cctol <- eval(mc$cctol)
 #TODO check on validity of inputted algorithms (format and matching to actual ones)
-## Otherwise, get obscure warning about not finding `thetaout`
+## Otherwise, get obscure warning about not finding `thetaout`/`nuout`
 ## Something like the following line, but implement partial matching
   if(!all(unique(algit) %in% c("EM", "AI", "bobyqa", "NR"))){  #TODO Update choices of algorithm if add/subtract any
     stop(cat("Algorithms:", unique(algit)[which(!unique(algit) %in% c("EM", "AI", "bobyqa", "NR"))],
@@ -604,19 +617,35 @@ gremlinRmod_lambda <- function(formula, random = NULL, rcov = ~ units,
 #TODO put `uni` in `mkModMats()`
     if(modMats$ncy == 1) uni <- TRUE else stop("gremlin isn't old enough to play with multivariate models")
 
+
+
+
 #FIXME: change G to cholesky of G with log(diagonals)
 ## e.g., parameterisation to ensure postive-definiteness
 ### when to do cholesky factorization of G?
 #### is it easier to do direct product of cholesky's than direct product then cholesky?
 #### If the latter then save the symbolic factorization and just do updates?
+#XXX Don't need for EM algorithm
+  transform <- FALSE
+  if(transform){ 
+    #TODO FIXME need to take log of just diagonals
+    nu <- list(G = lapply(theta$G, FUN = function(x){log(chol(x))}),
+        	R = log(chol(theta$R)))
+    #TODO FIXME when converting back, do exp() of just diagonals
+    nu2theta <- function(nu){
+	list(G = lapply(nu[[1L]], FUN = function(x){exp(crossprod(x))},
+	     R = exp(crossprod(nu[[2L]])))
+    }
+  } else{
+      nu <- theta
+      nu2theta <- function(nu) nu #TODO FIXME
+    }
 
 
 
 
 
-
-    # 1 Create mixed model array (M) and coefficient matrix of MME (C)
-    # quadratic at bottom-right (Meyer & Smith 1996, eqn 6)
+    # 1 Create coefficient matrix of MME (C)
     ##1a form W by `cbind()` X and each Z_i
     if(modMats$nG < 1) W <- modMats$X else  W <- cbind(modMats$X, modMats$Zg[[1]]) 
     if(modMats$nG > 1){
@@ -658,8 +687,8 @@ gremlinRmod_lambda <- function(formula, random = NULL, rcov = ~ units,
     tWW <- crossprod(W)
     # transform starting parameters to 'nu' scale
     ## cholesky of covariance matrices, then take log of transformed diagonals
-    cRinv <- solve(chol(theta[[thetaR]]))
-    Ginv <- lapply(thetaG, FUN = function(x){as(crossprod(cRinv, theta[[x]]) %*% cRinv, "symmetricMatrix")}) # Meyer 1991, p.77 (<-- ?p70/eqn4?)
+    cRinv <- solve(chol(nu[[thetaR]]))
+    Ginv <- lapply(thetaG, FUN = function(x){as(crossprod(cRinv, nu[[x]]) %*% cRinv, "symmetricMatrix")}) # Meyer 1991, p.77 (<-- ?p70/eqn4?)
   
     ##1c Now make coefficient matrix of MME
     ##`sapply()` to invert G_i and multiply with ginverse element (e.g., I or geninv)
@@ -743,17 +772,17 @@ gremlinRmod_lambda <- function(formula, random = NULL, rcov = ~ units,
 	format(Sys.time(), "%H:%M:%S"), "\n")
     }
     stItTime <- Sys.time()
-    thetav <- sapply(theta, FUN = slot, name = "x")
-    remlOut <- reml_lambda(thetav, skel, thetaG, thetaR, sLc,
+    nuv <- sapply(nu, FUN = slot, name = "x")
+    remlOut <- reml_lambda(nuv, skel, thetaG, thetaR, sLc,
 	modMats, W, tWW, Bpinv, RHS,
 	nminffx, nminfrfx, rfxlvls, rfxIncContrib2loglik)
       nuv <- remlOut$nuv
       sigma2e[] <- remlOut$sigma2e
       sln <- remlOut$sln
       r <- remlOut$r
-      sLc <- remlOut$sLc #TODO use `update()`?
-    itMat[i, -ncol(itMat)] <- c(nuv, thetav, sigma2e,
-	remlOut$tyPy, remlOut$logDetC, remlOut$loglik) 
+      sLc <- remlOut$sLc #TODO to use `update()` need to return `C` in `remlOut`
+    itMat[i, -ncol(itMat)] <- c(nuv, sapply(nu2theta(nu), FUN = slot, name = "x"),
+      sigma2e, remlOut$tyPy, remlOut$logDetC, remlOut$loglik) 
     # 5c check convergence criteria
     ## Knight 2008 (ch. 6) says Searle et al. 1992 and Longford 1993 discuss diff types of converg. crit.
     ## See Appendix 2 of WOMBAT help manual for 4 convergence criteria used
@@ -780,16 +809,11 @@ gremlinRmod_lambda <- function(formula, random = NULL, rcov = ~ units,
     if(!all(cc, na.rm = TRUE)){
       if(algit[i] == "EM"){
         if(v > 1 && vitout == 0) cat("\tEM to find next theta\n")
-
-
-
-
-
-#TODO FIXME em for nu not theta
-        emOut <- em(theta, thetaG, thetaR,
+        emOut <- em(nuv, thetaG, thetaR,
 		modMats, nminffx, sLc, ndgeninv, sln, r)
-          thetaout <- emOut$theta
+          nuvout <- emOut$nuv
           Cinv_ii <- emOut$Cinv_ii
+        nuout <- vech2matlist(nuvout, skel) 
       }
 
       if(algit[i] == "AI"){
@@ -831,12 +855,9 @@ if(nrow(theta[[thetaR]]) != 1){
             cat("Reciprocal condition number of AI matrix is", signif(rcondH , 2), "\n\tAI matrix may be singular - switching to an iteration of the EM algorithm\n")
           }  #<-- end `if v>1`
           if(v > 1 && vitout == 0) cat("\tEM to find next theta\n")
-
-
-#TODO em for nu instead of theta
-            emOut <- em(theta, thetaG, thetaR,
+            emOut <- em(nuv, thetaG, thetaR,
 		modMats, nminffx, sLc, ndgeninv, sln, r)
-            thetaout <- emOut$theta
+            nuvout <- emOut$nuv
             Cinv_ii <- emOut$Cinv_ii
         } else{  #<-- end if AI cannot be inverted
             Hinv <- solve(H)
@@ -851,17 +872,16 @@ if(nrow(theta[[thetaR]]) != 1){
           }  #<-- end else AI can be inverted
 
         nuout <- vech2matlist(nuvout, skel)      
-        thetaout <- vech2matlist(nuvout * sigma2e, skel)
       }  #<-- end if algorithm is "AI"
 
       if(algit[i] == "bobyqa"){
 stop("Not allowing `minqa::bobyqa()` right now")
 #        if(v > 1 && vitout == 0) cat("Switching to `minqa::bobyqa()`\n")
 #FIXME lower bounds if not transformed!
-#        bobyout <- bobyqa(par = thetav, fn = function(x) -1*reml_lambda(x, skel), lower = ezero,
+#        bobyout <- bobyqa(par = nuv, fn = function(x) -1*reml_lambda(x, skel), lower = ezero,
 #		control = list(iprint = v, maxfun = maxit))
 #        with(bobyout, cat("\t", msg, "after", feval, "iterations and with code:", ierr, "(0 desired)\n"))
-#        thetaout <- vech2matlist(bobyout$par, skel)
+#        nuout <- vech2matlist(bobyout$par, skel)
 #       loglik <- -1*bobyout$fval
 #FIXME do a better check of loglik and parameter changes
 #	cc <- diff(c(itMat[(i-1), "loglik"], loglik)) < cctol[1] #if(bobyout$ierr == 0) TRUE else FALSE
@@ -874,21 +894,25 @@ stop("Not allowing `minqa::bobyqa()` right now")
       if(algit[i] == "NR"){
         if(v > 1 && vitout == 0) cat("\tNR to find next theta\n")
 #        gr <- gradFun(nuv, thetaG, thetaR, modMats, Cinv, nminfrfx, sln, r)
-#        H <- hessian(func = reml_lambda, x = thetav, skel = skel) 
-#tmp <- numDeriv::genD(func = reml_lambda, x = thetav, skel = skel)
+#        H <- hessian(func = reml_lambda, x = nuv, skel = skel) 
+#tmp <- numDeriv::genD(func = reml_lambda, x = nuv, skel = skel)
 #FIXME instead of `solve(H)` can I solve linear equations to give product of inverse and grad?
-#        thetavout <- thetav - solve(H) %*% gr
-#        thetaout <- vech2matlist(thetavout, skel) 
+#        nuvout <- nuv - solve(H) %*% gr
+#        nuout <- vech2matlist(nuvout, skel) 
 #TODO change itnmax to correspond with algit
-#tmp <- optimx(par = thetav, fn = function(x) reml_lambda(x, skel), grad = gradFun, hess = NULL,
+#tmp <- optimx(par = nuv, fn = function(x) reml_lambda(x, skel), grad = gradFun, hess = NULL,
 #	lower = 0,
 #	method = "L-BFGS-B",
 #	itnmax = maxit, hessian = TRUE,
 #	control = list(maximize = FALSE, trace = v))
       }
-#        thetavout <- optim(par = thetav, fn = reml_lambda, hessian = TRUE, method = "BFGS", skel = skel)
+#        nuvout <- optim(par = nuv, fn = reml_lambda, hessian = TRUE, method = "BFGS", skel = skel)
+#        nuout <- vech2matlist(nuvout, skel) 
     }
-    theta <- sapply(thetaout, FUN = stTrans)
+
+
+    ############################################################################
+    nu <- sapply(nuout, FUN = stTrans)
     itTime <- Sys.time() - stItTime
     if(v > 0 && vitout == 0){
       cat("\tlL:", format(round(itMat[i, "loglik"], 6), nsmall = 6), "\ttook ",
@@ -925,6 +949,8 @@ stop("Not allowing `minqa::bobyqa()` right now")
   itMat <- itMat[1:i, , drop = FALSE]
     rownames(itMat) <- paste(seq(i), algit[1:i], sep = "-")
   dimnames(AI) <- list(rownames(dLdnu), rownames(dLdnu))
+  theta <- nu2theta(nu)
+    thetav <- sapply(theta, FUN = slot, name = "x") 
 
 
 #TODO calculate AI/AIinv for last set of parameters (sampling covariances for final varcomps
@@ -945,6 +971,8 @@ stop("Not allowing `minqa::bobyqa()` right now")
 		itMat = itMat,
 		sln = as(cbind(Est = sln, Var = Cinv_ii), "matrix"),
 		residuals = as(r, "matrix"),
+		nu = matrix(nuv, nrow = p, ncol = 1,
+		  dimnames = list(paste0(names(thetav), "_nu"), NULL)),
 		theta = matrix(thetav, nrow = p, ncol = 1,
 		  dimnames = list(names(thetav), NULL)),
 		AI = AI, dLdnu = dLdnu),

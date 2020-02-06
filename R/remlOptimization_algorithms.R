@@ -3,17 +3,10 @@
 ###############################
 #' @rdname gremlinRmod
 #' @export
-reml_lambda <- function(thetav, skel, thetaG, thetaR, sLc,
+reml_lambda <- function(nuv, skel, thetaG, thetaR, sLc,
 	modMats, W, tWW, Bpinv, RHS,
 	nminffx, nminfrfx, rfxlvls, rfxIncContrib2loglik){
-  theta <- vech2matlist(thetav, skel)
-#XXX Don't need for EM algorithm
-#    transform <- FALSE
-#    if(transform){
-#      nu <- list(G = lapply(theta$G, FUN = function(x){log(chol(x))}),
-#		R = log(chol(theta$R)))
-#    } else nu <- theta
-  nu <- theta
+  nu <- vech2matlist(nuv, skel)
   cRinv <- solve(chol(nu[[thetaR]]))
   #TODO what to do when R is a matrix
   nu[[thetaR]] <- as(crossprod(cRinv, nu[[thetaR]]) %*% cRinv, "symmetricMatrix")
@@ -111,16 +104,9 @@ reml_lambda <- function(thetav, skel, thetaG, thetaR, sLc,
 ###############################
 #' @rdname gremlinRmod
 #' @export
-reml <- function(thetav, skel, thetaG, thetaR, sLc,
+reml <- function(nuv, skel, thetaG, thetaR, sLc,
 	modMats, W, Bpinv, nminffx, nminfrfx, rfxlvls, rfxIncContrib2loglik){
-  theta <- vech2matlist(thetav, skel)
-#XXX Don't need for EM algorithm
-#    transform <- FALSE
-#    if(transform){
-#      nu <- list(G = lapply(theta$G, FUN = function(x){log(chol(x))}),
-#		R = log(chol(theta$R)))
-#    } else nu <- theta
-  nu <- theta
+  nu <- vech2matlist(nuv, skel)
   Rinv <- as(solve(nu[[thetaR]]), "symmetricMatrix")
   Ginv <- lapply(thetaG, FUN = function(x){as(solve(nu[[x]]), "symmetricMatrix")}) # Meyer 1991, p.77 (<-- also see MMA on p70/eqn4)
 
@@ -154,11 +140,11 @@ reml <- function(thetav, skel, thetaG, thetaR, sLc,
   ## (first put together as `-2log-likelihood`)
   ## 'log(|R|)' Meyer 1997 eqn. 10
   ### assumes X of full rank
-  loglik <- modMats$ny * log(theta[[thetaR]])
+  loglik <- modMats$ny * log(nu[[thetaR]])
 
   ## 'log(|G|)' Meyer 1997 eqn. 9
   #FIXME: Only works for independent random effects right now!
-  logDetGfun <- function(x){rfxlvls[x] * log(as.vector(theta[[x]]))}
+  logDetGfun <- function(x){rfxlvls[x] * log(as.vector(nu[[x]]))}
   loglik <- loglik + if(modMats$nG == 0){ 0
     } else{
         sum(sapply(seq(modMats$nG), FUN = logDetGfun)) + rfxIncContrib2loglik
@@ -227,7 +213,7 @@ reml <- function(thetav, skel, thetaG, thetaR, sLc,
 ### see instead Mrode 2005 (p. 241-245)
 #' @rdname gremlinRmod
 #' @export
-em <- function(thetain, thetaG, thetaR,
+em <- function(nuvin, thetaG, thetaR,
 	modMats, nminffx, sLc, ndgeninv, sln, r){
   ## go "backwards" so can fill in Lc with lower triangle of Cinv
   ei <- modMats$nb + sum(sapply(modMats$Zg, FUN = ncol))
@@ -255,17 +241,19 @@ em <- function(thetain, thetaG, thetaR,
           trace <- trace + Cinv_ii[k]
         }  #<-- end for k
       }  #<-- end if/else ndgeninv
-    thetav <- sapply(thetain, FUN = slot, name = "x")
-    #TODO check that this correctly handles models with covariance matrices
-    thetain[[g]] <- as(as(matrix((o + trace*tail(thetav, 1)) / qi), "symmetricMatrix"), "dsCMatrix")
+    #TODO check `*tail(nuv,1)` correctly handles models with covariance matrices
+    nuvin[g] <- as(as(matrix((o + trace*tail(nuvin, 1)) / qi),
+      "symmetricMatrix"),
+      "dsCMatrix")
     ei <- si-1
-  }
-  #FIXME make sure `nminffx` == `ncol(X)` even when reduced rank
-  thetain[[thetaR]] <- crossprod(modMats$y, r) / nminffx
+  }  #<-- end `for g`
 
- return(structure(list(theta = thetain, Cinv_ii = Cinv_ii),
+  #FIXME make sure `nminffx` == `ncol(X)` even when reduced rank
+  nuvin[thetaR] <- crossprod(modMats$y, r) / nminffx
+
+ return(structure(list(nuv = nuvin, Cinv_ii = Cinv_ii),
 	class = "gremlin"))
-  }  #<-- end `em()`
+}  #<-- end `em()`
 ################################################################################
 
 
@@ -296,7 +284,7 @@ ai_lambda <- function(nuvin, skel, thetaG, thetaR, sigma2e,
   Ginv <- lapply(thetaG, FUN = function(x){as(solve(nuin[[x]]), "symmetricMatrix")})
   si <- modMats$nb+1
   B <- Matrix(0, nrow = modMats$ny, ncol = p, sparse = TRUE)
-  for(g in thetaG){ #FIXME assumes thetaG is same length as thetavin
+  for(g in thetaG){ #FIXME assumes thetaG is same length as nuvin
     qi <- ncol(modMats$Zg[[g]])
     ei <- si - 1 + qi
     # Meyer 1997: eqn. 20 [also f(theta) in Johnson & Thompson 1995 eqn 9c)]
@@ -349,7 +337,7 @@ ai <- function(nuvin, skel, thetaG, thetaR,
   Ginv <- lapply(thetaG, FUN = function(x){as(solve(nuin[[x]]), "symmetricMatrix")})
   si <- modMats$nb+1
   B <- Matrix(0, nrow = modMats$ny, ncol = p, sparse = TRUE)
-  for(g in thetaG){ #FIXME assumes thetaG is same length as thetavin
+  for(g in thetaG){ #FIXME assumes thetaG is same length as nuvin
     qi <- ncol(modMats$Zg[[g]])
     ei <- si - 1 + qi
     # Meyer 1997: eqn. 20 [also f(theta) in Johnson & Thompson 1995 eqn 9c)]
