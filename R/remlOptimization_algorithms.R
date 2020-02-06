@@ -210,7 +210,8 @@ em <- function(nuvin, thetaG, thetaR,
   for(g in rev(thetaG)){
     qi <- ncol(modMats$Zg[[g]])
     si <- ei - qi + 1
-    # note the trace of a product is equal to the sum of the element-by-element product
+    # Note: trace of a product == the sum of the element-by-element product
+    ## Consequently, don't have to make `Cinv`, just diagonals
 #XXX TODO see Knight 2008 thesis eqns 2.36 & 2.42 (and intermediates) for more generalized form of what is in Mrode (i.e., multivariate/covariance matrices instead of single varcomps)
 ##XXX eqn. 2.44 is the score/gradient! for a varcomp
     trace <- 0
@@ -230,13 +231,13 @@ em <- function(nuvin, thetaG, thetaR,
         }  #<-- end for k
       }  #<-- end if/else ndgeninv
     #TODO check `*tail(nuv,1)` correctly handles models with covariance matrices
-    nuvin[g] <- as(as(matrix((o + trace*tail(nuvin, 1)) / qi),
+browser()
+    nuvin[g] <- as(as(matrix((o + trace) / qi),  #XXX was `trace*tail(nuvin,1)` 
       "symmetricMatrix"),
       "dsCMatrix")
     ei <- si-1
   }  #<-- end `for g`
 
-  #FIXME make sure `nminffx` == `ncol(X)` even when reduced rank
   nuvin[thetaR] <- crossprod(modMats$y, r) / nminffx
 
  return(structure(list(nuv = nuvin, Cinv_ii = Cinv_ii),

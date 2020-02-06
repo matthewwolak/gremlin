@@ -266,6 +266,7 @@ gremlinRmod <- function(formula, random = NULL, rcov = ~ units,
 #TODO put these with `mkModMats()` - need to figure out multivariate version/format
     # 5b log(|R|) and log(|G|) <-- Meyer 1989 (uni) & 1991 (multivar)
     # Only have to do these once per model
+  #FIXME make sure `nminffx` == `ncol(X)` even when reduced rank
     nminffx <- modMats$ny - modMats$nb
     rfxlvls <- sapply(modMats$Zg, FUN = ncol)
     nr <- if(length(rfxlvls) == 0) 0 else sum(rfxlvls)
@@ -720,6 +721,7 @@ gremlinRmod_lambda <- function(formula, random = NULL, rcov = ~ units,
 #TODO put these with `mkModMats()` - need to figure out multivariate version/format
     # 5b log(|R|) and log(|G|) <-- Meyer 1989 (uni) & 1991 (multivar)
     # Only have to do these once per model
+#FIXME make sure `nminffx` == `ncol(X)` even when reduced rank
     nminffx <- modMats$ny - modMats$nb
     rfxlvls <- sapply(modMats$Zg, FUN = ncol)
     nr <- if(length(rfxlvls) == 0) 0 else sum(rfxlvls)
