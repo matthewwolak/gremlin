@@ -1,115 +1,31 @@
 ###############################
-# reml_lambda()
+# reml()
 ###############################
 #' @rdname gremlinRmod
 #' @export
-reml_lambda <- function(nu, skel, thetaG, sLc,
-	modMats, W, tWW, Bpinv, RHS,
-	nminffx, nminfrfx, rfxlvls, rfxIncContrib2loglik){
+reml <- function(nu, skel, thetaG, sLc,
+	modMats, W, Bpinv, nminffx, nminfrfx, rfxlvls, rfxIncContrib2loglik,
+	thetaR = NULL,  #<-- non-NULL if lambda==FALSE
+	tWW = NULL, RHS = NULL){  #<-- non-NULL is lambda==TRUE
 
-  ##1c Now make coefficient matrix of MME
-  ##`sapply()` to invert G_i and multiply with ginverse element (e.g., I or geninv)
-  if(modMats$nG > 0){
-    C <- as(tWW + bdiag(c(Bpinv,
-      sapply(1:modMats$nG, FUN = function(u){kronecker(modMats$listGeninv[[u]], solve(nu[[u]]))}))), "symmetricMatrix")
-    } else C <- as(tWW + Bpinv, "symmetricMatrix")
-  ## Update symbolic factorization with variance parameters from this iteration
-  sLc <- update(sLc, C)
-
-  # 5 record log-like, check convergence, & determine next varcomps to evaluate  
-  ##5a determine log(|C|) and y'Py
-  # Boldman and Van Vleck 1991 eqn. 6 (tyPy) and 7 (log|C|)    
-  # Meyer 1997 eqn. 13 (tyPy)
-  tyPy <- crossprod(modMats$y) - crossprod(solve(sLc, RHS, system = "A"), RHS)
-  logDetC <- 2 * sum(log(sLc@x[sLc@p+1][1:sLc@Dim[[1L]]]))
-  # alternatively see `determinant` method for CHMfactor
-
-  # Residual variance
-  sigma2e <- tyPy / nminffx
-
-  # Construct the log-likelihood (Meyer 1997, eqn. 8)
-  ## (first put together as `-2log-likelihood`)
-  ## 'log(|R|)'
-  ### assumes X of full rank
-  loglik <- nminfrfx * log(sigma2e)
-
-  # 'log(|G|)'
-  #FIXME: Only works for independent random effects right now!
-  logDetGfun <- function(x){rfxlvls[x] * log(as.vector(nu[[x]]*sigma2e))}
-  loglik <- loglik + if(modMats$nG == 0){ 0
-    } else{
-        sum(sapply(seq(modMats$nG), FUN = logDetGfun)) + rfxIncContrib2loglik
-      }
-
-  ## log(|C|) + tyPy
-  ### nminffx is tyPy/sigma2e, simplified because sigma2e = tyPy / nminffx
-  ### and mulitply by -0.5 to calculate `loglik` from `-2loglik`
-  loglik <- -0.5 * (loglik + logDetC + nminffx)
-
-
-
-
-  # solve MME for BLUEs/BLUPs
-#XXX Do I need to solve for BLUEs (see Knight 2008 for just getting BLUPs eqn 2.13-15)
-  # chol2inv: Cinv in same permutation as C (not permutation of sLc/sLm)
-  #Cinv <<- chol2inv(sLc) #<-- XXX ~10x slower than `solve(C)` atleast for warcolak
-#      Cinv <<- solve(a = sLc, b = Ic, system = "A") #<-- XXX comparable speed to `solve(C)` at least for warcolak
-  #Cinv <<- solve(C)
-  ##XXX NOTE Above Cinv is in original order of C and NOT permutation of M
-
-  sln <- solve(a = sLc, b = RHS, system = "A")
-  ## Cholesky is more efficient and computationally stable
-  ### see Matrix::CHMfactor-class expand note about fill-in causing many more non-zeroes of very small magnitude to occur
-  #### see Matrix file "CHMfactor.R" method for "determinant" (note differences with half the logdet of original matrix) and the functions:
-  ##### `ldetL2up` & `destructive_Chol_update`
-
-  # calculate residuals
-  r <- modMats$y - W %*% sln
-
-
- return(structure(list(loglik = loglik@x,
-		sigma2e = sigma2e@x, tyPy = tyPy@x, logDetC = logDetC,
-		sln = sln, r = r, sLc = sLc),
-	class = "gremlin"))
-}  #<-- end `reml_lambda()` 
-
-
-################################################################################
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-###############################
-# reml() 
-###############################
-#' @rdname gremlinRmod
-#' @export
-reml <- function(nu, skel, thetaG, thetaR, sLc,
-	modMats, W, Bpinv, nminffx, nminfrfx, rfxlvls, rfxIncContrib2loglik){
   Rinv <- as(solve(nu[[thetaR]]), "symmetricMatrix")
   Ginv <- lapply(thetaG, FUN = function(x){as(solve(nu[[x]]), "symmetricMatrix")}) # Meyer 1991, p.77 (<-- also see MMA on p70/eqn4)
 
-  
   ##1c Now make coefficient matrix of MME
-  ### Rinv Kronecker with Diagonal/I
-  KRinv <- kronecker(Rinv, Diagonal(x = 1, n = modMats$Zr@Dim[[2L]]))
-  tyRinvy <- as(crossprod(modMats$y, KRinv) %*% modMats$y, "sparseMatrix")
-    #TODO: what to do if y is multivariate (still just 1 column, so D just 1 number?
-    ### Components of Meyer 1989 eqn 2
-    tWKRinv <- crossprod(W, KRinv)
-    tWKRinvW <- tWKRinv %*% W  
+  if(lambda){
+    tWKRinvW <- tWW  #<-- if lambda, data "quadratic" with R factored out
+  } else{
+      ### Rinv Kronecker with Diagonal/I
+      KRinv <- kronecker(Rinv, Diagonal(x = 1, n = modMats$Zr@Dim[[2L]]))
+      tyRinvy <- as(crossprod(modMats$y, KRinv) %*% modMats$y, "sparseMatrix")
+        ### Components of Meyer 1989 eqn 2
+        tWKRinv <- crossprod(W, KRinv)
+        tWKRinvW <- tWKRinv %*% W  
+      RHS <- Matrix(tWKRinv %*% modMats$y, sparse = TRUE)
+       ## Meyer '97 eqn 11
+       ### (Note different order of RHS from Meyer '89 eqn 6; Meyer '91 eqn 4)
+    }
+
   ##`sapply()` to multiply inverse G_i with ginverse element (e.g., I or geninv)
   if(modMats$nG > 0){
     C <- as(tWKRinvW + bdiag(c(Bpinv,
@@ -132,35 +48,48 @@ reml <- function(nu, skel, thetaG, thetaR, sLc,
     sLc <- Cholesky(C, perm = TRUE, LDL = FALSE, super = FALSE)
     # original order obtained by: t(P) %*% L %*% P or `crossprod(P, L) %*% P`
   } else sLc <- update(sLc, C)
-  RHS <- Matrix(tWKRinv %*% modMats$y, sparse = TRUE)
-    ## Meyer '97 eqn 11
-    ### (Note different order of RHS from Meyer '89 eqn 6; Meyer '91 eqn 4)
+
 
   # 5 record log-like, check convergence, & determine next varcomps to evaluate  
   ##5a determine log(|C|) and y'Py
   # Boldman and Van Vleck 1991 eqn. 6 (tyPy) and 7 (log|C|)    
   # Meyer 1997 eqn. 13 (tyPy)
-  tyPy <- tyRinvy - crossprod(solve(sLc, RHS, system = "A"), RHS)
+  if(lambda){
+    tyPy <- crossprod(modMats$y) - crossprod(solve(sLc, RHS, system = "A"), RHS)
+  } else tyPy <- tyRinvy - crossprod(solve(sLc, RHS, system = "A"), RHS)
   logDetC <- 2 * sum(log(sLc@x[sLc@p+1][1:sLc@Dim[[1L]]]))
   # alternatively see `determinant` method for CHMfactor
 
+  # Factored out residual variance (only for lambda scale)
+  sigma2e <- if(lambda) tyPy / nminffx else NA
+
   # Construct the log-likelihood (Meyer 1997, eqn. 8)
   ## (first put together as `-2log-likelihood`)
-  ## 'log(|R|)' Meyer 1997 eqn. 10
+  ## 'log(|R|)'
   ### assumes X of full rank
-  loglik <- modMats$ny * log(nu[[thetaR]])
+  if(lambda){
+    loglik <- nminfrfx * log(sigma2e)
+  } else{
+      #  Meyer 1997 eqn. 10
+      loglik <- modMats$ny * log(nu[[thetaR]])
+    }
 
-  ## 'log(|G|)' Meyer 1997 eqn. 9
+  ## 'log(|G|)'
   #FIXME: Only works for independent random effects right now!
-  logDetGfun <- function(x){rfxlvls[x] * log(as.vector(nu[[x]]))}
-  loglik <- loglik + if(modMats$nG == 0){ 0
-    } else{
-        sum(sapply(seq(modMats$nG), FUN = logDetGfun)) + rfxIncContrib2loglik
-      }
+  if(lambda){
+    logDetGfun <- function(x){rfxlvls[x] * log(as.vector(nu[[x]]*sigma2e))}
+  } else{
+      # Meyer 1997 eqn. 9
+      logDetGfun <- function(x){rfxlvls[x] * log(as.vector(nu[[x]]))}
+    }
+  if(modMats$nG != 0){
+    loglik <- loglik + sum(sapply(seq(modMats$nG), FUN = logDetGfun)) + rfxIncContrib2loglik
+  }
 
   ## log(|C|) + tyPy
+  ### if `lambda` then nminffx=tyPy/sigma2e, simplified because sigma2e=tyPy/nminffx
   ### and mulitply by -0.5 to calculate `loglik` from `-2loglik`
-  loglik <- -0.5 * (loglik + logDetC + tyPy)
+  loglik <- -0.5 * (loglik + logDetC + if(lambda) nminffx else tyPy)
 
 
 
@@ -183,7 +112,8 @@ reml <- function(nu, skel, thetaG, thetaR, sLc,
   r <- modMats$y - W %*% sln
 
  return(structure(list(loglik = loglik@x,
-		sigma2e = 1, tyPy = tyPy@x, logDetC = logDetC,
+		sigma2e = if(lambda) sigma2e@x else NA,
+		tyPy = tyPy@x, logDetC = logDetC,
 		sln = sln, r = r, sLc = sLc),
 	class = "gremlin"))
 }  #<-- end `reml()` 

@@ -319,15 +319,18 @@ lambda <- length(thetaR) == 1
     stItTime <- Sys.time()
 
     if(lambda){
-      remlOut <- reml_lambda(nu, skel, thetaG, sLc,
-	modMats, W, tWW, Bpinv, RHS,
-        nminffx, nminfrfx, rfxlvls, rfxIncContrib2loglik)
+      remlOut <- reml(nu, skel, thetaG, sLc,
+	modMats, W, Bpinv, nminffx, nminfrfx, rfxlvls, rfxIncContrib2loglik,
+	thetaR = NULL,
+	tWW, RHS)
     } else{
-        remlOut <- reml(nu, skel, thetaG, thetaR, sLc,
-	  modMats, W, Bpinv, nminffx, nminfrfx, rfxlvls, rfxIncContrib2loglik)
+        remlOut <- reml(nu, skel, thetaG, sLc,
+	  modMats, W, Bpinv, nminffx, nminfrfx, rfxlvls, rfxIncContrib2loglik.
+	  thetaR,
+	  tWW = NULL, RHS = NULL)
       }  #<-- end if/else lambda
       nuv <- sapply(nu, FUN = slot, name = "x")
-      sigma2e[] <- if(lambda) remlOut$sigma2e else NA
+      sigma2e[] <- remlOut$sigma2e
       sln <- remlOut$sln
       r <- remlOut$r
       sLc <- remlOut$sLc #TODO to use `update()` need to return `C` in `remlOut`
@@ -438,7 +441,6 @@ if(nrow(theta[[thetaR]]) != 1){
 stop("Not allowing `minqa::bobyqa()` right now")
 #        if(v > 1 && vitout == 0) cat("Switching to `minqa::bobyqa()`\n")
 #FIXME lower bounds if not transformed!
-#TODO below make bobyout use `reml_lambda()` if lambda==TRUE
 #        bobyout <- bobyqa(par = nuv, fn = function(x) -1*reml(x, skel), lower = ezero,
 #		control = list(iprint = v, maxfun = maxit))
 #        with(bobyout, cat("\t", msg, "after", feval, "iterations and with code:", ierr, "(0 desired)\n"))
@@ -455,21 +457,18 @@ stop("Not allowing `minqa::bobyqa()` right now")
       if(algit[i] == "NR"){
         if(v > 1 && vitout == 0) cat("\tNR to find next theta\n")
 #        gr <- gradFun(nuv, thetaG, thetaR, modMats, Cinv, nminfrfx, sln, r)
-#TODO below make hessian and numDeriv::genD use `reml_lambda()` if lambda==TRUE
 #        H <- hessian(func = reml, x = nuv, skel = skel) 
 #tmp <- numDeriv::genD(func = reml, x = nuv, skel = skel)
 #FIXME instead of `solve(H)` can I solve linear equations to give product of inverse and grad?
 #        nuvout <- nuv - solve(H) %*% gr
 #        nuout <- vech2matlist(nuvout, skel) 
 #TODO change itnmax to correspond with algit
-#TODO below make optimx use `reml_lambda()` if lambda==TRUE
 #tmp <- optimx(par = nuv, fn = function(x) reml(x, skel), grad = gradFun, hess = NULL,
 #	lower = 0,
 #	method = "L-BFGS-B",
 #	itnmax = maxit, hessian = TRUE,
 #	control = list(maximize = FALSE, trace = v))
       }
-#TODO below make optim use `reml_lambda()` if lambda==TRUE
 #        nuvout <- optim(par = nuv, fn = reml, hessian = TRUE, method = "BFGS", skel = skel)
 #        nuout <- vech2matlist(nuvout, skel) 
     }
