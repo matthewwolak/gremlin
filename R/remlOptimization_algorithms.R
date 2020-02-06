@@ -231,7 +231,6 @@ em <- function(nuvin, thetaG, thetaR,
         }  #<-- end for k
       }  #<-- end if/else ndgeninv
     #TODO check `*tail(nuv,1)` correctly handles models with covariance matrices
-browser()
     nuvin[g] <- as(as(matrix((o + trace) / qi),  #XXX was `trace*tail(nuvin,1)` 
       "symmetricMatrix"),
       "dsCMatrix")
