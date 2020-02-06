@@ -115,9 +115,26 @@ reml <- function(nu, skel, thetaG, thetaR, sLc,
     C <- as(tWKRinvW + bdiag(c(Bpinv,
       sapply(1:modMats$nG, FUN = function(u){kronecker(modMats$listGeninv[[u]], Ginv[[u]])}))), "symmetricMatrix")
   } else C <- as(tWKRinvW + Bpinv, "symmetricMatrix")
-  ## Update symbolic factorization with variance parameters from this iteration
-  sLc <- update(sLc, C)
+  ## Make/Update symbolic factorization with variance parameters from this iteration
+  if(is.null(sLc)){
+    ##1d Find best order of MMA/C/pivots!
+    # Graser et al. 1987 (p1363) when singular C, |C| not invariant to order
+    ##of C, therefore same order (of pivots) must be used in each loglik iteration
+    ## Hadfield (2010, MCMCglmm paper App B): details on chol(), ordering, and updating
+    # supernodal decomposition FALSE
+    ## ?Cholesky documentation demos simplicial smaller sized object/more sparse
+    ### However, tested `warcolak` trait1 with VA and VD univariate model
+    #### `super = FALSE` faster and smaller than when `super = TRUE`
+#if(any(eigen(C)$values < 0)) cat(which(eigen(C)$values < 0), "\n") #FIXME
+    #TODO test if super=TRUE better
+    ## supernodal might be better as coefficient matrix (C) becomes more dense
+    #### e.g., with a genomic relatedness matrix (see Masuda et al. 2014 & 2015)
+    sLc <- Cholesky(C, perm = TRUE, LDL = FALSE, super = FALSE)
+    # original order obtained by: t(P) %*% L %*% P or `crossprod(P, L) %*% P`
+  } else sLc <- update(sLc, C)
   RHS <- Matrix(tWKRinv %*% modMats$y, sparse = TRUE)
+    ## Meyer '97 eqn 11
+    ### (Note different order of RHS from Meyer '89 eqn 6; Meyer '91 eqn 4)
 
   # 5 record log-like, check convergence, & determine next varcomps to evaluate  
   ##5a determine log(|C|) and y'Py
