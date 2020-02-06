@@ -176,7 +176,7 @@ gremlinRmod <- function(formula, random = NULL, rcov = ~ units,
         	R = log(chol(theta$R)))
     #TODO FIXME when converting back, do exp() of just diagonals
     nu2theta <- function(nu){
-	list(G = lapply(nu[[1L]], FUN = function(x){exp(crossprod(x))},
+	list(G = lapply(nu[[1L]], FUN = function(x){exp(crossprod(x))}),
 	     R = exp(crossprod(nu[[2L]])))
     }
   } else{
@@ -227,8 +227,6 @@ gremlinRmod <- function(formula, random = NULL, rcov = ~ units,
     r <- matrix(0, nrow = modMats$ny, ncol = 1)
 
 
-    # transform starting parameters to 'nu' scale
-    ## cholesky of covariance matrices, then take log of transformed diagonals
     Rinv <- as(solve(nu[[thetaR]]), "symmetricMatrix")
     Ginv <- lapply(thetaG, FUN = function(x){as(solve(nu[[x]]), "symmetricMatrix")}) # Meyer 1991, p.77 (<-- also see MMA on p70/eqn4)
   
@@ -321,10 +319,9 @@ gremlinRmod <- function(formula, random = NULL, rcov = ~ units,
 	format(Sys.time(), "%H:%M:%S"), "\n")
     }
     stItTime <- Sys.time()
-    nuv <- sapply(nu, FUN = slot, name = "x")
-    remlOut <- reml(nuv, skel, thetaG, thetaR, sLc,
+    remlOut <- reml(nu, skel, thetaG, thetaR, sLc,
 	modMats, W, Bpinv, nminffx, nminfrfx, rfxlvls, rfxIncContrib2loglik)
-      nuv <- remlOut$nuv
+      nuv <- sapply(nu, FUN = slot, name = "x")
       sln <- remlOut$sln
       r <- remlOut$r
       sLc <- remlOut$sLc #TODO to use `update()` need to return `C` in `remlOut`
@@ -525,7 +522,7 @@ stop("Not allowing `minqa::bobyqa()` right now")
 		AI = AI, dLdnu = dLdnu),
 	class = "gremlin",
 	startTime = startTime, endTime = endTime))
-}
+}  #<-- end `gremlinRmod()`
 ################################################################################
 
 
@@ -629,16 +626,28 @@ gremlinRmod_lambda <- function(formula, random = NULL, rcov = ~ units,
   transform <- FALSE
   if(transform){ 
     #TODO FIXME need to take log of just diagonals
+    #TODO also convert to lambda scale
     nu <- list(G = lapply(theta$G, FUN = function(x){log(chol(x))}),
         	R = log(chol(theta$R)))
     #TODO FIXME when converting back, do exp() of just diagonals
+    #TODO also back-convert from lambda scale
     nu2theta <- function(nu){
-	list(G = lapply(nu[[1L]], FUN = function(x){exp(crossprod(x))},
+	list(G = lapply(nu[[1L]], FUN = function(x){exp(crossprod(x))}),
 	     R = exp(crossprod(nu[[2L]])))
     }
   } else{
       nu <- theta
-      nu2theta <- function(nu) nu #TODO FIXME
+      cRinv <- solve(chol(theta[[thetaR]]))
+      nu[thetaG] <- lapply(thetaG, FUN = function(x){as(crossprod(cRinv, nu[[x]]) %*% cRinv, "symmetricMatrix")}) # Meyer 1991, p.77 (<-- ?p70/eqn4?)
+      #TODO what to do if R is a matrix
+      nu[[thetaR]] <- as(crossprod(cRinv, nu[[thetaR]]) %*% cRinv, "symmetricMatrix")
+      nu2theta <- function(nu, sigma2e){ #TODO FIXME
+        cR <- chol(matrix(sigma2e))
+        theta <- nu
+        theta[thetaG] <- lapply(thetaG, FUN = function(x){as(crossprod(cR, nu[[x]]) %*% cR, "symmetricMatrix")})
+        theta[[thetaR]] <- as(crossprod(cR, nu[[thetaR]]) %*% cR, "symmetricMatrix")
+       return(theta)
+      }
     }
 
 
@@ -682,19 +691,13 @@ gremlinRmod_lambda <- function(formula, random = NULL, rcov = ~ units,
 	FUN = function(g){slot(modMats$Zg[[g]], "Dim")})
     sln <- Cinv_ii <- matrix(0, nrow = modMats$nb + sum(dimsZg[2, ]), ncol = 1)
     r <- matrix(0, nrow = modMats$ny, ncol = 1)
-
-
     tWW <- crossprod(W)
-    # transform starting parameters to 'nu' scale
-    ## cholesky of covariance matrices, then take log of transformed diagonals
-    cRinv <- solve(chol(nu[[thetaR]]))
-    Ginv <- lapply(thetaG, FUN = function(x){as(crossprod(cRinv, nu[[x]]) %*% cRinv, "symmetricMatrix")}) # Meyer 1991, p.77 (<-- ?p70/eqn4?)
-  
+
     ##1c Now make coefficient matrix of MME
     ##`sapply()` to invert G_i and multiply with ginverse element (e.g., I or geninv)
     if(modMats$nG > 0){
       C <- as(tWW + bdiag(c(Bpinv,
-	sapply(1:modMats$nG, FUN = function(u){kronecker(modMats$listGeninv[[u]], solve(Ginv[[u]]))}))), "symmetricMatrix")
+	sapply(1:modMats$nG, FUN = function(u){kronecker(modMats$listGeninv[[u]], solve(nu[[u]]))}))), "symmetricMatrix")
     } else C <- as(tWW + Bpinv, "symmetricMatrix")
 
     RHS <- Matrix(crossprod(W, modMats$y), sparse = TRUE)  # <-- Same every iteration
@@ -772,16 +775,15 @@ gremlinRmod_lambda <- function(formula, random = NULL, rcov = ~ units,
 	format(Sys.time(), "%H:%M:%S"), "\n")
     }
     stItTime <- Sys.time()
-    nuv <- sapply(nu, FUN = slot, name = "x")
-    remlOut <- reml_lambda(nuv, skel, thetaG, thetaR, sLc,
+    remlOut <- reml_lambda(nu, skel, thetaG, sLc,
 	modMats, W, tWW, Bpinv, RHS,
 	nminffx, nminfrfx, rfxlvls, rfxIncContrib2loglik)
-      nuv <- remlOut$nuv
+      nuv <- sapply(nu, FUN = slot, name = "x")
       sigma2e[] <- remlOut$sigma2e
       sln <- remlOut$sln
       r <- remlOut$r
       sLc <- remlOut$sLc #TODO to use `update()` need to return `C` in `remlOut`
-    itMat[i, -ncol(itMat)] <- c(nuv, sapply(nu2theta(nu), FUN = slot, name = "x"),
+    itMat[i, -ncol(itMat)] <- c(nuv, sapply(nu2theta(nu, sigma2e), FUN = slot, name = "x"),
       sigma2e, remlOut$tyPy, remlOut$logDetC, remlOut$loglik) 
     # 5c check convergence criteria
     ## Knight 2008 (ch. 6) says Searle et al. 1992 and Longford 1993 discuss diff types of converg. crit.
@@ -824,7 +826,7 @@ if(nrow(theta[[thetaR]]) != 1){
 }
         Cinv <- solve(a = sLc, b = Ic, system = "A")
         Cinv_ii <- diag(Cinv)
-        aiout <- ai_lambda(nuv, skel, thetaG, thetaR, sigma2e,
+        aiout <- ai_lambda(nuv, skel, thetaG, sigma2e,
         		modMats, W, sLc, sln, r)
         AI <- aiout$AI
 	AIinv <- solve(AI)
@@ -871,7 +873,8 @@ if(nrow(theta[[thetaR]]) != 1){
             }
           }  #<-- end else AI can be inverted
 
-        nuout <- vech2matlist(nuvout, skel)      
+        nuvout[thetaR] <- nuv[thetaR] #<--keep R=1, factored out      
+        nuout <- vech2matlist(nuvout, skel)
       }  #<-- end if algorithm is "AI"
 
       if(algit[i] == "bobyqa"){
@@ -949,7 +952,7 @@ stop("Not allowing `minqa::bobyqa()` right now")
   itMat <- itMat[1:i, , drop = FALSE]
     rownames(itMat) <- paste(seq(i), algit[1:i], sep = "-")
   dimnames(AI) <- list(rownames(dLdnu), rownames(dLdnu))
-  theta <- nu2theta(nu)
+  theta <- nu2theta(nu, sigma2e)
     thetav <- sapply(theta, FUN = slot, name = "x") 
 
 
@@ -978,7 +981,7 @@ stop("Not allowing `minqa::bobyqa()` right now")
 		AI = AI, dLdnu = dLdnu),
 	class = "gremlin",
 	startTime = startTime, endTime = endTime))
-}
+}  #<-- end `gremlinRmod_lambda()`
 
 
 

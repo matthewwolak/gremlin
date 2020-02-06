@@ -3,15 +3,9 @@
 ###############################
 #' @rdname gremlinRmod
 #' @export
-reml_lambda <- function(nuv, skel, thetaG, thetaR, sLc,
+reml_lambda <- function(nu, skel, thetaG, sLc,
 	modMats, W, tWW, Bpinv, RHS,
 	nminffx, nminfrfx, rfxlvls, rfxIncContrib2loglik){
-  nu <- vech2matlist(nuv, skel)
-  cRinv <- solve(chol(nu[[thetaR]]))
-  #TODO what to do when R is a matrix
-  nu[[thetaR]] <- as(crossprod(cRinv, nu[[thetaR]]) %*% cRinv, "symmetricMatrix")
-  nu[thetaG] <- lapply(thetaG, FUN = function(x){as(crossprod(cRinv, nu[[x]]) %*% cRinv, "symmetricMatrix")}) # Meyer 1991, p.77 (<-- ?p70/eqn4?)
-  
 
   ##1c Now make coefficient matrix of MME
   ##`sapply()` to invert G_i and multiply with ginverse element (e.g., I or geninv)
@@ -72,10 +66,8 @@ reml_lambda <- function(nuv, skel, thetaG, thetaR, sLc,
   # calculate residuals
   r <- modMats$y - W %*% sln
 
-  # vectorize variance ratios
-  nuv <- sapply(nu, FUN = slot, name = "x")
 
- return(structure(list(nuv = nuv, loglik = loglik@x,
+ return(structure(list(loglik = loglik@x,
 		sigma2e = sigma2e@x, tyPy = tyPy@x, logDetC = logDetC,
 		sln = sln, r = r, sLc = sLc),
 	class = "gremlin"))
@@ -104,9 +96,8 @@ reml_lambda <- function(nuv, skel, thetaG, thetaR, sLc,
 ###############################
 #' @rdname gremlinRmod
 #' @export
-reml <- function(nuv, skel, thetaG, thetaR, sLc,
+reml <- function(nu, skel, thetaG, thetaR, sLc,
 	modMats, W, Bpinv, nminffx, nminfrfx, rfxlvls, rfxIncContrib2loglik){
-  nu <- vech2matlist(nuv, skel)
   Rinv <- as(solve(nu[[thetaR]]), "symmetricMatrix")
   Ginv <- lapply(thetaG, FUN = function(x){as(solve(nu[[x]]), "symmetricMatrix")}) # Meyer 1991, p.77 (<-- also see MMA on p70/eqn4)
 
@@ -174,10 +165,7 @@ reml <- function(nuv, skel, thetaG, thetaR, sLc,
   # calculate residuals
   r <- modMats$y - W %*% sln
 
-  # vectorize transformed (co)variance parameters
-  nuv <- sapply(nu, FUN = slot, name = "x")
-
- return(structure(list(nuv = nuv, loglik = loglik@x,
+ return(structure(list(loglik = loglik@x,
 		sigma2e = 1, tyPy = tyPy@x, logDetC = logDetC,
 		sln = sln, r = r, sLc = sLc),
 	class = "gremlin"))
@@ -276,7 +264,7 @@ em <- function(nuvin, thetaG, thetaR,
 #Meyer 1996:
 ## Likelihood eqn 3 <--> log determinants
 #XXX `ai_lambda()` used for when Rinv HAS BEEN FACTORED OUT of MME
-ai_lambda <- function(nuvin, skel, thetaG, thetaR, sigma2e,
+ai_lambda <- function(nuvin, skel, thetaG, sigma2e,
 		   modMats, W, sLc, sln, r){
   p <- length(nuvin)
   nuin <- vech2matlist(nuvin, skel)
@@ -308,7 +296,7 @@ ai_lambda <- function(nuvin, skel, thetaG, thetaR, sigma2e,
 
  return(structure(list(AI = as(AI, "matrix")),
 	class = "gremlin"))
-}
+}  #<-- end `ai_lambda()`
 ################################################################################    
 
 
@@ -364,7 +352,7 @@ ai <- function(nuvin, skel, thetaG, thetaR,
 
  return(structure(list(AI = as(AI, "matrix")),
 	class = "gremlin"))
-}
+}  #<-- end `ai()`
 ################################################################################    
 
 
