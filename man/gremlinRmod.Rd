@@ -3,13 +3,9 @@
 %   R/remlOptimization_algorithms.R
 \name{gremlinRmod}
 \alias{gremlinRmod}
-\alias{gremlinRmod_lambda}
-\alias{reml_lambda}
 \alias{reml}
 \alias{em}
-\alias{ai_lambda}
 \alias{ai}
-\alias{gradFun_lambda}
 \alias{gradFun}
 \title{Modular mixed-effect modeling functions.}
 \usage{
@@ -17,25 +13,16 @@ gremlinRmod(formula, random = NULL, rcov = ~units, data = NULL,
   ginverse = NULL, Gstart = NULL, Rstart = NULL, Bp = NULL,
   maxit = 20, algit = NULL, vit = 10, v = 1, ...)
 
-gremlinRmod_lambda(formula, random = NULL, rcov = ~units,
-  data = NULL, ginverse = NULL, Gstart = NULL, Rstart = NULL,
-  Bp = NULL, maxit = 20, algit = NULL, vit = 10, v = 1, ...)
+reml(nu, skel, thetaG, sLc, modMats, W, Bpinv, nminffx, nminfrfx, rfxlvls,
+  rfxIncContrib2loglik, thetaR = NULL, tWW = NULL, RHS = NULL)
 
-reml_lambda(thetav, skel, thetaG, thetaR, sLc, modMats, W, tWW, Bpinv, RHS,
-  nminffx, nminfrfx, rfxlvls, rfxIncContrib2loglik)
+em(nuvin, thetaG, thetaR, modMats, nminffx, sLc, ndgeninv, sln, r)
 
-reml(thetav, skel, thetaG, thetaR, sLc, modMats, W, Bpinv, nminffx,
-  nminfrfx, rfxlvls, rfxIncContrib2loglik)
+ai(nuvin, skel, thetaG, modMats, W, sLc, sln, r, thetaR = NULL,
+  sigma2e = NULL)
 
-em(thetain, thetaG, thetaR, modMats, nminffx, sLc, ndgeninv, sln, r)
-
-ai_lambda(nuvin, skel, thetaG, thetaR, sigma2e, modMats, W, sLc, sln, r)
-
-ai(nuvin, skel, thetaG, thetaR, modMats, W, sLc, sln, r)
-
-gradFun_lambda(nuvin, thetaG, modMats, Cinv, sln, sigma2e)
-
-gradFun(nuvin, thetaG, modMats, Cinv, nminfrfx, sln, r)
+gradFun(nuvin, thetaG, modMats, Cinv, sln, sigma2e = NULL, r = NULL,
+  nminfrfx = NULL)
 }
 \arguments{
 \item{formula}{A \code{formula} for the response variable and fixed effects.}
@@ -78,10 +65,6 @@ larger values increase the amount of information printed on the screen.}
 
 \item{\dots}{Additional arguments to be passed to control the model fitting.}
 
-\item{thetav, thetavin, skel}{variance component parameters or structure on
-which to evaluate a model likelihood or derivatives of the likelihood with
-respect to these parameters}
-
 \item{subset}{An expression for the subset of \code{data} to use.}
 
 \item{na.action}{What to do with NAs.}
@@ -92,6 +75,10 @@ respect to these parameters}
 
 \item{Xsparse}{Should sparse matrices be used for the fixed effects design
 matrix.}
+
+\item{thetav, thetavin, skel}{variance component parameters or structure on
+which to evaluate a model likelihood or derivatives of the likelihood with
+respect to these parameters}
 }
 \value{
 A \code{list} of class \code{gremlin} or \code{gremlinModMats}:

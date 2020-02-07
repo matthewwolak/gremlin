@@ -325,7 +325,7 @@ lambda <- length(thetaR) == 1
 	tWW, RHS)
     } else{
         remlOut <- reml(nu, skel, thetaG, sLc,
-	  modMats, W, Bpinv, nminffx, nminfrfx, rfxlvls, rfxIncContrib2loglik.
+	  modMats, W, Bpinv, nminffx, nminfrfx, rfxlvls, rfxIncContrib2loglik,
 	  thetaR,
 	  tWW = NULL, RHS = NULL)
       }  #<-- end if/else lambda
@@ -390,8 +390,8 @@ if(nrow(theta[[thetaR]]) != 1){
         } else{
             aiout <- ai(nuv, skel, thetaG,
         		modMats, W, sLc, sln, r,
-	  		     thetaR,   #<-- non-NULL if lambda==FALSE
-		             sigma2e = NULL)
+                        thetaR,   #<-- non-NULL if lambda==FALSE
+		        sigma2e = NULL)
             dLdnu <- gradFun(nuv, thetaG, modMats, Cinv, sln,
   	      sigma2e = NULL, r, nminfrfx)
           }
