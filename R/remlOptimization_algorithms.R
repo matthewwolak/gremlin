@@ -316,10 +316,12 @@ ai <- function(nuvin, skel, thetaG, thetaR,
 gradFun <- function(nuvin, thetaG, modMats, Cinv, sln,
 	sigma2e = NULL,   #<-- non-NULL if lambda==TRUE
 	r = NULL, nminfrfx = NULL){  #<-- non-NULL if lambda==FALSE
+
+  lambda <- is.null(r)  #<-- lambda scale model
   p <- length(nuvin)
   dLdnu <- matrix(NA, nrow = p, ncol = 1, dimnames = list(names(nuvin), NULL))
   # tee = e'e
-  if(is.null(sigma2e)) tee <- crossprod(r)
+  if(!lambda) tee <- crossprod(r)
 
   # `trCinvGeninv_gg` = trace[Cinv_gg %*% geninv_gg]
   # `tugug` = t(u_gg) %*% geninv_gg %*% u_gg
@@ -355,21 +357,22 @@ gradFun <- function(nuvin, thetaG, modMats, Cinv, sln,
   }  #<-- end `for g in thetaG`
 
   # First derivatives (gradient/score)
-  if(is.null(sigma2e)){  #<-- when NOT on lambda scale
-    ## Johnson and Thompson 1995 eqn 9b
-#FIXME change `[p]` below to be number of residual (co)variances
-    dLdnu[p] <- (nminfrfx / tail(nuvin, 1)) - (tee / tail(nuvin, 1)^2)
+  if(lambda){
     for(g in thetaG){
-      dLdnu[p] <- dLdnu[p] + (1 / tail(nuvin, 1)) * (trCinvGeninv_gg[[g]] /nuvin[g]) 
-      # Johnson and Thompson 1995 eqn 9a and 10a
-      dLdnu[g] <- (ncol(modMats$Zg[[g]]) / nuvin[g]) - (1 / nuvin[g]^2) * (trCinvGeninv_gg[[g]] + tugug[[g]])
+      # Johnson and Thompson 1995 Appendix 2 eqn B3 and eqn 9a and 10a
+      dLdnu[g] <- (ncol(modMats$Zg[[g]]) / nuvin[g]) - (1 / nuvin[g]^2) * (trCinvGeninv_gg[[g]] + tugug[[g]] / sigma2e)
     }  #<-- end for g
-  } else{  #<-- else when lambda scale
+
+  } else{  #<-- else when NOT lambda scale
+      ## Johnson and Thompson 1995 eqn 9b
+#FIXME change `[p]` below to be number of residual (co)variances
+      dLdnu[p] <- (nminfrfx / tail(nuvin, 1)) - (tee / tail(nuvin, 1)^2)
       for(g in thetaG){
-        # Johnson and Thompson 1995 Appendix 2 eqn B3 and eqn 9a and 10a
-        dLdnu[g] <- (ncol(modMats$Zg[[g]]) / nuvin[g]) - (1 / nuvin[g]^2) * (trCinvGeninv_gg[[g]] + tugug[[g]] / sigma2e)
+        dLdnu[p] <- dLdnu[p] + (1 / tail(nuvin, 1)) * (trCinvGeninv_gg[[g]] /nuvin[g]) 
+        # Johnson and Thompson 1995 eqn 9a and 10a
+        dLdnu[g] <- (ncol(modMats$Zg[[g]]) / nuvin[g]) - (1 / nuvin[g]^2) * (trCinvGeninv_gg[[g]] + tugug[[g]])
       }  #<-- end for g
-  }
+    }
     
  # Johnson and Thompson 1995 don't use -0.5, because likelihood is -2 log likelihood
  ## see `-2` on left-hand side of Johnson & Thompson eqn 3
