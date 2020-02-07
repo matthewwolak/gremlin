@@ -46,11 +46,11 @@
 #'   instead of parameters above:
 #'   \describe{
 #'     \item{loglik }{The REML log-likelihood.}
-#'     \item{tyPy.logDetC }{Components of the REML log-likelihood derived from the 
+#'     \item{tyPy,logDetC }{Components of the REML log-likelihood derived from the 
 #'       Cholesky factor of the Coefficient matrix to the Mixed Model Equations.}
 #'     \item{Cinv_ii }{A vector containing the diagonal elements of the inverse
 #'       of the Coefficient matrix to the Mixed Model Equations (i.e., the
-#'       diagonal entries of \code{Cinv}).
+#'       diagonal entries of \code{Cinv}).}
 #'     \item{AI }{A \code{matrix} of values containing the Average Information
 #'       matrix, or second partial derivatives of the likelihood with respect to
 #'       the transformed (co)variance components (nu). The inverse of this matrix
