@@ -9,7 +9,8 @@ reml <- function(nu, skel, thetaG, sLc,
 	tWW = NULL, RHS = NULL){  #<-- non-NULL is lambda==TRUE
 
   lambda <- is.null(thetaR)
-  Rinv <- as(solve(nu[[thetaR]]), "symmetricMatrix")
+  #FIXME `[[thetaG+1]]` is just a kluge below: check when/if have > R matrices
+  Rinv <- as(solve(nu[[length(thetaG)+1]]), "symmetricMatrix")
   Ginv <- lapply(thetaG, FUN = function(x){as(solve(nu[[x]]), "symmetricMatrix")}) # Meyer 1991, p.77 (<-- also see MMA on p70/eqn4)
 
   ##1c Now make coefficient matrix of MME
@@ -241,7 +242,7 @@ ai <- function(nuvin, skel, thetaG,
   #FIXME TODO Check what to do if more than 1 residual variance parameter
   if(g < p){
     if(lambda){
-      B[, p] <- moMats$y %*% Rinv
+      B[, p] <- modMats$y %*% Rinv
     } else{
         B[, p] <- r %*% Rinv
       }
@@ -261,7 +262,7 @@ ai <- function(nuvin, skel, thetaG,
   ### Meyer 1997 eqns 22-23 (extends Johnson & Thompson 1995 eqns 8,9b,9c)
   tBPB <- tBRinvB - crossprod(solve(sLc, BRHS, system = "A"), BRHS)
   AI <- 0.5 * tBPB 
-  if(lambda) AI / sigma2e
+  if(lambda) AI <- AI / sigma2e
 
  return(structure(list(AI = as(AI, "matrix")),
 	class = "gremlin"))
@@ -284,7 +285,7 @@ gradFun <- function(nuvin, thetaG, modMats, Cinv, sln,
 
   lambda <- is.null(r)  #<-- lambda scale model
   p <- length(nuvin)
-  dLdnu <- matrix(NA, nrow = p, ncol = 1, dimnames = list(names(nuvin), NULL))
+  dLdnu <- matrix(0, nrow = p, ncol = 1, dimnames = list(names(nuvin), NULL))
   # tee = e'e
   if(!lambda) tee <- crossprod(r)
 

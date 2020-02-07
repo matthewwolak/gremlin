@@ -271,6 +271,7 @@ lambda <- length(thetaR) == 1
       RHS <- Matrix(crossprod(W, modMats$y), sparse = TRUE)  # <-- Same every iteration
     } else tWW <- RHS <- NULL
     sLc <- NULL  #<-- initialize NULL and will generate vs. update if is.null()
+    Ic <- Diagonal(x = 1, n = nrow(Cinv_ii))
 
 #TODO put these with `mkModMats()` - need to figure out multivariate version/format
     # 5b log(|R|) and log(|G|) <-- Meyer 1989 (uni) & 1991 (multivar)
