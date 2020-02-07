@@ -211,12 +211,20 @@ em <- function(nuvin, thetaG, thetaR,
 #' @export
 #Meyer 1996:
 ## Likelihood eqn 3 <--> log determinants
-#XXX `ai_lambda()` used for when Rinv HAS BEEN FACTORED OUT of MME
-ai_lambda <- function(nuvin, skel, thetaG, sigma2e,
-		   modMats, W, sLc, sln, r){
+ai <- function(nuvin, skel, thetaG,
+		   modMats, W, sLc, sln, r,
+		   thetaR = NULL,  #<-- non-NULL if lambda==FALSE
+		   sigma2e = NULL){  #<-- non-NULL if lambda==TRUE
+
+  lambda <- is.null(thetaR)
   p <- length(nuvin)
   nuin <- vech2matlist(nuvin, skel)
-  Rinv <- as(solve(matrix(sigma2e)), "symmetricMatrix")
+
+  if(lambda){
+    Rinv <- as(solve(matrix(sigma2e)), "symmetricMatrix")
+  } else{
+      Rinv <- as(solve(nuin[[thetaR]]), "symmetricMatrix")
+    }
   Ginv <- lapply(thetaG, FUN = function(x){as(solve(nuin[[x]]), "symmetricMatrix")})
   si <- modMats$nb+1
   B <- Matrix(0, nrow = modMats$ny, ncol = p, sparse = TRUE)
@@ -232,71 +240,28 @@ ai_lambda <- function(nuvin, skel, thetaG, sigma2e,
 
   #FIXME TODO Check what to do if more than 1 residual variance parameter
   if(g < p){
-    B[, p] <- modMats$y %*% Rinv
+    if(lambda){
+      B[, p] <- moMats$y %*% Rinv
+    } else{
+        B[, p] <- r %*% Rinv
+      }
   }
   # Set up modified MME like the MMA of Meyer 1997 eqn. 23
   ## Substitute `B` instead of `y`
-  BRHS <- Matrix(crossprod(W, B), sparse = TRUE)
-  ## tBPB
-  ### Meyer 1997 eqns 22-23 (extends Johnson & Thompson 1995 eqns 8,9b,9c)
-  tBPB <- crossprod(B) - crossprod(solve(sLc, BRHS, system = "A"), BRHS)
-  AI <- 0.5 * tBPB / sigma2e
-
- return(structure(list(AI = as(AI, "matrix")),
-	class = "gremlin"))
-}  #<-- end `ai_lambda()`
-################################################################################    
-
-
-
-
-
-
-
-
-
-
-
-
-
-################################################################################
-#' @rdname gremlinRmod
-#' @export
-#Meyer 1996:
-## Likelihood eqn 3 <--> log determinants
-#XXX `ai()` used for when Rinv is NOT factored out of MME
-ai <- function(nuvin, skel, thetaG, thetaR,
-		   modMats, W, sLc, sln, r){
-  p <- length(nuvin)
-  nuin <- vech2matlist(nuvin, skel)
-  Rinv <- as(solve(nuin[[thetaR]]), "symmetricMatrix")
-  Ginv <- lapply(thetaG, FUN = function(x){as(solve(nuin[[x]]), "symmetricMatrix")})
-  si <- modMats$nb+1
-  B <- Matrix(0, nrow = modMats$ny, ncol = p, sparse = TRUE)
-  for(g in thetaG){ #FIXME assumes thetaG is same length as nuvin
-    qi <- ncol(modMats$Zg[[g]])
-    ei <- si - 1 + qi
-    # Meyer 1997: eqn. 20 [also f(theta) in Johnson & Thompson 1995 eqn 9c)]
-    # Knight 2008: eqn 2.32-2.35 and 3.11-3.13 (p.34)
-    #TODO for covariances see Johnson & Thompson 1995 eqn 11b
-    B[, g] <- modMats$Zg[[g]] %*% sln[si:ei, , drop = FALSE] %*% Ginv[[g]] #FIXME is order correct? See difference in order between Johnson & Thompson (e.g., eqn. 11b) and Meyer 1997 eqn 20
-    si <- ei+1
-  }  #<-- end `for g`
-
-  #FIXME TODO Check what to do if more than 1 residual variance parameter
-  if(g < p){
-    B[, p] <- r %*% Rinv
-  }
-  # Set up modified MME like the MMA of Meyer 1997 eqn. 23
-  ## Substitute `B` instead of `y`
-  KRinv <- kronecker(Rinv, Diagonal(x = 1, n = modMats$Zr@Dim[[2L]]))
-  tWKRinv <- crossprod(W, KRinv)
-  tBRinvB <- crossprod(B, KRinv) %*% B
-  BRHS <- Matrix(tWKRinv %*% B, sparse = TRUE)
+  if(lambda){
+    BRHS <- Matrix(crossprod(W, B), sparse = TRUE) 
+    tBRinvB <- crossprod(B)
+  } else{
+      KRinv <- kronecker(Rinv, Diagonal(x = 1, n = modMats$Zr@Dim[[2L]]))
+      tWKRinv <- crossprod(W, KRinv)
+      tBRinvB <- crossprod(B, KRinv) %*% B
+      BRHS <- Matrix(tWKRinv %*% B, sparse = TRUE)
+    }
   ## tBPB
   ### Meyer 1997 eqns 22-23 (extends Johnson & Thompson 1995 eqns 8,9b,9c)
   tBPB <- tBRinvB - crossprod(solve(sLc, BRHS, system = "A"), BRHS)
   AI <- 0.5 * tBPB 
+  if(lambda) AI / sigma2e
 
  return(structure(list(AI = as(AI, "matrix")),
 	class = "gremlin"))
