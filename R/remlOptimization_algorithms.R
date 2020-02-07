@@ -8,6 +8,7 @@ reml <- function(nu, skel, thetaG, sLc,
 	thetaR = NULL,  #<-- non-NULL if lambda==FALSE
 	tWW = NULL, RHS = NULL){  #<-- non-NULL is lambda==TRUE
 
+  lambda <- is.null(thetaR)
   Rinv <- as(solve(nu[[thetaR]]), "symmetricMatrix")
   Ginv <- lapply(thetaG, FUN = function(x){as(solve(nu[[x]]), "symmetricMatrix")}) # Meyer 1991, p.77 (<-- also see MMA on p70/eqn4)
 
