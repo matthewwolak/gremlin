@@ -383,11 +383,13 @@ if(nrow(theta[[thetaR]]) != 1){
         if(lambda){
           aiout <- ai_lambda(nuv, skel, thetaG, sigma2e,
 	                     modMats, W, sLc, sln, r)
-          dLdnu <- gradFun_lambda(nuv, thetaG, modMats, Cinv, sln, sigma2e)
+          dLdnu <- gradFun(nuv, thetaG, modMats, Cinv, sln,
+	    sigma2e = sigma2e, r = NULL, nminfrfx = NULL)
         } else{
             aiout <- ai(nuv, skel, thetaG, thetaR,
         		modMats, W, sLc, sln, r)
-            dLdnu <- gradFun(nuv, thetaG, modMats, Cinv, nminfrfx, sln, r)
+            dLdnu <- gradFun(nuv, thetaG, modMats, Cinv, sln,
+  	      sigma2e = NULL, r, nminfrfx)
           }
         AI <- aiout$AI
 	AIinv <- solve(AI)

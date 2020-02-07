@@ -312,72 +312,12 @@ ai <- function(nuvin, skel, thetaG, thetaR,
 ################################################################################
 #' @rdname gremlinRmod
 #' @export
-gradFun_lambda <- function(nuvin, thetaG, modMats, Cinv, sln, sigma2e){
-  p <- length(nuvin)
-  dLdnu <- matrix(0.0, nrow = p, ncol = 1, dimnames = list(names(nuvin), NULL))
-
-  # `trCinvGeninv_gg` = trace[Cinv_gg %*% geninv_gg]
-  # `tugug` = t(u_gg) %*% geninv_gg %*% u_gg
-  ## `g` is the gth component of the G-structure to model
-  ## `geninv` is the generalized inverse
-  ### (not the inverse of the G-matrix/(co)variance components)
-  trCinvGeninv_gg <- tugug <- as.list(rep(0, length(thetaG)))
-  si <- modMats$nb+1
-  for(g in thetaG){
-    qi <- ncol(modMats$Zg[[g]])
-    ei <- si - 1 + qi
-#TODO XXX for using covariance matrices, see Johnson & Thompson 1995 eqn 11a
-    ## Johnson & Thompson 1995 equations 9 & 10
-    if(class(modMats$listGeninv[[g]]) == "ddiMatrix"){
-    ### No generalized inverse associated with the random effects
-    ### Johnson & Thompson 1995 eqn 10a
-      #### 3rd term in the equation
-      tugug[[g]] <- crossprod(sln[si:ei, , drop = FALSE])
-      #### 2nd term in the equation
-      trCinvGeninv_gg[[g]] <- tr(Cinv[si:ei, si:ei])
-       
-    } else{
-      ### Generalized inverse associated with the random effects
-      ### Johnson & Thompson 1995 eqn 9a
-        #### 3rd term in the equation
-        tugug[[g]] <- crossprod(sln[si:ei, , drop = FALSE], modMats$listGeninv[[g]]) %*% sln[si:ei, , drop = FALSE]
-        #### 2nd term in the equation
-#TODO: DOES the trace of a product = the sum of the element-by-element product?
-        trCinvGeninv_gg[[g]] <- tr(modMats$listGeninv[[g]] %*% Cinv[si:ei, si:ei])
-      }  #<-- end if else whether a diagonal g-inverse associated with rfx
-
-    si <- ei+1
-  }  #<-- end `for g in thetaG`
-
-  # First derivatives (gradient/score)
-  for(g in thetaG){
-    # Johnson and Thompson 1995 Appendix 2 eqn B3 and eqn 9a and 10a
-    dLdnu[g] <- (ncol(modMats$Zg[[g]]) / nuvin[g]) - (1 / nuvin[g]^2) * (trCinvGeninv_gg[[g]] + tugug[[g]] / sigma2e)
-  }
- # Johnson and Thompson 1995 don't use -0.5, because likelihood is -2 log likelihood
- ## see `-2` on left-hand side of Johnson & Thompson eqn 3
- -0.5 * dLdnu
-}  #<-- end `gradFun_lambda()`
-##########################
-# Changing ginverse elements to `dsCMatrix` doesn't speedup traces, since
-## they end up more or less as dense matrices but in dgCMatrix from the product
-##########################
-
-
-
-
-
-
-
-
-################################################################################
-#' @rdname gremlinRmod
-#' @export
-gradFun <- function(nuvin, thetaG, modMats, Cinv, nminfrfx, sln, r){
+gradFun <- function(nuvin, thetaG, modMats, Cinv, sln,
+	sigma2e = NULL, r = NULL, nminfrfx = NULL){
   p <- length(nuvin)
   dLdnu <- matrix(NA, nrow = p, ncol = 1, dimnames = list(names(nuvin), NULL))
   # tee = e'e
-  tee <- crossprod(r)
+  if(is.null(sigma2e)) tee <- crossprod(r)
 
   # `trCinvGeninv_gg` = trace[Cinv_gg %*% geninv_gg]
   # `tugug` = t(u_gg) %*% geninv_gg %*% u_gg
@@ -413,14 +353,22 @@ gradFun <- function(nuvin, thetaG, modMats, Cinv, nminfrfx, sln, r){
   }  #<-- end `for g in thetaG`
 
   # First derivatives (gradient/score)
+  if(is.null(sigma2e)){  #<-- when NOT on lambda scale
+    ## Johnson and Thompson 1995 eqn 9b
 #FIXME change `[p]` below to be number of residual (co)variances
-  ## Johnson and Thompson 1995 eqn 9b
-  dLdnu[p] <- (nminfrfx / tail(nuvin, 1)) - (tee / tail(nuvin, 1)^2)
-  for(g in thetaG){
-    dLdnu[p] <- dLdnu[p] + (1 / tail(nuvin, 1)) * (trCinvGeninv_gg[[g]] /nuvin[g]) 
-    # Johnson and Thompson 1995 eqn 9a and 10a
-    dLdnu[g] <- (ncol(modMats$Zg[[g]]) / nuvin[g]) - (1 / nuvin[g]^2) * (trCinvGeninv_gg[[g]] + tugug[[g]])
+    dLdnu[p] <- (nminfrfx / tail(nuvin, 1)) - (tee / tail(nuvin, 1)^2)
+    for(g in thetaG){
+      dLdnu[p] <- dLdnu[p] + (1 / tail(nuvin, 1)) * (trCinvGeninv_gg[[g]] /nuvin[g]) 
+      # Johnson and Thompson 1995 eqn 9a and 10a
+      dLdnu[g] <- (ncol(modMats$Zg[[g]]) / nuvin[g]) - (1 / nuvin[g]^2) * (trCinvGeninv_gg[[g]] + tugug[[g]])
+    }  #<-- end for g
+  } else{  #<-- else when lambda scale
+      for(g in thetaG){
+        # Johnson and Thompson 1995 Appendix 2 eqn B3 and eqn 9a and 10a
+        dLdnu[g] <- (ncol(modMats$Zg[[g]]) / nuvin[g]) - (1 / nuvin[g]^2) * (trCinvGeninv_gg[[g]] + tugug[[g]] / sigma2e)
+      }  #<-- end for g
   }
+    
  # Johnson and Thompson 1995 don't use -0.5, because likelihood is -2 log likelihood
  ## see `-2` on left-hand side of Johnson & Thompson eqn 3
  -0.5 * dLdnu
