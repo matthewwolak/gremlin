@@ -313,7 +313,8 @@ ai <- function(nuvin, skel, thetaG, thetaR,
 #' @rdname gremlinRmod
 #' @export
 gradFun <- function(nuvin, thetaG, modMats, Cinv, sln,
-	sigma2e = NULL, r = NULL, nminfrfx = NULL){
+	sigma2e = NULL,   #<-- non-NULL if lambda==TRUE
+	r = NULL, nminfrfx = NULL){  #<-- non-NULL if lambda==FALSE
   p <- length(nuvin)
   dLdnu <- matrix(NA, nrow = p, ncol = 1, dimnames = list(names(nuvin), NULL))
   # tee = e'e
