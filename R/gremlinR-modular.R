@@ -1,8 +1,109 @@
+#' Mixed-Effects REML Incorporating Generalized Inverses
+#'
+#' Fit linear mixed-effects models using restricted (or residual) maximum
+#' likelihood (REML) and with generalized inverse matrices to specify covariance
+#' structures for random effects. In particular, the package is suited to fit
+#' quantitative genetic mixed models, often referred to as 'animal models'.
+#' Implements the average information algorithm as the main tool to maximize the
+#' restricted likelihood, but with other algorithms available.
+#'
+#' The package also implements the average information algorithm to efficiently
+#' maximize the log-likelihood (Thompson & Johnson 1995; Gilmour et al. 1995;
+#' Meyer & Smith 1996). The average information algorithm combined with sparse
+#' matrix techniques can potentially make model fitting very efficient.
+#'
+#' @aliases gremlin-package
+#' @importFrom methods as is slot
+#' @import Matrix
+#' @importFrom stats var
+#' @references
+#'   Mrode. 2005.
+#'   Meyer & Smith. 1996.
+#'   Gilmour et al. 1995.
+#'   Thompson & Johnson. 1995.
+#' @seealso \code{\link[MCMCglmm:MCMCglmm-package]{MCMCglmm}}
+#' @examples
+#' #TODO: simple examples of the most important functions
+#' \dontrun{
+#'   library(nadiv)
+#'   Ainv <- makeAinv(Mrode3[-c(1:2), 1:3])$Ainv
+#'   mod11 <- gremlin(WWG11 ~ sex - 1,
+#'	random = ~ calf,
+#'	data = Mrode11,
+#'	ginverse = list(calf = Ainv),
+#'	Gstart = matrix(0.2), Rstart = matrix(0.4),
+#'	maxit = 10, v = 2)
+#' }
+"_PACKAGE"
+
+
+
+
+
+
+
+
+
+
+
+
+
+################################################################################
+#' Transformation of starting parameters.
+#'
+#' Transform start parameters into format \code{gremlin} expects.
+#'
+#' @aliases stTrans
+#' @param x A \code{list} of starting parameters.
+#' @return A sparse \sQuote{dsCMatrix}
+#' @author \email{matthewwolak@@gmail.com}
+stTrans <- function(x){
+  if(is.numeric(x) && !is.matrix(x)) x <- as.matrix(x)
+  if(!isSymmetric(x)) stop(cat("Element", x, "must be a symmetric matrix or a number\n")) 
+  x <- as(x, "symmetricMatrix")
+  x@uplo <- "L"
+  x <- as(x, "dsCMatrix")
+ x
+}
+
+
+
+
+################################################################################
+#' Vector to list of matrices.
+#'
+#' Converts a vector of (co)variance parameters to a list of covariance matrices.
+#'
+#' @aliases vech2matlist
+#' @param vech A \code{vector} of (co)variance parameters.
+#' @param skeleton An example structure to map \code{vech} onto.
+#' @return A list of matrices of the same structure as \code{skeleton}.
+#' @author \email{matthewwolak@@gmail.com}
+vech2matlist <- function(vech, skeleton){
+  newmatlist <- vector("list", length = length(skeleton))
+  si <- 1
+  for(s in 1:length(skeleton)){
+    lss <- length(skeleton[[s]][[1]])
+    newmatlist[[s]] <- sparseMatrix(i = skeleton[[s]][[1]],
+	p = skeleton[[s]][[2]],
+	x = vech[seq(from = si, by = 1, length.out = lss)],
+	dims = skeleton[[s]][[3]], symmetric = TRUE, index1 = FALSE)
+    si <- si + lss
+  }
+  if(!is.null(names(skeleton))) names(newmatlist) <- names(skeleton)
+ newmatlist
+}
+
+
+
+
+
+ 
 #' Modular mixed-effect modeling functions.
 #'
 #' Create and fit linear mixed-effect model (Gaussian data) in modular steps
 #'
-#' @aliases gremlinRmod
+#' @aliases gremlin
 #' @param formula A \code{formula} for the response variable and fixed effects.
 #' @param random A \code{formula} for the random effects.
 #' @param rcov A \code{formula} for the residual covariance structure.
@@ -91,7 +192,7 @@
 #'   	maxit = 10, v = 2)
 #'
 #' @export
-gremlinRmod <- function(formula, random = NULL, rcov = ~ units,
+gremlin <- function(formula, random = NULL, rcov = ~ units,
 		data = NULL, ginverse = NULL,
 		Gstart = NULL, Rstart = NULL, Bp = NULL,
 		maxit = 20, algit = NULL,
@@ -273,7 +374,6 @@ lambda <- length(thetaR) == 1
       RHS <- Matrix(crossprod(W, modMats$y), sparse = TRUE)  # <-- Same every iteration
     } else tWW <- RHS <- NULL
     sLc <- NULL  #<-- initialize NULL and will generate vs. update if is.null()
-    Ic <- Diagonal(x = 1, n = nrow(Cinv_ii))
 
 #TODO put these with `mkModMats()` - need to figure out multivariate version/format
     # 5b log(|R|) and log(|G|) <-- Meyer 1989 (uni) & 1991 (multivar)
@@ -289,11 +389,52 @@ lambda <- length(thetaR) == 1
     dLdnu <- matrix(NA, nrow = p, ncol = 1, dimnames = list(names(thetav), NULL))
     sigma2e <- if(lambda) numeric(1) else NA #<-- only needed for `lambda` model
 
+ return(structure(list(call = as.call(mc),
+		modMats = modMats,
+		rfxIncContrib2loglik = rfxIncContrib2loglik,
+		ndgeninv = ndgeninv, dimsZg = dimsZg, nminffx = nminffx,
+		rfxlvls = rfxlvls, nminfrfx = nminfrfx,
+		thetav = thetav, skel = skel, thetaG = thetaG, thetaR = thetaR,
+		nu = nu, nu2theta = nu2theta,
+		sigma2e = sigma2e,
+		p = p, lambda = lambda, uni = uni,
+		W = W, tWW = tWW, RHS = RHS, Bpinv = Bpinv,
+		sLc = sLc,
+		sln = sln, Cinv_ii = Cinv_ii, r = r,
+		AI = AI, f = f, dLdnu = dLdnu,
+		cctol = cctol, algit = algit, ezero = ezero),
+	class = "gremlin",
+	startTime = startTime))
+}  #<-- end `gremlinRmod()`
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+remlItR <- function(...){
+#TODO:
+##  theta from thetav and skel
   itMat <- matrix(NA, nrow = maxit, ncol = 2 * p + 5) 
     colnames(itMat) <- c(paste0(names(thetav), "_nu"),
 	paste0(names(thetav), "_theta"),
 	"sigma2e", "tyPy", "logDetC", "loglik", "itTime")
+  Ic <- Diagonal(x = 1, n = nrow(Cinv_ii))
     #############################################################
     # REML doesn't change with any of above
     #############################################################
@@ -553,5 +694,29 @@ stop("Not allowing `minqa::bobyqa()` right now")
 	class = "gremlin",
 	startTime = startTime, endTime = endTime))
 }  #<-- end `gremlinRmod()`
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+################################################################################
+#' @method is gremlin
+#' @rdname gremlin
+#' @export
+is.gremlin <- function(x) inherits(x, "gremlin")
 
 
