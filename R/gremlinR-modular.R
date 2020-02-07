@@ -57,6 +57,8 @@
 #'       \item{logDetG }{The log-determinants of the generalized inverse 
 #'       matrices - necessary to calculate the log-likelihood.}
 #'
+#'     \item{sLc }{A \code{Matrix} containing the symbolic Cholesky factorization
+#'       of the coefficient matrix of the Mixed Model Equations.}
 #'     \item{itMat }{A \code{matrix} of details about each iteration.}
 #'     \item{sln }{A two column \code{matrix} of solutions and their sampling
 #'       variances from the mixed model.}
@@ -69,10 +71,10 @@
 #'       iteration.}
 #'     \item{AI }{A \code{matrix} of values containing the Average Information
 #'       matrix, or second partial derivatives of the likelihood with respect to
-#'       the transformed (co)variance components. The inverse of this matrix
+#'       the transformed (co)variance components (nu). The inverse of this matrix
 #'       gives the sampling variances of these transformed (co)variance components.}
 #'     \item{dLdnu }{A single column \code{matrix} of first derivatives of
-#'       the transformed (co)variance parameters with respect to the
+#'       the transformed (co)variance parameters (nu) with respect to the
 #'       log-Likelihood.}
 #'   }
 #'
@@ -539,6 +541,7 @@ stop("Not allowing `minqa::bobyqa()` right now")
 ## are Cinv_ii (var of sln) same as on theta scale
  return(structure(list(call = as.call(mc),
 		modMats = modMats,
+		sLc = sLc,
 		itMat = itMat,
 		sln = as(cbind(Est = sln, Var = Cinv_ii), "matrix"),
 		residuals = as(r, "matrix"),

@@ -1,7 +1,72 @@
 ###############################
 # reml()
 ###############################
-#' @rdname gremlinRmod
+#' REML optimization algorithms for mixed-effect models.
+#'
+#' Evaluate the REML likelihood and algorithms for iterating to find maximum 
+#'   REML estimates.
+#'
+#' @aliases reml ai em gradFun
+#' @param nu,nuvin A \code{list} or \code{vector} of (co)variance parameters to
+#'   estimate on the transformed, or nu, scale.
+#' @param skel A skeleton for reconstructing the list of (co)variance parameters.
+#' @param thetaG,thetaR \code{Integer} vectors indexing the G-structure or
+#'   R-structure of the (co)variance parameters.
+#' @param sigma2e A \code{numeric} value for the residual variance estimate
+#'   when it has been factored out of the Coefficient matrix of the Mixed Model
+#'   Equations, thus converting the (co)variance components to ratios
+#'   (represented by the variable lambda).
+#' @param sLc A sparse \code{Matrix} containing the symbolic Cholesky
+#'   factorization of the coefficient matrix of the Mixed Model Equations.
+#' @param Cinv A sparse \code{Matrix} containing the inverse of the Coefficient
+#'   matrix to the Mixed Model Equations.
+#' @param modMats A \code{list} of the model matrices used to construct the
+#'   mixed model equations.
+#' @param W,tWW A sparse \code{Matrix} containing the design matrices for the fixed
+#'   and random effects (\code{W}) and the crossproduct of this (\code{tWW}).
+#' @param Bpinv A matrix inverse of the matrix containing the prior specification
+#'   for fixed effects.
+#' @param nminffx,nminfrfx,rfxlvls \code{Integers} specifying: (1) the difference
+#'   between the number of observations and fixed effects (of the full rank fixed
+#'   effects design matrix (X), (2) \code{nminffx} minus the total number of
+#'   random effects, and (3) a \code{vector} of levels for each term in the 
+#'   random effects.
+#' @param rfxIncContrib2loglik A \code{numeric} indicating the sum of constrant
+#'   contributions to the log-likelihood across all terms in the random effects
+#'   that have non-diagonal generalized inverse matrices (\code{ginverse}).
+#' @param ndgeninv A \code{logical} vector indicating if each random term is
+#'   associated with a generalized inverse (\code{ginverse}).
+#' @param RHS A sparse \code{Matrix} containing the Right-Hand Side to the 
+#'   Mixed Model Equations.
+#' @param sln,r Sparse \code{Matrices} containing the solutions or residuals
+#'   of the Mixed Model Equations.
+#'
+#' @return A \code{list} or \code{matrix} containing any of the previous
+#'   parameters described above, or the following that are in addition to or
+#'   instead of parameters above:
+#'   \describe{
+#'     \item{loglik }{The REML log-likelihood.}
+#'     \item{tyPy.logDetC }{Components of the REML log-likelihood derived from the 
+#'       Cholesky factor of the Coefficient matrix to the Mixed Model Equations.}
+#'     \item{Cinv_ii }{A vector containing the diagonal elements of the inverse
+#'       of the Coefficient matrix to the Mixed Model Equations (i.e., the
+#'       diagonal entries of \code{Cinv}).
+#'     \item{AI }{A \code{matrix} of values containing the Average Information
+#'       matrix, or second partial derivatives of the likelihood with respect to
+#'       the transformed (co)variance components (nu). The inverse of this matrix
+#'       gives the sampling variances of these transformed (co)variance components.}
+#'     \item{dLdnu }{A single column \code{matrix} of first derivatives of
+#'       the transformed (co)variance parameters (nu) with respect to the
+#'       log-Likelihood.}
+#'   }
+#'
+#' @references
+#' Henderson
+#' Mrode. 2005.
+#' Meyer
+#' @author \email{matthewwolak@@gmail.com}
+#'  TODO XXX XXX Make example of each modular component working with next
+#'
 #' @export
 reml <- function(nu, skel, thetaG, sLc,
 	modMats, W, Bpinv, nminffx, nminfrfx, rfxlvls, rfxIncContrib2loglik,
@@ -148,7 +213,7 @@ reml <- function(nu, skel, thetaG, sLc,
 # EM refs: Hofer 1998 eqn 10-12
 ## XXX note Hofer eqn 12 missing sigma2e in last term of non-residual formula
 ### see instead Mrode 2005 (p. 241-245)
-#' @rdname gremlinRmod
+#' @rdname reml
 #' @export
 em <- function(nuvin, thetaG, thetaR,
 	modMats, nminffx, sLc, ndgeninv, sln, r){
@@ -208,7 +273,7 @@ em <- function(nuvin, thetaG, thetaR,
 
 
 ################################################################################
-#' @rdname gremlinRmod
+#' @rdname reml
 #' @export
 #Meyer 1996:
 ## Likelihood eqn 3 <--> log determinants
@@ -277,7 +342,7 @@ ai <- function(nuvin, skel, thetaG,
 
 
 ################################################################################
-#' @rdname gremlinRmod
+#' @rdname reml
 #' @export
 gradFun <- function(nuvin, thetaG, modMats, Cinv, sln,
 	sigma2e = NULL,   #<-- non-NULL if lambda==TRUE
