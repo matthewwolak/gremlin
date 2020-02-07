@@ -381,13 +381,17 @@ if(nrow(theta[[thetaR]]) != 1){
         Cinv <- solve(a = sLc, b = Ic, system = "A")
         Cinv_ii <- diag(Cinv)
         if(lambda){
-          aiout <- ai_lambda(nuv, skel, thetaG, sigma2e,
-	                     modMats, W, sLc, sln, r)
+          aiout <- ai(nuv, skel, thetaG,
+	              modMats, W, sLc, sln, r,
+	  	      thetaR = NULL,
+		      sigma2e)  #<-- non-NULL if lambda==TRUE
           dLdnu <- gradFun(nuv, thetaG, modMats, Cinv, sln,
 	    sigma2e = sigma2e, r = NULL, nminfrfx = NULL)
         } else{
-            aiout <- ai(nuv, skel, thetaG, thetaR,
-        		modMats, W, sLc, sln, r)
+            aiout <- ai(nuv, skel, thetaG,
+        		modMats, W, sLc, sln, r,
+	  		     thetaR,   #<-- non-NULL if lambda==FALSE
+		             sigma2e = NULL)
             dLdnu <- gradFun(nuv, thetaG, modMats, Cinv, sln,
   	      sigma2e = NULL, r, nminfrfx)
           }
