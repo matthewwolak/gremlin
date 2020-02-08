@@ -99,6 +99,10 @@ vech2matlist <- function(vech, skeleton){
 
 
  
+
+
+
+################################################################################
 #' Modular mixed-effect modeling functions.
 #'
 #' Create and fit linear mixed-effect model (Gaussian data) in modular steps
@@ -200,9 +204,15 @@ gremlin <- function(formula, random = NULL, rcov = ~ units,
 
   mc <- as.list(match.call())
   mGmc <- as.call(c(quote(gremlinSetup), mc[-1]))
- 
- eval(mGmc, parent.frame())
+  gremlinMod <- eval(mGmc, parent.frame())
+
+ gremlinMod #FIXME: do cpp reml optimization
 }
+
+
+
+
+
 
 
 
@@ -218,17 +228,22 @@ gremlinR <- function(formula, random = NULL, rcov = ~ units,
 
   mc <- as.list(match.call())
   mGmc <- as.call(c(quote(gremlinSetup), mc[-1]))
-  gremlinOut <- eval(mGmc, parent.frame())
-  class(gremlinOut) <- c("gremlinR", class(gremlinOut))
+  gremlinMod <- eval(mGmc, parent.frame())
+  class(gremlinMod) <- c("gremlinR", class(gremlinMod))
 
- gremlinOut
+ gremlinMod #FIXME do R reml optimization
 }
- 
+################################################################################ 
 
 
 
 
 
+
+
+
+
+################################################################################
 #' @rdname gremlin
 #' @export
 gremlinSetup <- function(formula, random = NULL, rcov = ~ units,
@@ -447,7 +462,7 @@ lambda <- length(thetaR) == 1
 	class = "gremlin",
 	startTime = startTime))
 }  #<-- end `gremlin()`
-
+################################################################################
 
 
 
@@ -471,6 +486,8 @@ lambda <- length(thetaR) == 1
 
 
 
+
+################################################################################
 remlItR <- function(...){
 #TODO:
 ##  theta from thetav and skel
