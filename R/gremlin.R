@@ -356,7 +356,7 @@ lambda <- length(thetaR) == 1
         nu[thetaG] <- lapply(thetaG, FUN = function(x){as(crossprod(cRinv, nu[[x]]) %*% cRinv, "symmetricMatrix")}) # Meyer 1991, p.77 (<-- ?p70/eqn4?)
         #TODO what to do if R is a matrix
         nu[[thetaR]] <- as(crossprod(cRinv, nu[[thetaR]]) %*% cRinv, "symmetricMatrix")
-        nu2theta <- function(nu, sigma2e){ #TODO FIXME
+        nu2theta <- function(nu, sigma2e, thetaG, thetaR){ #TODO FIXME
           cR <- chol(matrix(sigma2e))
           theta <- nu
           theta[thetaG] <- lapply(thetaG, FUN = function(x){as(crossprod(cR, nu[[x]]) %*% cR, "symmetricMatrix")})
@@ -524,7 +524,7 @@ remlItR <- function(...){
       sLc <- remlOut$sLc #TODO to use `update()` need to return `C` in `remlOut`
 
     itMat[i, -ncol(itMat)] <- c(nuv,
-      sapply(if(lambda) nu2theta(nu, sigma2e) else nu2theta(nu),
+      sapply(if(lambda) nu2theta(nu, sigma2e, thetaG, thetaR) else nu2theta(nu),
             FUN = slot, name = "x"),
       sigma2e, remlOut$tyPy, remlOut$logDetC, remlOut$loglik) 
     # 5c check convergence criteria
@@ -707,7 +707,7 @@ stop("Not allowing `minqa::bobyqa()` right now")
   itMat <- itMat[1:i, , drop = FALSE]
     rownames(itMat) <- paste(seq(i), algit[1:i], sep = "-")
   dimnames(AI) <- list(rownames(dLdnu), rownames(dLdnu))
-  theta <- if(lambda) nu2theta(nu, sigma2e) else nu2theta(nu)
+  theta <- if(lambda) nu2theta(nu, sigma2e, thetaG, thetaR) else nu2theta(nu)
     thetav <- sapply(theta, FUN = slot, name = "x") 
 
 
