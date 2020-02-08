@@ -178,11 +178,10 @@ reml <- function(nu, skel, thetaG, sLc,
   # calculate residuals
   r <- modMats$y - W %*% sln
 
- return(structure(list(loglik = loglik@x,
+ return(list(loglik = loglik@x,
 		sigma2e = if(lambda) sigma2e@x else NA,
 		tyPy = tyPy@x, logDetC = logDetC,
-		sln = sln, r = r, sLc = sLc),
-	class = "gremlin"))
+		sln = sln, r = r, sLc = sLc))
 }  #<-- end `reml()` 
 
 
@@ -253,8 +252,7 @@ em <- function(nuvin, thetaG, thetaR,
 
   nuvin[thetaR] <- crossprod(modMats$y, r) / nminffx
 
- return(structure(list(nuv = nuvin, Cinv_ii = Cinv_ii),
-	class = "gremlin"))
+ return(list(nuv = nuvin, Cinv_ii = Cinv_ii))
 }  #<-- end `em()`
 ################################################################################
 
@@ -329,8 +327,7 @@ ai <- function(nuvin, skel, thetaG,
   AI <- 0.5 * tBPB 
   if(lambda) AI <- AI / sigma2e
 
- return(structure(list(AI = as(AI, "matrix")),
-	class = "gremlin"))
+ as(AI, "matrix")
 }  #<-- end `ai()`
 ################################################################################    
 
