@@ -103,7 +103,7 @@ vech2matlist <- function(vech, skeleton){
 #'
 #' Create and fit linear mixed-effect model (Gaussian data) in modular steps
 #'
-#' @aliases gremlin
+#' @aliases gremlin gremlinR gremlinSetup
 #' @param formula A \code{formula} for the response variable and fixed effects.
 #' @param random A \code{formula} for the random effects.
 #' @param rcov A \code{formula} for the residual covariance structure.
@@ -197,6 +197,45 @@ gremlin <- function(formula, random = NULL, rcov = ~ units,
 		Gstart = NULL, Rstart = NULL, Bp = NULL,
 		maxit = 20, algit = NULL,
 		vit = 10, v = 1, ...){
+
+  mc <- as.list(match.call())
+  mGmc <- as.call(c(quote(gremlinSetup), mc[-1]))
+ 
+ eval(mGmc, parent.frame())
+}
+
+
+
+
+
+#' @rdname gremlin
+#' @export
+gremlinR <- function(formula, random = NULL, rcov = ~ units,
+		data = NULL, ginverse = NULL,
+		Gstart = NULL, Rstart = NULL, Bp = NULL,
+		maxit = 20, algit = NULL,
+		vit = 10, v = 1, ...){
+
+  mc <- as.list(match.call())
+  mGmc <- as.call(c(quote(gremlinSetup), mc[-1]))
+  gremlinOut <- eval(mGmc, parent.frame())
+  class(gremlinOut) <- c("gremlinR", class(gremlinOut))
+
+ gremlinOut
+}
+ 
+
+
+
+
+
+#' @rdname gremlin
+#' @export
+gremlinSetup <- function(formula, random = NULL, rcov = ~ units,
+		data = NULL, ginverse = NULL,
+		Gstart = NULL, Rstart = NULL, Bp = NULL,
+		maxit = 20, algit = NULL,
+		vit = 10, v = 1, ...){
 #FIXME USE?		control = gremlinControl(), ...){
 
   stopifnot(inherits(formula, "formula"), length(formula) == 3L)
@@ -215,6 +254,8 @@ gremlin <- function(formula, random = NULL, rcov = ~ units,
   if(is.null(mc$maxit) && is.null(maxit)) maxit <- 20 # FIXME will this ever happen
   if(is.null(mc$vit) && is.null(vit)) vit <- 20 #FIXME will this ever happen
   # Use WOMBAT's default values for convergence criteria
+#TODO FIXME XXX XXX XXX Add cctol to argument list (and document it)
+## Might be able to/want to remove from list of output to `gremlin()` if replaced inside call regardless of whether user specified it
   if(is.null(mc$cctol)){
     cctol <- c(5*10^-4, 10^-8, 10^-3, NULL) # [1] for AI, alternatively 10^-5 (for EM)
   } else cctol <- eval(mc$cctol)
@@ -405,7 +446,7 @@ lambda <- length(thetaR) == 1
 		cctol = cctol, algit = algit, ezero = ezero),
 	class = "gremlin",
 	startTime = startTime))
-}  #<-- end `gremlinRmod()`
+}  #<-- end `gremlin()`
 
 
 
@@ -418,6 +459,9 @@ lambda <- length(thetaR) == 1
 
 
 
+
+
+ 
 
 
 
