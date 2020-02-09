@@ -14,6 +14,11 @@
     - the _alternative_ does not have a special name, this is just a model of all (co)variance parameters as (co)variance parameters (as opposed to ratios, as in the `lambda` models).
     - instead of completely separate functions for these two parameterizations, there is an argument that runs alternative lines of code, wherever the calculations differ for these two different parameterizations
 
+## Minor Changes
+  - No long construct Mixed Model Array (`M`) matrix from which the Cholesky factorization (and `logDetC` and `tyPy` calculations are made)
+    - Changed to directly construct coefficient matrix of mixed model equations (`C`) and obtain `tyPy` and `logDetC` using this
+    - Previously had to store Cholesky factorizations of both `M` and `C`, now do a `solve` with Cholesky of `C` (`sLc`/`Lc` in `R`/`c++` code) to calculate `tyPy` based off Boldman and Van Vleck
+
 
 # 0.1.0.0
 ## NEW
