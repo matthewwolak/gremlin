@@ -28,7 +28,7 @@
 
 #XXX RANDOM EFFECTS MUST ALREADY BE FACTORS IN DATA!!!!
 ################################################################################
-#' @describeIn gremlinR Generates model matrices. 
+#' @describeIn gremlin Generates model matrices. 
 #' @export
 #' @importFrom stats na.pass model.response model.matrix lm reformulate na.omit
 mkModMats <- function(formula, random = NULL, rcov = ~ units,
@@ -266,7 +266,7 @@ if(any(nrowZi != ny)){
 	X = X, nb = ncol(X),
 	Zr = Zr,
 	Zg = Zg, nG = nG, listGeninv = listGeninv, logDetG = logDetG),
-	class = "gremlinModMats")
+	class = "grModMats")
 }
 
 

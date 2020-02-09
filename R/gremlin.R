@@ -103,12 +103,12 @@ vech2matlist <- function(vech, skeleton){
 
 
 ################################################################################
-#' Modular mixed-effect modeling functions.
+#' Mixed-effect modeling functions.
 #'
-#' Create and fit linear mixed-effect model (Gaussian data) in modular steps
+#' Fit and setup functions for linear mixed-effect model (Gaussian responses).
 #'
-#' @aliases gremlin gremlinR gremlinSetup
-#' @param formula A \code{formula} for the response variable and fixed effects.
+#' @aliases gremlin gremlinR gremlinSetup mkModMats
+#' @param formula A \code{formula} for the response variable(s) and fixed effects.
 #' @param random A \code{formula} for the random effects.
 #' @param rcov A \code{formula} for the residual covariance structure.
 #' @param data A \code{data.frame} in which to look for the terms in
@@ -141,11 +141,11 @@ vech2matlist <- function(vech, skeleton){
 #' @param Xsparse Should sparse matrices be used for the fixed effects design
 #'   matrix.
 #' @param \dots Additional arguments to be passed to control the model fitting.
-#' @param thetav,thetavin,skel variance component parameters or structure on
-#' which to evaluate a model likelihood or derivatives of the likelihood with
-#' respect to these parameters
 #'
-#' @return A \code{list} of class \code{gremlin} or \code{gremlinModMats}:
+#' @return A \code{list} containing an object of class \code{grMod} and, if a 
+#'   model was fit (\code{gremlin} or \code{gremlinR}) an object containing
+#'   details of the REML iterations (object \code{itMat}). An object of class
+#'   \code{grMod} contains:
 #'   \describe{
 #'     \item{call }{The model \code{call}.}
 #'     \item{modMats }{A \code{list} of the model matrices used to construct the
@@ -162,29 +162,93 @@ vech2matlist <- function(vech, skeleton){
 #'       \item{logDetG }{The log-determinants of the generalized inverse 
 #'       matrices - necessary to calculate the log-likelihood.}
 #'
+#'     \item{rfxIncContrib2loglik }{A \code{numeric} value containing the sum
+#'       of the log determinants of the random effects that do not change between
+#'       log-likelihood iterations (i.e., the part of the log determinants of 
+#'       (co)variance matrices to be estimated that have been factored out).}
+#'     \item{ndgeninv }{A \code{logical} indicating which terms in the random
+#'       formula have generalized inverses associated with them (non-diagonal 
+#'       matrices in the Kronecker product.}
+#'     \item{dimsZg, nminffx, rfxlvls, nminfrfx }{\code{Numeric} vectors or scalars
+#'       describing the numbers of random effects or some function of random and
+#'       fixed effects.}
+#'     \item{thetav, skel }{A \code{vector} of the (co)variance parameters to
+#'       be estimated by REML and the skeleton for recreating a list of
+#'       \code{matrices} from this vector.}
+#'     \item{thetaG, thetaR }{\code{Vectors} indexing the random and residual
+#'        (co)variances, respectively, in a list of (co)variance matrices (i.e.,
+#'        \code{theta}).}
+#'     \item{nu, nu2theta }{A \code{list} of transformed (co)variance matrices
+#'       to be fit by REML and a \code{function} to back-transform from the
+#'       \sQuotes{nu} scale to the \sQuotes{theta} scale. If a residual variance
+#'       has been factored out of the mixed model equations, \code{nu} will also
+#'       contain the \sQuotes{lambda} parameterization with contains ratios of
+#'       variance parameters with the residual variance. The \sQuotes{nu} scale
+#'       (co)variances are the ones actually fit by REML.}
+#'     \item{sigma2e }{The estimate of the factored out residual variance from
+#'       the mixed model equations (i.e., the \sQuotes{lambda} scale)
+#'       \eqn{\sigma^{2}_{e}}.}
+#'     \item{p }{An \code{integer} for the total number of (co)variances to be
+#'       estimated.}
+#'     \item{lambda }{A \code{logical} indicating whether the \sQuotes{lambda}
+#'       scale parameterization has been used.}
+#'     \item{uni }{A \code{logical} to indicate if the model is univariate or not.}
+#'     \item{W, tWW, RHS, Bpinv }{Sparse matrices of class \code{Matrix} that 
+#'       form the mixed model equations and do not change between iterations of
+#'       REML. These are the column binded \sQuotes{X} and \sQuotes{Z} design
+#'       matrices for fixed and random effects, the cross-product of \code{W},
+#'       the Right-Hand Side of the mixed model equations, and the inverse of
+#'       the fixed effect prior matrix (zeroes on the diagonal if no priors have
+#'       been specified). Note, these may be \code{NULL} if \code{lambda=FALSE},
+#'       because the \code{NULL} objects are not used or do change between
+#'       REML iterations.}
 #'     \item{sLc }{A \code{Matrix} containing the symbolic Cholesky factorization
 #'       of the coefficient matrix of the Mixed Model Equations.}
-#'     \item{itMat }{A \code{matrix} of details about each iteration.}
-#'     \item{sln }{A two column \code{matrix} of solutions and their sampling
-#'       variances from the mixed model.}
-#'     \item{residuals }{A \code{vector} of residual deviations, response minus
+#'     \item{sln }{A one column \code{matrix} of solutions in the mixed model
+#'       equations.}
+#'     \item{Cinv_ii }{A one column \code{matrix} of variances (or prediction 
+#'       error variances in the case of random effects) for the solutions to
+#'       the mixed model equations. These are obtained from the diagonal of the
+#'       inverse Coefficient matrix in the mixed model equations.}
+#'     \item{r }{A one column \code{matrix} of residual deviations, response minus
 #'       the values expected based on the solutions, corresponding to the order
 #'       in \code{modMats$y}.} 
-#'     \item{nu }{A \code{matrix} of (co)variance components on the transformed
-#'       scale at the last iteration.}
-#'     \item{theta }{A \code{matrix} of (co)variance components at the last
-#'       iteration.}
 #'     \item{AI }{A \code{matrix} of values containing the Average Information
 #'       matrix, or second partial derivatives of the likelihood with respect to
-#'       the transformed (co)variance components (nu). The inverse of this matrix
-#'       gives the sampling variances of these transformed (co)variance components.}
+#'       the transformed (co)variance components (\sQuotes{nu}). The inverse of
+#'       this matrix gives the sampling (co)variances of these transformed
+#'       (co)variance components.}
 #'     \item{dLdnu }{A single column \code{matrix} of first derivatives of
-#'       the transformed (co)variance parameters (nu) with respect to the
-#'       log-Likelihood.}
-#'   }
+#'       the transformed (co)variance parameters (\sQuotes{nu}) with respect to
+#'       the log-Likelihood.}
+#'     \item{maxit }{See the parameter described above.}
+#'     \item{algit }{A \code{character} vector of REML algorithms to use in each
+#'       iteration.}
+#'     \item{vit }{See the parameter described above.}
+#'     \item{v }{See the parameter described above.}
+#'     \item{cctol }{A \code{numeric} vector of convergence criteria thresholds.}
+#'     \item{ezero }{A \code{numeric} value for the effective number to use as
+#'       \dQuotes{zero}. VAlues less than this number are treated as zero and
+#'       fixed to this value.}
+#'
+#'     \item{itMat }{A \code{matrix} of details about each iteration. Rows
+#'       indicate each REML iteration (rownames reflect the REML algorithm used)
+#'       and columns contain:
+#'       \describe{
+#'         \item{nu, theta}{(Co)variance parameters.}
+#'         \item{sigma2e }{See \sQuotes{sigma2e} described above.}
+#'         \item{tyPy, logDetC }{Estimates for two these two components of the
+#'           log of the REML likelihoods. These are obtained from Cholesky
+#'           factorization of the coefficient matrix of the mixed model equations.}
+#'         \item{loglik }{The REML log-likelihood.}
+#'         \item{itTime }{Time elapsed for each REML iteration.}
+#'       }
+#'     }
+#   }
 #'
 #' @references
-#' Henderson
+#' Meyer.
+#' Henderson.
 #' Mrode. 2005.
 #' @author \email{matthewwolak@@gmail.com}
 #' @examples
@@ -204,10 +268,18 @@ gremlin <- function(formula, random = NULL, rcov = ~ units,
 
   mc <- as.list(match.call())
   mGmc <- as.call(c(quote(gremlinSetup), mc[-1]))
-  gremlinMod <- eval(mGmc, parent.frame())
+  grMod <- eval(mGmc, parent.frame())
 
- gremlinMod #FIXME: do cpp reml optimization
-}
+  grModOut <- remlIt(grMod)
+
+  endTime <- Sys.time()
+  if(v > 0) cat("gremlin ended:\t\t", format(endTime, "%H:%M:%S"), "\n")
+
+ return(structure(list(grMod = grModOut$grMod,
+		itMat = grModOut$itMat),
+	class = "gremlin",
+	startTime = attr(grMod, "startTime"), endTime = endTime))
+}  #<-- end `gremlin()`
 
 
 
@@ -228,11 +300,19 @@ gremlinR <- function(formula, random = NULL, rcov = ~ units,
 
   mc <- as.list(match.call())
   mGmc <- as.call(c(quote(gremlinSetup), mc[-1]))
-  gremlinMod <- eval(mGmc, parent.frame())
-  class(gremlinMod) <- c("gremlinR", class(gremlinMod))
+  grMod <- eval(mGmc, parent.frame())
+  class(grMod) <- c(class(grMod)[1], "gremlinR", class(grMod)[2])
 
- gremlinMod #FIXME do R reml optimization
-}
+  grModOut <- remlIt(grMod)
+
+  endTime <- Sys.time()
+  if(v > 0) cat("gremlin ended:\t\t", format(endTime, "%H:%M:%S"), "\n")
+
+ return(structure(list(grMod = grModOut$grMod,
+		itMat = grModOut$itMat),
+	class = c("gremlinR", "gremlin"),
+	startTime = attr(grMod, "startTime"), endTime = endTime))
+}  #<-- end `gremlinR()`
 ################################################################################ 
 
 
@@ -261,13 +341,15 @@ gremlinSetup <- function(formula, random = NULL, rcov = ~ units,
   mMmc <- as.call(c(quote(mkModMats), mc[m]))
   modMats <- eval(mMmc, parent.frame())
 
+  # add actual values to NULL argument values in `mc` that need non-NULL values
+  ## passed along to other funcntions (e.g., when gremlin does have a default)
+  ## Don't bother with arguments with non-NULL defaults
   #TODO check dimensions G/Rstart
 #FIXME assumes univariate
-  if(is.null(mc$Gstart)) Gstart <- mc$Gstart <- as.list(rep(0.1*var(modMats$y), modMats$nG))
+  if(is.null(mc$Gstart)) mc$Gstart <- Gstart <- as.list(rep(0.1*var(modMats$y), modMats$nG)) else Gstart <- eval(mc$Gstart)
 #FIXME assumes univariate
-  if(is.null(mc$Rstart)) Rstart <- mc$Rstart <- matrix(0.5*var(modMats$y))
-  if(is.null(mc$maxit) && is.null(maxit)) maxit <- 20 # FIXME will this ever happen
-  if(is.null(mc$vit) && is.null(vit)) vit <- 20 #FIXME will this ever happen
+  if(is.null(mc$Rstart)) mc$Rstart <- Rstart <- matrix(0.5*var(modMats$y)) else Rstart <- eval(mc$Rstart)
+
   # Use WOMBAT's default values for convergence criteria
 #TODO FIXME XXX XXX XXX Add cctol to argument list (and document it)
 ## Might be able to/want to remove from list of output to `gremlin()` if replaced inside call regardless of whether user specified it
@@ -281,6 +363,7 @@ gremlinSetup <- function(formula, random = NULL, rcov = ~ units,
     stop(cat("Algorithms:", unique(algit)[which(!unique(algit) %in% c("EM", "AI", "bobyqa", "NR"))],
       "not a valid choice. Please check values given to the `algit` argument\n"))
   }
+#TODO make default algit like below, in function definition
   if(is.null(mc$algit)) algit <- c(rep("EM", 2), rep("AI", max(0, maxit-2))) else algit <- eval(mc$algit)
   if(length(algit) == 1 && algit %in% c("EM", "AI", "bobyqa")) algit <- rep(algit, maxit)
   if(is.null(mc$ezero)) ezero <- 1e-8 else ezero <- eval(mc$ezero)
@@ -291,7 +374,6 @@ gremlinSetup <- function(formula, random = NULL, rcov = ~ units,
   thetaGorR <- sapply(strsplit(names(theta), ".", fixed = TRUE), FUN = "[[", i = 1)
 
 #XXX Do above TODO sooner rather than later!
-
 
 
 
@@ -331,11 +413,7 @@ lambda <- length(thetaR) == 1
 
 
 
-
-
-#FIXME figure out environments so all in the `with(modMats...)` environment is accessible outside of it
-## How to place these objects?
-#  with(modMats, {
+#FIXME figure out environments so all in modMats environment is accessible outside of it
 
 
 
@@ -399,7 +477,7 @@ lambda <- length(thetaR) == 1
     # Rand Fx incidence matrix part of 'log(|G|)'
     #FIXME: Only works for independent random effects right now!
     rfxIncContrib2loglik <- sum(unlist(modMats$logDetG))
-    if(is.null(mc$Bp) && is.null(Bp)){
+    if(is.null(mc$Bp)){
       Bp <- as(diag(x = 0, nrow = modMats$nb, ncol = modMats$nb), "dgCMatrix")
     } else{
        #TODO check and maybe create prior from Bp specified in call
@@ -441,7 +519,6 @@ lambda <- length(thetaR) == 1
     nminfrfx <- nminffx - nr
 
     AI <- matrix(NA, nrow = p, ncol = p)
-    f <- NA
     dLdnu <- matrix(NA, nrow = p, ncol = 1, dimnames = list(names(thetav), NULL))
     sigma2e <- if(lambda) numeric(1) else NA #<-- only needed for `lambda` model
 
@@ -457,304 +534,18 @@ lambda <- length(thetaR) == 1
 		W = W, tWW = tWW, RHS = RHS, Bpinv = Bpinv,
 		sLc = sLc,
 		sln = sln, Cinv_ii = Cinv_ii, r = r,
-		AI = AI, f = f, dLdnu = dLdnu,
-		cctol = cctol, algit = algit, ezero = ezero),
-	class = "gremlin",
+		AI = AI, dLdnu = dLdnu,
+		maxit = maxit, algit = algit, vit = vit, v = v,
+		cctol = cctol, ezero = ezero),
+	class = c("grMod", "gremlin"),
 	startTime = startTime))
-}  #<-- end `gremlin()`
+}  #<-- end `gremlinSetup()`
 ################################################################################
 
 
 
 
 
-
-
-
-
-
-
-
-
- 
-
-
-
-
-
-
-
-
-
-
-################################################################################
-remlItR <- function(...){
-#TODO:
-##  theta from thetav and skel
-  itMat <- matrix(NA, nrow = maxit, ncol = 2 * p + 5) 
-    colnames(itMat) <- c(paste0(names(thetav), "_nu"),
-	paste0(names(thetav), "_theta"),
-	"sigma2e", "tyPy", "logDetC", "loglik", "itTime")
-  Ic <- Diagonal(x = 1, n = nrow(Cinv_ii))
-    #############################################################
-    # REML doesn't change with any of above
-    #############################################################
-
-
-
-
-#  })  #<-- end `with(modMats, ...)`
-
-
-
-
-
-
-  ############################################
-  # 5d determine next varcomps to evaluate
-  ## Evaluate and do particular REML algorithm step (EM, simplex, AI)
-  #########################################################
-  #########################################################
-  for(i in 1:nrow(itMat)){
-    vitout <- ifelse(i == 1, 0, i%%vit)
-    if(v > 0 && vitout == 0){
-      cat("  ", i, "of max", maxit, "\t\t\t",
-	format(Sys.time(), "%H:%M:%S"), "\n")
-    }
-    stItTime <- Sys.time()
-
-    if(lambda){
-      remlOut <- reml(nu, skel, thetaG, sLc,
-	modMats, W, Bpinv, nminffx, nminfrfx, rfxlvls, rfxIncContrib2loglik,
-	thetaR = NULL,
-	tWW, RHS)
-    } else{
-        remlOut <- reml(nu, skel, thetaG, sLc,
-	  modMats, W, Bpinv, nminffx, nminfrfx, rfxlvls, rfxIncContrib2loglik,
-	  thetaR,
-	  tWW = NULL, RHS = NULL)
-      }  #<-- end if/else lambda
-      nuv <- sapply(nu, FUN = slot, name = "x")
-      sigma2e[] <- remlOut$sigma2e
-      sln <- remlOut$sln
-      r <- remlOut$r
-      sLc <- remlOut$sLc #TODO to use `update()` need to return `C` in `remlOut`
-
-    itMat[i, -ncol(itMat)] <- c(nuv,
-      sapply(if(lambda) nu2theta(nu, sigma2e, thetaG, thetaR) else nu2theta(nu),
-            FUN = slot, name = "x"),
-      sigma2e, remlOut$tyPy, remlOut$logDetC, remlOut$loglik) 
-    # 5c check convergence criteria
-    ## Knight 2008 (ch. 6) says Searle et al. 1992 and Longford 1993 discuss diff types of converg. crit.
-    ## See Appendix 2 of WOMBAT help manual for 4 convergence criteria used
-    cc <- rep(NA, 4)
-    if(i > 1){
-      # wombat 1
-      cc[1] <- diff(itMat[c(i-1, i), "loglik"]) < cctol[1]
-      # wombat 2 (eqn. A.1) (also Knight 2008 (eqn. 6.1) criteria
-      cc[2] <- sqrt(sum((itMat[i, 1:p] - itMat[(i-1), 1:p])^2) / sum(itMat[i, 1:p]^2)) < cctol[2]
-      if(algit[i] == "AI"){
-        # wombat 3 (eqn. A.2): Norm of the gradient vector
-        # AI only
-        cc[3] <- sqrt(sum(dLdnu * dLdnu)) < cctol[3]
-        # wombat 4 (eqn A.3): Newton decrement (see Boyd & Vandenberghe 2004 cited in wombat)
-        # AI only
-#        cc[4] <- -1 * c(crossprod(dLdnu, H) %*% dLdnu)
-      }
-    } else cc[1] <- FALSE  #<-- ensures one of the EM/AI/etc algorithms used if i==1
-
-
-
-
-
-    if(!all(cc, na.rm = TRUE)){
-      if(algit[i] == "EM"){
-        if(v > 1 && vitout == 0) cat("\tEM to find next theta\n")
-        emOut <- em(nuv, thetaG, thetaR,
-		modMats, nminffx, sLc, ndgeninv, sln, r)
-          nuvout <- emOut$nuv
-          Cinv_ii <- emOut$Cinv_ii
-        nuout <- vech2matlist(nuvout, skel) 
-      }
-
-      if(algit[i] == "AI"){
-        if(v > 1 && vitout == 0) cat("\tAI to find next theta\n")
-#FIXME Currently, only allow when not: 
-if(nrow(theta[[thetaR]]) != 1){
-  stop("AI algorithm currently only works for a single residual variance")
-}
-        Cinv <- solve(a = sLc, b = Ic, system = "A")
-        Cinv_ii <- diag(Cinv)
-        if(lambda){
-          aiout <- ai(nuv, skel, thetaG,
-	              modMats, W, sLc, sln, r,
-	  	      thetaR = NULL,
-		      sigma2e)  #<-- non-NULL if lambda==TRUE
-          dLdnu <- gradFun(nuv, thetaG, modMats, Cinv, sln,
-	    sigma2e = sigma2e, r = NULL, nminfrfx = NULL)
-        } else{
-            aiout <- ai(nuv, skel, thetaG,
-        		modMats, W, sLc, sln, r,
-                        thetaR,   #<-- non-NULL if lambda==FALSE
-		        sigma2e = NULL)
-            dLdnu <- gradFun(nuv, thetaG, modMats, Cinv, sln,
-  	      sigma2e = NULL, r, nminfrfx)
-          }
-        AI <- aiout$AI
-	AIinv <- solve(AI)
-
-        ## Find next set of parameters using a quasi-Newton method/algorithm
-        ### Meyer 1989 pp. 326-327 describes quasi-Newton methods 
-#TODO see Meyer 1997 eqn 58 for Marquardt 1963: theta_t+1=theta_t - (H_t + k_t * I)^{-1} g_t 
-        ### Mrode 2005 eqn 11.4
-        ### Johnson and Thompson 1995 eqn 12
-        ####(though gremlin uses `+` instead of J & T '95 `-` because
-        ##### gremlin multiplies gradient by -0.5 in `gradFun()`)
-
-        ### Check/modify AI matrix to 'ensure' positive definiteness
-        ### `fI` is factor to adjust AI matrix
-        #### (e.g., Meyer 1997 eqn 58 and WOMBAT manual A.5 strategy 3b)
-        AIeigvals <- eigen(AI)$values
-          d <- (3*10^-6) * AIeigvals[1]
-          f <- max(0, d - AIeigvals[nrow(AI)])
-        fI <- f * diag(x = 1, nrow = nrow(AI))
-	##### modified 'Hessian'
-        H <- fI + AI
-        # Check if AI can be inverted
-        rcondH <- rcond(H)
-        ## if AI cannot be inverted do EM
-        if(rcondH < ezero){
-          if(v > 1){
-            cat("Reciprocal condition number of AI matrix is", signif(rcondH , 2), "\n\tAI matrix may be singular - switching to an iteration of the EM algorithm\n")
-          }  #<-- end `if v>1`
-          if(v > 1 && vitout == 0) cat("\tEM to find next theta\n")
-            emOut <- em(nuv, thetaG, thetaR,
-		modMats, nminffx, sLc, ndgeninv, sln, r)
-            nuvout <- emOut$nuv
-            Cinv_ii <- emOut$Cinv_ii
-        } else{  #<-- end if AI cannot be inverted
-            Hinv <- solve(H)
-#TODO need a check that not proposing negative/0 variance or |correlation|>1
-## Require restraining naughty components
-            nuvout <- matrix(nuv, ncol = 1) + Hinv %*% dLdnu
-            zeroV <- which(nuvout < ezero) #FIXME check variances & cov/corr separately
-            if(length(zeroV) > 0L){
-              if(v > 1) cat("Variance component(s)", zeroV, "fixed to zero\n")
-              nuvout[zeroV] <- ezero #FIXME TODO!!!??
-            }
-          }  #<-- end else AI can be inverted
-
-        if(lambda) nuvout[thetaR] <- nuv[thetaR]  #<-- keep R=1 (R factored out)
-        nuout <- vech2matlist(nuvout, skel) 
-      }  #<-- end if algorithm is "AI"
-
-      if(algit[i] == "bobyqa"){
-stop("Not allowing `minqa::bobyqa()` right now")
-#        if(v > 1 && vitout == 0) cat("Switching to `minqa::bobyqa()`\n")
-#FIXME lower bounds if not transformed!
-#        bobyout <- bobyqa(par = nuv, fn = function(x) -1*reml(x, skel), lower = ezero,
-#		control = list(iprint = v, maxfun = maxit))
-#        with(bobyout, cat("\t", msg, "after", feval, "iterations and with code:", ierr, "(0 desired)\n"))
-#        nuout <- vech2matlist(bobyout$par, skel)
-#       loglik <- -1*bobyout$fval
-#FIXME do a better check of loglik and parameter changes
-#	cc <- diff(c(itMat[(i-1), "loglik"], loglik)) < cctol[1] #if(bobyout$ierr == 0) TRUE else FALSE
-      }
-       
-
-#TODO need to transform in order to use non-EM
-##think requires obtaining gradient and hessian for both `nu` and `theta`
-## See Meyer 1996 eqns ~ 45-55ish
-      if(algit[i] == "NR"){
-        if(v > 1 && vitout == 0) cat("\tNR to find next theta\n")
-#        gr <- gradFun(nuv, thetaG, thetaR, modMats, Cinv, nminfrfx, sln, r)
-#        H <- hessian(func = reml, x = nuv, skel = skel) 
-#tmp <- numDeriv::genD(func = reml, x = nuv, skel = skel)
-#FIXME instead of `solve(H)` can I solve linear equations to give product of inverse and grad?
-#        nuvout <- nuv - solve(H) %*% gr
-#        nuout <- vech2matlist(nuvout, skel) 
-#TODO change itnmax to correspond with algit
-#tmp <- optimx(par = nuv, fn = function(x) reml(x, skel), grad = gradFun, hess = NULL,
-#	lower = 0,
-#	method = "L-BFGS-B",
-#	itnmax = maxit, hessian = TRUE,
-#	control = list(maximize = FALSE, trace = v))
-      }
-#        nuvout <- optim(par = nuv, fn = reml, hessian = TRUE, method = "BFGS", skel = skel)
-#        nuout <- vech2matlist(nuvout, skel) 
-    }
-
-
-    ############################################################################
-    nu <- sapply(nuout, FUN = stTrans)
-    itTime <- Sys.time() - stItTime
-    if(v > 0 && vitout == 0){
-      cat("\tlL:", format(round(itMat[i, "loglik"], 6), nsmall = 6), "\ttook ",
-	round(itTime, 2), units(itTime), "\n")
-      if(v > 1){
-        cat("\n")
-        print(as.table(itMat[i, -match(c("loglik", "itTime"), colnames(itMat))]), digits = 4, zero.print = ".")
-        cat("\tConvergence crit:", cc, "\n")
-      }
-      if(v > 2){#algit[i] == "AI" && 
-        sgd <- matrix(NA, nrow = p, ncol = p+4)  #<-- `sgd` is summary.gremlinDeriv 
-          dimnames(sgd) <- list(row.names(dLdnu), c("gradient", "", "AI", "", "AI-inv", rep("", p-1)))
-        sgd[, 1] <- dLdnu
-        if(algit[i] == "EM") AIinv <- AI
-        for(rc in 1:p){
-          sgd[rc, 3:(rc+2)] <- AI[rc, 1:rc]
-          sgd[rc, (4+rc):(4+p)] <- AIinv[rc, rc:p]   
-        }
-#        cat("\tAI alpha", NA, "\n") #TODO add alpha/step-halving value
-        cat("\tAI modification", f, "\n")
-        print(as.table(sgd), digits = 3, na.print = " | ", zero.print = ".")
-        cat("\n")
-      }  
-    }
-    units(itTime) <- "secs"
-    itMat[i, ncol(itMat)] <- round(itTime, 1)
-    if(all(cc, na.rm = TRUE)){
-      cat("REML converged\n\n")
-      break
-    }
-
-  }  # END log-likelihood iterations
-  #################################### 
-
-  itMat <- itMat[1:i, , drop = FALSE]
-    rownames(itMat) <- paste(seq(i), algit[1:i], sep = "-")
-  dimnames(AI) <- list(rownames(dLdnu), rownames(dLdnu))
-  theta <- if(lambda) nu2theta(nu, sigma2e, thetaG, thetaR) else nu2theta(nu)
-    thetav <- sapply(theta, FUN = slot, name = "x") 
-
-
-#TODO calculate AI/AIinv for last set of parameters (sampling covariances for final varcomps
-###TODO make sure final varcomps returned are ones for which AI was evaluated (if using AI from above)
-
- endTime <- Sys.time()
- if(v > 0) cat("gremlin ended:\t\t", format(endTime, "%H:%M:%S"), "\n")
-
-
-
-
-
-#TODO fix return values:
-## are sln same as on theta scale?
-## are Cinv_ii (var of sln) same as on theta scale
- return(structure(list(call = as.call(mc),
-		modMats = modMats,
-		sLc = sLc,
-		itMat = itMat,
-		sln = as(cbind(Est = sln, Var = Cinv_ii), "matrix"),
-		residuals = as(r, "matrix"),
-		nu = matrix(nuv, nrow = p, ncol = 1,
-		  dimnames = list(paste0(names(thetav), "_nu"), NULL)),
-		theta = matrix(thetav, nrow = p, ncol = 1,
-		  dimnames = list(names(thetav), NULL)),
-		AI = AI, dLdnu = dLdnu),
-	class = "gremlin",
-	startTime = startTime, endTime = endTime))
-}  #<-- end `gremlinRmod()`
 
 
 
@@ -779,5 +570,341 @@ stop("Not allowing `minqa::bobyqa()` right now")
 #' @rdname gremlin
 #' @export
 is.gremlin <- function(x) inherits(x, "gremlin")
+
+#' @method is grMod
+#' @rdname gremlin
+#' @export
+is.grMod <- function(x) inherits(x, "grMod")
+
+
+
+
+
+
+ 
+
+
+
+
+
+
+
+
+
+
+
+################################################################################
+################################################################################
+###########
+# Generic
+###########
+################################################################################
+#' Mixed-effect model Restricted Maximul Likelihood (REML) iterations.
+#'
+#' Conduct REML iterations to estimate (co)variance parameters of a linear
+#'   mixed-effect model (Gaussian responses).
+#'
+#' @aliases remlIt remlIt.default
+#' @param grMod A gremlin model of class \code{grMod}. See \code{\link{gremlin}}
+#'   or \code{\link{gremlinSetup}} for the functions constructing an object
+#'   of class \code{grMod}.
+#' @param \dots Additional arguments to be passed to control the model fitting.
+#'
+#' @return A \code{list} containing an object of class \code{grMod} and
+#'   \code{matrix} containing details of the REML iterations (object
+#'   \code{itMat}). See \code{\link{gremlin}} for descriptions of \code{grMod}
+#'   and \code{itMat} objects.
+#'
+#' @author \email{matthewwolak@@gmail.com}
+#' @examples
+#'  TODO XXX XXX Make example of each modular component working with next
+#'   mod11 <- gremlinSetup(WWG11 ~ sex - 1,
+#'   	random = ~ calf,
+#'   	data = Mrode11,
+#'   	Gstart = matrix(0.2), Rstart = matrix(0.4),
+#'   	maxit = 10, v = 2)
+#'   REMLout <- remlIt(mod11)
+#'
+#' @export
+remlIt <- function(grMod, ...){
+  UseMethod("remlIt", grMod)
+}
+
+
+
+
+###########
+# Default
+###########
+#' @describeIn remlIt Default method
+#' @export
+#' @import Matrix
+remlIt.default <- function(grMod, ...){
+
+  # pull a few objects out that will be used repeatedly
+  ## favor "small" objects. keep large objects in grMod unless they change often
+  thetav <- grMod$thetav
+  skel <- grMod$skel
+  thetaG <- grMod$thetaG
+  thetaR <- grMod$thetaR
+  nu <- grMod$nu
+  sigma2e <- grMod$sigma2e
+  p <- grMod$p
+  lambda <- grMod$lambda
+  sLc <- grMod$sLc
+  AI <- grMod$AI
+  dLdnu <- grMod$dLdnu
+
+
+  theta <- vech2matlist(thetav, skel)
+  f <- NA
+  itMat <- matrix(NA, nrow = grMod$maxit, ncol = 2 * p + 5) 
+    colnames(itMat) <- c(paste0(names(thetav), "_nu"),
+	paste0(names(thetav), "_theta"),
+	"sigma2e", "tyPy", "logDetC", "loglik", "itTime")
+  Ic <- Diagonal(x = 1, n = nrow(grMod$Cinv_ii))
+
+
+  ############################################
+  # 5d determine next varcomps to evaluate
+  ## Evaluate and do particular REML algorithm step (EM, simplex, AI)
+  #########################################################
+  #########################################################
+  for(i in 1:nrow(itMat)){
+    vitout <- ifelse(i == 1, 0, i%%grMod$vit)
+    if(grMod$v > 0 && vitout == 0){
+      cat("  ", i, "of max", grMod$maxit, "\t\t\t",
+	format(Sys.time(), "%H:%M:%S"), "\n")
+    }
+    stItTime <- Sys.time()
+
+    if(lambda){
+      remlOut <- reml(nu, skel, thetaG, sLc,
+	grMod$modMats, grMod$W, grMod$Bpinv,
+        grMod$nminffx, grMod$nminfrfx, grMod$rfxlvls, grMod$rfxIncContrib2loglik,
+	thetaR = NULL,
+	grMod$tWW, grMod$RHS)
+    } else{
+        remlOut <- reml(nu, skel, thetaG, sLc,
+	  grMod$modMats, grMod$W, grMod$Bpinv,
+          grMod$nminffx, grMod$nminfrfx, grMod$rfxlvls, grMod$rfxIncContrib2loglik,
+	  thetaR,
+	  tWW = NULL, RHS = NULL)
+      }  #<-- end if/else lambda
+      nuv <- sapply(nu, FUN = slot, name = "x")
+      sigma2e[] <- remlOut$sigma2e
+      grMod$sln <- remlOut$sln
+      grMod$r <- remlOut$r
+      sLc <- remlOut$sLc #TODO to use `update()` need to return `C` in `remlOut`
+
+    itMat[i, -ncol(itMat)] <- c(nuv,
+      sapply(if(lambda) grMod$nu2theta(nu, sigma2e, thetaG, thetaR) else grMod$nu2theta(nu),
+            FUN = slot, name = "x"),
+      sigma2e, remlOut$tyPy, remlOut$logDetC, remlOut$loglik) 
+    # 5c check convergence criteria
+    ## Knight 2008 (ch. 6) says Searle et al. 1992 and Longford 1993 discuss diff types of converg. crit.
+    ## See Appendix 2 of WOMBAT help manual for 4 convergence criteria used
+    cc <- rep(NA, 4)
+    if(i > 1){
+      # wombat 1
+      cc[1] <- diff(itMat[c(i-1, i), "loglik"]) < grMod$cctol[1]
+      # wombat 2 (eqn. A.1) (also Knight 2008 (eqn. 6.1) criteria
+      cc[2] <- sqrt(sum((itMat[i, 1:p] - itMat[(i-1), 1:p])^2) / sum(itMat[i, 1:p]^2)) < grMod$cctol[2]
+      if(grMod$algit[i] == "AI"){
+        # wombat 3 (eqn. A.2): Norm of the gradient vector
+        # AI only
+        cc[3] <- sqrt(sum(dLdnu * dLdnu)) < grMod$cctol[3]
+        # wombat 4 (eqn A.3): Newton decrement (see Boyd & Vandenberghe 2004 cited in wombat)
+        # AI only
+#        cc[4] <- -1 * c(crossprod(dLdnu, H) %*% dLdnu)
+      }
+    } else cc[1] <- FALSE  #<-- ensures one of the EM/AI/etc algorithms used if i==1
+
+
+
+
+
+    if(!all(cc, na.rm = TRUE)){
+      ############################
+      #    EM
+      ############################
+      if(grMod$algit[i] == "EM"){
+        if(grMod$v > 1 && vitout == 0) cat("\tEM to find next theta\n")
+        emOut <- em(nuv, thetaG, thetaR,
+            grMod$modMats, grMod$nminffx, sLc, grMod$ndgeninv, grMod$sln, grMod$r)
+          nuvout <- emOut$nuv
+          grMod$Cinv_ii <- emOut$Cinv_ii
+      }
+
+
+      ############################
+      #    AI
+      ############################
+      if(grMod$algit[i] == "AI"){
+        if(grMod$v > 1 && vitout == 0) cat("\tAI to find next theta\n")
+#FIXME Currently, only allow when not: 
+if(nrow(theta[[thetaR]]) != 1){
+  stop("AI algorithm currently only works for a single residual variance")
+}
+        Cinv <- solve(a = sLc, b = Ic, system = "A")
+        grMod$Cinv_ii <- diag(Cinv)
+        if(lambda){
+          AI <- ai(nuv, skel, thetaG,
+	              grMod$modMats, grMod$W, sLc, grMod$sln, grMod$r,
+	  	      thetaR = NULL,
+		      sigma2e)  #<-- non-NULL if lambda==TRUE
+          dLdnu <- gradFun(nuv, thetaG, grMod$modMats, Cinv, grMod$sln,
+	    sigma2e = sigma2e, r = NULL, nminfrfx = NULL)
+        } else{
+            AI <- ai(nuv, skel, thetaG,
+        		grMod$modMats, grMod$W, sLc, grMod$sln, grMod$r,
+                        thetaR,   #<-- non-NULL if lambda==FALSE
+		        sigma2e = NULL)
+            dLdnu <- gradFun(nuv, thetaG, grMod$modMats, Cinv, grMod$sln,
+  	      sigma2e = NULL, grMod$r, grMod$nminfrfx)
+          }
+	AIinv <- solve(AI)
+
+        ## Find next set of parameters using a quasi-Newton method/algorithm
+        ### Meyer 1989 pp. 326-327 describes quasi-Newton methods 
+#TODO see Meyer 1997 eqn 58 for Marquardt 1963: theta_t+1=theta_t - (H_t + k_t * I)^{-1} g_t 
+        ### Mrode 2005 eqn 11.4
+        ### Johnson and Thompson 1995 eqn 12
+        ####(though gremlin uses `+` instead of J & T '95 `-` because
+        ##### gremlin multiplies gradient by -0.5 in `gradFun()`)
+
+        ### Check/modify AI matrix to 'ensure' positive definiteness
+        ### `fI` is factor to adjust AI matrix
+        #### (e.g., Meyer 1997 eqn 58 and WOMBAT manual A.5 strategy 3b)
+        AIeigvals <- eigen(AI)$values
+          d <- (3*10^-6) * AIeigvals[1]
+          f <- max(0, d - AIeigvals[nrow(AI)])
+        fI <- f * diag(x = 1, nrow = nrow(AI))
+	##### modified 'Hessian'
+        H <- fI + AI
+        # Check if AI can be inverted
+        rcondH <- rcond(H)
+        ## if AI cannot be inverted do EM
+        if(rcondH < grMod$ezero){
+          if(grMod$v > 1){
+            cat("Reciprocal condition number of AI matrix is", signif(rcondH , 2), "\n\tAI matrix may be singular - switching to an iteration of the EM algorithm\n")
+          }  #<-- end `if v>1`
+          if(grMod$v > 1 && vitout == 0) cat("\tEM to find next theta\n")
+            emOut <- em(nuv, thetaG, thetaR,
+              grMod$modMats, grMod$nminffx, sLc, grMod$ndgeninv, grMod$sln, grMod$r)
+            nuvout <- emOut$nuv
+            grMod$Cinv_ii <- emOut$Cinv_ii
+        } else{  #<-- end if AI cannot be inverted
+            Hinv <- solve(H)
+#TODO need a check that not proposing negative/0 variance or |correlation|>1
+## Require restraining naughty components
+            nuvout <- matrix(nuv, ncol = 1) + Hinv %*% dLdnu
+            zeroV <- which(nuvout < grMod$ezero) #FIXME check variances & cov/corr separately
+            if(length(zeroV) > 0L){
+              if(grMod$v > 1) cat("Variance component(s)", zeroV, "fixed to zero\n")
+              nuvout[zeroV] <- grMod$ezero #FIXME TODO!!!??
+            }
+          }  #<-- end else AI can be inverted
+      }  #<-- end if algorithm is "AI"
+
+      if(grMod$algit[i] == "bobyqa"){
+stop("Not allowing `minqa::bobyqa()` right now")
+#        if(v > 1 && vitout == 0) cat("Switching to `minqa::bobyqa()`\n")
+#FIXME lower bounds if not transformed!
+#        bobyout <- bobyqa(par = nuv, fn = function(x) -1*reml(x, skel), lower = ezero,
+#		control = list(iprint = v, maxfun = maxit))
+#        with(bobyout, cat("\t", msg, "after", feval, "iterations and with code:", ierr, "(0 desired)\n"))
+#        nuout <- vech2matlist(bobyout$par, skel)
+#       loglik <- -1*bobyout$fval
+#FIXME do a better check of loglik and parameter changes
+#	cc <- diff(c(itMat[(i-1), "loglik"], loglik)) < cctol[1] #if(bobyout$ierr == 0) TRUE else FALSE
+      }
+       
+
+#TODO need to transform in order to use non-EM
+##think requires obtaining gradient and hessian for both `nu` and `theta`
+## See Meyer 1996 eqns ~ 45-55ish
+      if(grMod$algit[i] == "NR"){
+        if(grMod$v > 1 && vitout == 0) cat("\tNR to find next theta\n")
+#        gr <- gradFun(nuv, thetaG, thetaR, modMats, Cinv, nminfrfx, sln, r)
+#        H <- hessian(func = reml, x = nuv, skel = skel) 
+#tmp <- numDeriv::genD(func = reml, x = nuv, skel = skel)
+#FIXME instead of `solve(H)` can I solve linear equations to give product of inverse and grad?
+#        nuvout <- nuv - solve(H) %*% gr
+#TODO change itnmax to correspond with algit
+#tmp <- optimx(par = nuv, fn = function(x) reml(x, skel), grad = gradFun, hess = NULL,
+#	lower = 0,
+#	method = "L-BFGS-B",
+#	itnmax = maxit, hessian = TRUE,
+#	control = list(maximize = FALSE, trace = v))
+      }
+#        nuvout <- optim(par = nuv, fn = reml, hessian = TRUE, method = "BFGS", skel = skel)
+    }
+
+
+    ############################################################################
+    if(lambda) nuvout[thetaR] <- nuv[thetaR]  #<-- keep R=1 (R factored out)
+    nuout <- vech2matlist(nuvout, skel) 
+    nu <- sapply(nuout, FUN = stTrans)
+    itTime <- Sys.time() - stItTime
+    if(grMod$v > 0 && vitout == 0){
+      cat("\tlL:", format(round(itMat[i, "loglik"], 6), nsmall = 6), "\ttook ",
+	round(itTime, 2), units(itTime), "\n")
+      if(grMod$v > 1){
+        cat("\n")
+        print(as.table(itMat[i, -match(c("loglik", "itTime"), colnames(itMat))]), digits = 4, zero.print = ".")
+        cat("\tConvergence crit:", cc, "\n")
+      }
+      if(grMod$v > 2){#algit[i] == "AI" && 
+        sgd <- matrix(NA, nrow = p, ncol = p+4)  #<-- `sgd` is summary.gremlinDeriv 
+          dimnames(sgd) <- list(row.names(dLdnu), c("gradient", "", "AI", "", "AI-inv", rep("", p-1)))
+        sgd[, 1] <- dLdnu
+        if(grMod$algit[i] == "EM") AIinv <- AI
+        for(rc in 1:p){
+          sgd[rc, 3:(rc+2)] <- AI[rc, 1:rc]
+          sgd[rc, (4+rc):(4+p)] <- AIinv[rc, rc:p]   
+        }
+#        cat("\tAI alpha", NA, "\n") #TODO add alpha/step-halving value
+        cat("\tAI modification", f, "\n")
+        print(as.table(sgd), digits = 3, na.print = " | ", zero.print = ".")
+        cat("\n")
+      }  
+    }
+    units(itTime) <- "secs"
+    itMat[i, ncol(itMat)] <- round(itTime, 1)
+    if(all(cc, na.rm = TRUE)){
+      cat("REML converged\n\n")
+      break
+    }
+
+  }  # END log-likelihood iterations
+  #################################### 
+
+  itMat <- itMat[1:i, , drop = FALSE]
+    rownames(itMat) <- paste(seq(i), grMod$algit[1:i], sep = "-")
+  dimnames(AI) <- list(rownames(dLdnu), rownames(dLdnu))
+  theta <- if(lambda) grMod$nu2theta(nu, sigma2e, thetaG, thetaR) else grMod$nu2theta(nu)
+    thetav <- sapply(theta, FUN = slot, name = "x") 
+
+
+#TODO calculate AI/AIinv for last set of parameters (sampling covariances for final varcomps
+###TODO make sure final varcomps returned are ones for which AI was evaluated (if using AI from above)
+
+  # place these altered values back into grMod
+  grMod$thetav <- thetav
+  grMod$nu <- nu
+  grMod$sigma2e <- sigma2e
+  grMod$sLc <- sLc
+  grMod$AI <- AI
+  grMod$dLdnu <- dLdnu
+
+#TODO fix return values:
+## are sln same as on theta scale?
+## are Cinv_ii (var of sln) same as on theta scale
+ return(structure(list(grMod = grMod,
+		itMat = itMat),
+	class = "gremlin"))
+}  #<-- end `remlIt.default()`
+
 
 
