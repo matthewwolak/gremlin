@@ -7,6 +7,19 @@
  - gremlin [NEWS page](https://github.com/matthewwolak/gremlin/blob/master/NEWS.md)
 
 
+# THE `gremlinR-modular` BRANCH IS NOW DEPRECATED (FEB. 9, 2020)
+  - See the merge into `devel` branch on Feb. 9, 2020.
+  - retaining this branch to keep history of the major changes to the algorithms that took place in the code in this branch
+
+
+
+
+
+
+
+
+
+
 ## Overview of main branches:
   - `master` branch is the most recent production version (often the same as what is available from the [R CRAN mirrors](https://cran.r-project.org/))
   - `devel` branch is a preview of the next release which *should* be functional and error/bug free, but proceed with caution
