@@ -28,7 +28,7 @@
 
 #XXX RANDOM EFFECTS MUST ALREADY BE FACTORS IN DATA!!!!
 ################################################################################
-#' @describeIn gremlinR Generates model matrices. 
+#' @describeIn gremlin Generates model matrices. 
 #' @export
 #' @importFrom stats na.pass model.response model.matrix lm reformulate na.omit
 mkModMats <- function(formula, random = NULL, rcov = ~ units,
@@ -93,14 +93,13 @@ if(ncy > 1) stop("gremlin isn't old enough to play with multivariate models") #F
 	contrasts)
   ## if any subsetting is done, retrieve the "contrasts" attribute here.
   #TODO: Figure out what this means in original context of lm and if applies
-  #TODO: use lm to find singularities in X (see `MCMCglmm()`, ~line 608 of v2.21)
-### FIXME ##
-sing.rm<-lm(y~ as(X, "matrix")-1)
-sing.rm<-which(is.na(sing.rm$coef))
-if(length(sing.rm)){
-   warning("Some fixed effects are not estimable and have been removed/set to 0")
-   X<-X[,-sing.rm, drop = FALSE]
-}
+  ### use lm to find singularities in X (see `MCMCglmm()`, ~line 608 of v2.21)
+  sing.rm <- lm(y ~ as(X, "matrix") - 1)
+  sing.rm <- which(is.na(sing.rm$coef))
+  if(length(sing.rm) > 0){
+    warning(paste(length(sing.rm), "fixed effects are not estimable and have been removed (set to 0)"))
+    X <- X[, -sing.rm, drop = FALSE]
+  }
 ###END FIXME
   #TODO OR created reduced rank X (see "./Wellham2008REML..." slide 15&16)
   #TODO see how lme4 deals with rank-deficiencies:
@@ -152,6 +151,9 @@ if(length(sing.rm)){
     if(!is.null(ginverse)){
       if(!is.list(ginverse)){
         stop("ginverse must be an object of class 'list'")
+      }
+      if(any(duplicated(names(ginverse)))){
+        stop("duplicated names in ginverse. Must have only one unique name per ginverse entry")
       }
       for(i in 1:length(ginverse)){           
         if(is.null(rownames(ginverse[[i]]))){
@@ -215,7 +217,9 @@ if(length(sing.rm)){
       # retain levels in ginverse if one is associated, else drop unused levels
       if(!is.null(ginverse) && Gnames[g] %in% names(ginverse)){
         Ggdata <- data
-        levels(Ggdata[, Gnames[g]]) <- union(ginverse[[g]]@Dimnames[[1]], levels(Ggdata[, Gnames[g]])) 
+        # index in `ginverse` when not every random term has a ginverse
+        ginvIndex <- which(names(ginverse) == Gnames[g])
+        levels(Ggdata[, Gnames[g]]) <- union(ginverse[[ginvIndex]]@Dimnames[[1]], levels(Ggdata[, Gnames[g]])) 
         ggf$data <- Ggdata
         ggf$drop.unused.levels <- FALSE
         ggf <- eval.parent(ggf)	# G[g] model frame
@@ -224,10 +228,10 @@ if(length(sing.rm)){
 		transpose = FALSE,
 		drop.unused.levels = FALSE,	#TODO correct?
 		row.names = TRUE)
-        listGeninv[[g]] <- ginverse[[which(names(ginverse) == Gnames[g])]]
+        listGeninv[[g]] <- ginverse[[ginvIndex]]
         # calculate log(det(G)) from geninv; log(det(G)) = -1*log(det(G^-1))
-	#TODO: make check to see if ginverse[[g]] has attribute=logdet (from nadiv)
-        logDetG[[g]] <- -1 * determinant(ginverse[[which(names(ginverse) == Gnames[g])]], logarithm = TRUE)$modulus[1]
+	#TODO: make check to see if ginverse[[ginvIndex]] has attribute=logdet (from nadiv)
+        logDetG[[g]] <- -1 * determinant(ginverse[[ginvIndex]], logarithm = TRUE)$modulus[1]
       } else{
           Zg[[g]] <- sparse.model.matrix(ggf$formula, eval.parent(ggf),
 		transpose = FALSE,
@@ -262,7 +266,7 @@ if(any(nrowZi != ny)){
 	X = X, nb = ncol(X),
 	Zr = Zr,
 	Zg = Zg, nG = nG, listGeninv = listGeninv, logDetG = logDetG),
-	class = "gremlinModMats")
+	class = "grModMats")
 }
 
 
