@@ -57,6 +57,7 @@
 #' @param x A \code{list} of starting parameters.
 #' @return A sparse \sQuote{dsCMatrix}
 #' @author \email{matthewwolak@@gmail.com}
+#' @import Matrix
 stTrans <- function(x){
   if(is.numeric(x) && !is.matrix(x)) x <- as.matrix(x)
   if(!isSymmetric(x)) stop(cat("Element", x, "must be a symmetric matrix or a number\n")) 
@@ -143,7 +144,7 @@ vech2matlist <- function(vech, skeleton){
 #' @param \dots Additional arguments to be passed to control the model fitting.
 #'
 #' @return A \code{list} containing an object of class \code{grMod} and, if a 
-#'   model was fit (\code{gremlin} or \code{gremlinR}) an object containing
+#'   model was fit (\code{gremlin} or \code{gremlinR}) then an object containing
 #'   details of the REML iterations (object \code{itMat}). An object of class
 #'   \code{grMod} contains:
 #'   \describe{
@@ -326,6 +327,7 @@ gremlinR <- function(formula, random = NULL, rcov = ~ units,
 ################################################################################
 #' @rdname gremlin
 #' @export
+#' @import Matrix
 gremlinSetup <- function(formula, random = NULL, rcov = ~ units,
 		data = NULL, ginverse = NULL,
 		Gstart = NULL, Rstart = NULL, Bp = NULL,
