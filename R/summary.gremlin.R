@@ -33,7 +33,7 @@
 logLik.gremlin <- function(object, ...){
   val <- object$itMat[nrow(object$itMat), "loglik"]
   #TODO attr(val, "nall") <- object$
-  attr(val, "df") <- object$modMats$nb + nrow(object$theta)
+  attr(val, "df") <- object$grMod$modMats$nb + object$grMod$p
   class(val) <- "logLik"
  val
 }
@@ -48,7 +48,7 @@ AIC.gremlin <- function(object, ..., k = 2, fxdDf = FALSE){
     df <- attr(ll, "df")
   #TODO determine which is better: asreml (not including fixed df) or lme4 (includes)
   ## might depend on REML vs ML
-  if(fxdDf) p <- df else p <- df - object$modMats$nb  
+  if(fxdDf) p <- df else p <- df - object$grMod$modMats$nb  
   #TODO implement conditional AIC (df=n-1 levels of each random effect)
   ## I think below does what `lme4::lmer()` implements
   ###TODO Will need to accommodate covariance parameters (count lower triangles)
@@ -96,7 +96,7 @@ AIC.gremlin <- function(object, ..., k = 2, fxdDf = FALSE){
 #' @importFrom stats nobs
 #TODO check that calculates correct value if NAs are dropped: see `modMats()`
 nobs.gremlin <- function(object, use.fallback = FALSE, ...){
-  object$modMats$ny
+  object$grMod$modMats$ny
 }
 
 
@@ -173,18 +173,18 @@ anova.gremlin <- function(object, ..., model.names = NULL){
   #TODO reconcile likelihoods with `lm()` where REML = TRUE so can compare
   ##TODO add `|` below to allow lm
   grMods <- as.logical(vapply(dots, FUN = is, FUN.VALUE = NA, "gremlin"))
-  if(sum(c(is(object) == "gremlin", grMods)) < 2){
-    stop("At least 2 models must be of class 'gremlin' (`is(object) == gremlin`)")
+  if(sum(c(is(object, "gremlin"), grMods)) < 2){
+    stop("At least 2 models must be of class 'gremlin' (`is(object, 'gremlin')`)")
   }
 
-  if(is(object) == "gremlin"){
+  if(is(object, "gremlin")){
     mods <- c(list(object), dots[grMods])
   } else mods <- dots[grMods]
 
   nobs.vec <- vapply(mods, nobs, 1L)
-  if(var(nobs.vec) > 0)
+  if(var(nobs.vec) > 0){
     stop("Models were not all fitted to the same size of dataset")
-
+  }
   if(is.null(mNms <- model.names)){
     mNms <- vapply(as.list(mCall)[c(FALSE, TRUE, grMods)], FUN = .safeDeparse, "")  
   }
@@ -205,7 +205,7 @@ anova.gremlin <- function(object, ..., model.names = NULL){
   mods <- mods[llo]
   lls <- lls[llo]
   Df <- Df[llo]
-  calls <- lapply(mods, getCall)
+  calls <- lapply(mods, FUN = function(x) getCall(x$grMod))
   data <- lapply(calls, FUN = "[[", "data")
   if(!all(vapply(data, FUN = identical, FUN.VALUE = NA, data[[1]]))){
     stop("All models must be fit to the same data object")
@@ -287,7 +287,7 @@ residuals.gremlin <- function(object,
 	type = "response",
 	scaled = FALSE, ...){
   if(missing(type)) type <- "response" else type <- match.arg(type)
-  r <- object$residuals
+  r <- as.vector(object$grMod$r)
 #  res <- switch(type, 
 #	working = ,
 #	response = r,
@@ -301,7 +301,8 @@ residuals.gremlin <- function(object,
     stop("partial and pearson residuals not implemented")
 #  res <- res + predict(object, type = "terms")
   }
-  if(scaled) res <- res / sqrt(object$theta[object$modMats$nG+1])
+#TODO how to make `scaled` if multivariate (>1 residual variance/covariance)?
+  if(scaled) res <- res / sqrt(object$grMod$thetav[object$grMod$p])
  res
 }
 #TODO######   hatvalues (see lme4) & predict.gremlin    ############
@@ -342,19 +343,22 @@ residuals.gremlin <- function(object,
 #' @method summary gremlin
 summary.gremlin <- function(object, ...){
   nit <- nrow(object$itMat)
-  nvc <- nrow(object$dLdtheta)     # No. of (co)variance components
-  formulae <- list(fxd = object$call[["formula"]],
-	random = object$call[["random"]]) #FIXME need to include R (or combine with G)
+  nvc <- nrow(object$grMod$p)     # No. of (co)variance parameters
+  formulae <- list(fxd = object$grMod$call[["formula"]],
+	random = object$grMod$call[["random"]]) #FIXME need to include R (or combine with G)
 
   ########
   residQuants <- quantile(residuals(object, "response", scaled = TRUE), na.rm=TRUE)
 
   ########
-  varcompSummary <- cbind("Estimate" = object$itMat[nit, 1:nvc, drop = TRUE],
+  vcItMatInd <- grep("_theta", dimnames(object$itMat)[[2L]])
+  vcItMatNames <- sapply(strsplit(dimnames(object$itMat)[[2L]][vcItMatInd],
+    split = "_"), FUN = "[", i = 1)
+  varcompSummary <- cbind("Estimate" = object$itMat[nit, vcItMatInd, drop = TRUE],
 		"Std. Error" = NA)
-    dimnames(varcompSummary)[[1L]] <- dimnames(object$itMat[nit, 1:nvc, drop = FALSE])[[2L]]
-    if(!is.null(object$AI)){
-      invAI <- solve(object$AI)
+    dimnames(varcompSummary)[[1L]] <- vcItMatNames
+    if(!is.null(object$grMod$AI)){
+      invAI <- solve(object$grMod$AI)
       varcompSummary[, "Std. Error"] <- sqrt(diag(invAI))
       varcompSampCor <- cov2cor(invAI)
     } else{
@@ -363,12 +367,12 @@ summary.gremlin <- function(object, ...){
       }
 
   ########
-  fxdSummary <- object$sln[1:object$modMats$nb, , drop = FALSE]
-    fxdSummary[, 2] <- sqrt(fxdSummary[, 2])
+  fxdSummary <- cbind(as(object$grMod$sln[1:object$grMod$modMats$nb, , drop = FALSE],
+    "matrix"), sqrt(object$grMod$Cinv_ii[1:object$grMod$modMats$nb]))
     #TODO consider reporting `|z value|` instead
     fxdSummary <- cbind(fxdSummary, fxdSummary[, 1] / fxdSummary[, 2])
     colnames(fxdSummary) <- c("Solution", "Std. Error", "z value")
-	dimnames(fxdSummary)[[1L]] <- object$modMats$X@Dimnames[[2L]]
+	dimnames(fxdSummary)[[1L]] <- object$grMod$modMats$X@Dimnames[[2L]]
 
  return(structure(list(logLik = logLik(object),
 		formulae = formulae,
@@ -399,23 +403,23 @@ print.summary.gremlin <- function(x,
 	digits = max(3, getOption("digits") - 3), ...){
 #TODO calculate convergence criteria & print if REML converged
 ## also print if parameters changed by >XX%
-  cat("\nLinear mixed model fit by REML ['gremlin']")
-  cat("\nREML log-likelihood:", round(x$logLik, digits), "\n")
-  cat("\nelapsed time for model:", round(x$runtime, digits), "\n")
+  cat("\n Linear mixed model fit by REML ['gremlin']")
+  cat("\n REML log-likelihood:", round(x$logLik, digits), "\n")
+  cat("\n elapsed time for model:", round(x$runtime, digits), "\n")
 
   # Adapted from `lme4::.prt.resids`
-    cat("\nScaled residuals:\n")
+    cat("\n Scaled residuals:\n")
     resids <- setNames(zapsmall(x$residQuants, digits + 1L),
 	c("Min", "1Q", "Median", "3Q", "Max"))
     print(resids, digits = digits, ...)
 
-  cat("\nRandom effects:", paste(as.expression(x$formulae$random)), "\n")
+  cat("\n Random effects:", paste(as.expression(x$formulae$random)), "\n")
     print(as.data.frame(x$varcompSummary), digits = digits, ...)
 
-  cat("\nRandom effect sampling correlations:\n")
+  cat("\n Random effect sampling correlations:\n")
     print(as.data.frame(x$varcompSampCor), digits = digits, ...)
 
-  cat("\nFixed effects:", paste(as.expression(x$formulae$fxd)), "\n")
+  cat("\n Fixed effects:", paste(as.expression(x$formulae$fxd)), "\n")
     #See `printCoefmat()`
     print(as.data.frame(x$fxdSummary), digits = digits, ...)
 
