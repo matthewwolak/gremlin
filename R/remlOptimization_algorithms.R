@@ -71,7 +71,7 @@
 reml <- function(nu, skel, thetaG, sLc,
 	modMats, W, Bpinv, nminffx, nminfrfx, rfxlvls, rfxIncContrib2loglik,
 	thetaR = NULL,  #<-- non-NULL if lambda==FALSE
-	tWW = NULL, RHS = NULL){  #<-- non-NULL is lambda==TRUE
+	tWW = NULL, RHS = NULL){  #<-- non-NULL if lambda==TRUE
 
   lambda <- is.null(thetaR)
   #FIXME `[[thetaG+1]]` is just a kluge below: check when/if have > R matrices
@@ -118,11 +118,29 @@ reml <- function(nu, skel, thetaG, sLc,
   } else sLc <- update(sLc, C)
 
 
+
+  # solve MME for BLUEs/BLUPs
+  ## Do now, because needed as part of calculating the log-likelihood
+#XXX Do I need to solve for BLUEs (see Knight 2008 for just getting BLUPs eqn 2.13-15)
+  # chol2inv: Cinv in same permutation as C (not permutation of sLc/sLm)
+  #Cinv <<- chol2inv(sLc) #<-- XXX ~10x slower than `solve(C)` atleast for warcolak
+#      Cinv <<- solve(a = sLc, b = Ic, system = "A") #<-- XXX comparable speed to `solve(C)` at least for warcolak
+  #Cinv <<- solve(C)
+  ##XXX NOTE Above Cinv is in original order of C and NOT permutation of M
+
+  sln <- solve(a = sLc, b = RHS, system = "A")
+  ## Cholesky is more efficient and computationally stable
+  ### see Matrix::CHMfactor-class expand note about fill-in causing many more non-zeroes of very small magnitude to occur
+  #### see Matrix file "CHMfactor.R" method for "determinant" (note differences with half the logdet of original matrix) and the functions:
+  ##### `ldetL2up` & `destructive_Chol_update`
+
+
+
   # 5 record log-like, check convergence, & determine next varcomps to evaluate  
   ##5a determine log(|C|) and y'Py
   # Boldman and Van Vleck 1991 eqn. 6 (tyPy) and 7 (log|C|)    
   # Meyer 1997 eqn. 13 (tyPy)
-  tyPy <- tyRinvy - crossprod(solve(sLc, RHS, system = "A"), RHS)
+  tyPy <- tyRinvy - crossprod(sln, RHS)
   logDetC <- 2 * sum(log(sLc@x[sLc@p+1][1:sLc@Dim[[1L]]]))
   # alternatively see `determinant` method for CHMfactor
 
@@ -159,20 +177,6 @@ reml <- function(nu, skel, thetaG, sLc,
 
 
 
-
-  # solve MME for BLUEs/BLUPs
-#XXX Do I need to solve for BLUEs (see Knight 2008 for just getting BLUPs eqn 2.13-15)
-  # chol2inv: Cinv in same permutation as C (not permutation of sLc/sLm)
-  #Cinv <<- chol2inv(sLc) #<-- XXX ~10x slower than `solve(C)` atleast for warcolak
-#      Cinv <<- solve(a = sLc, b = Ic, system = "A") #<-- XXX comparable speed to `solve(C)` at least for warcolak
-  #Cinv <<- solve(C)
-  ##XXX NOTE Above Cinv is in original order of C and NOT permutation of M
-
-  sln <- solve(a = sLc, b = RHS, system = "A")
-  ## Cholesky is more efficient and computationally stable
-  ### see Matrix::CHMfactor-class expand note about fill-in causing many more non-zeroes of very small magnitude to occur
-  #### see Matrix file "CHMfactor.R" method for "determinant" (note differences with half the logdet of original matrix) and the functions:
-  ##### `ldetL2up` & `destructive_Chol_update`
 
   # calculate residuals
   r <- modMats$y - W %*% sln
