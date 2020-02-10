@@ -81,6 +81,7 @@ reml <- function(nu, skel, thetaG, sLc,
   ##1c Now make coefficient matrix of MME
   if(lambda){
     tWKRinvW <- tWW  #<-- if lambda, data "quadratic" with R factored out
+    tyRinvy <- crossprod(modMats$y)
   } else{
       ### Rinv Kronecker with Diagonal/I
       KRinv <- kronecker(Rinv, Diagonal(x = 1, n = modMats$Zr@Dim[[2L]]))
@@ -121,9 +122,7 @@ reml <- function(nu, skel, thetaG, sLc,
   ##5a determine log(|C|) and y'Py
   # Boldman and Van Vleck 1991 eqn. 6 (tyPy) and 7 (log|C|)    
   # Meyer 1997 eqn. 13 (tyPy)
-  if(lambda){
-    tyPy <- crossprod(modMats$y) - crossprod(solve(sLc, RHS, system = "A"), RHS)
-  } else tyPy <- tyRinvy - crossprod(solve(sLc, RHS, system = "A"), RHS)
+  tyPy <- tyRinvy - crossprod(solve(sLc, RHS, system = "A"), RHS)
   logDetC <- 2 * sum(log(sLc@x[sLc@p+1][1:sLc@Dim[[1L]]]))
   # alternatively see `determinant` method for CHMfactor
 
