@@ -13,16 +13,12 @@ extern "C"{
 void ugremlin(
 	double *y,		// response
 	int *ny,		// No. responses
-	double *D,		// crossprod(y) <--> corner of M
+	int *nminffx,		// No. observations - No. Fxd Fx
 	int *ndgeninv,		// Non-diagonal ginverse (geninv) matrices
 //	int *nndgeninv,		// No. of non-diagonal geninv matrices
 	int *dimZgs,		// dimensions of Zg matrices
-	int *dimXZWG,		// dimensions of X, Z, W, & geninv matrices
-//FIXME: if don't pass in X: rename and change indexing of this below
-	int *nnzXWG,		// No. non-zeros in X, W, and geninvs
-	int *iX,		// X
-	int *pX,
-	double *xX,
+	int *dimZWG,		// dimensions of Z, W, & geninv matrices
+	int *nnzWG,		// No. non-zeros in W and geninvs
 	int *iW,		// W
 	int *pW,
 	double *xW,
@@ -30,22 +26,23 @@ void ugremlin(
 	int *pgeninv,
 	double *xgeninv,
 	double *rfxlL,		// Random effects contribution to log-Likelihood
-	int *p,			// No. theta parameters
-	int *nGR,		// No. G and R theta parameters
+	int *lambda,		// TRUE/FALSE lambda (variance ratios?)
+	int *p,			// No. nu parameters
+	int *nGR,		// No. G and R nu parameters
 	int *dimGRs,		// dimensions of G and R matrices
-	int *iGRs,		// GRs (G and R matrices of theta parameters)
+	int *iGRs,		// GRs (G and R matrices of nu parameters)
 	int *pGRs,		
 	int *nnzGRs,		// No. non-zeroes in GRs	
-	double *theta,		// thetas
+	double *nu,		// nus
 	int *nnzBpinv,		// inverse Fixed effects prior matrix (no prior=0s)
 	int *iBpinv,
 	int *pBpinv,
 	double *xBpinv,
-	double *dLdtheta,	// gradient vector (1st deriv. of lL / thetas)
-	double *lHvec,		// vector for lower triangle of information matrix (2nd deriv. of lL / thetas)
+	double *dLdnu,		// gradient vector (1st deriv. of lL / nus)
+	double *AIvec,		// column-wise vector of average information matrix (2nd deriv. of lL / nu)
 	double *sln,		// solution vector
         double *Cinv_ii,	// diagonal of Cinv: sampling variances of BLUXs
-	double *r,		// residual vector
+	double *res,		// residual vector
 	double *itMat,		// parameter information at each iteration
 	int *algit,		// algorithm for optimization at each iteration
 	int *maxit,		// maximum No. iterations
@@ -56,32 +53,34 @@ void ugremlin(
 		
 ){
 
-  cs	 *Bpinv, *W, *tW, *tWW, *tWWtmp, *cRinv, *tcRinv,
-	 *Ctmp, *C, *tC, *Lcij, *Lc,// *pCinv, *Cinv,
-	 *RHS, *tCRHS, *CRHS, *RHSD, *M, *tmpBLUXs, *BLUXs, *R;
-  css    *sLm;
-  csn    *Lm;
-  csi    Cn, *P;
-  csi    *Pinv = new csi[dimXZWG[5]];
+  cs	 *Bpinv, *W, *tW,
+	 *R, *Rinv, *KRinv, *tyRinv, *tWKRinv, *tWKRinvW, *ttWKRinvW,
+	 *Ctmp, *C,// *pCinv, *Cinv,
+	 *RHS, *tmpBLUXs, *BLUXs,
+	 *AI;
+
+  css    *sLc;
+  csn    *Lc;
 
   int    nG = nGR[0];
 //  int    nR = nGR[1];
 
   cs*    *geninv = new cs*[nG];
   cs*    *G = new cs*[nG];
-  cs*    *GcRinv = new cs*[nG];
-  cs*    *GRinv = new cs*[nG];
-  cs*    *invGRinv = new cs*[nG];
-  cs* 	 *KGRinv = new cs*[nG];
+  cs*    *Ginv = new cs*[nG];
+  cs* 	 *KGinv = new cs*[nG];
 
-  double t, T, took, dsLc, tyPy, logDetC, sigma2e, loglik, d, cc2, cc2d;
+  double t, T, took, dsLc, tyRinvy, tyPy, logDetC, sigma2e, loglik,
+         d, cc2, cc2d;
 
   int 	 g, i, k, rw, si, si2, vitout,
 	 itc = 0,
-         dimM,
-	 nminffx = ny[0] - dimXZWG[1],
-	 nr = dimXZWG[3],
+         dimM,      // GENERIC dimension of a matrix variable to be REUSED
+	 nr = dimZWG[1],
+	 nffx,
 	 nminfrfx;
+
+  int	 *rfxlvls = new int[nG];
 
   int	 *cc = new int[5];
 
@@ -92,99 +91,41 @@ void ugremlin(
 if(v[0] > 3) t = tic();
 
 
-  d = 0.0;    // temporary for calculating change in theta (cc2) and EM residual
-
-  //FIXME Do I need X? Delete if not
-  // setup X: fixed-effects design matrix
-//  X = cs_spalloc(dimXZWG[0], dimXZWG[1], nnzXWG[0], true, false);
-//    for(k = 0; k < nnzXWG[0]; k++){
-//      X->i[k] = iX[k];
-//      X->x[k] = xX[k];
-//    }
-//    for(k = 0; k <= dimXZWG[1]; k++){
-//      X->p[k] = pX[k];
-//    }
+  d = 0.0;    // temporary for calculating change in nu (cc2) and EM residual
 
   // Setup all ginverse (geninv) matrices
   //// (leave elements for diagonal/I matrices alone)
   si = 0; si2 = 0;
   for(g = 0; g < nG; g++){
     if(ndgeninv[g] == 1){
-      dimM = dimXZWG[6+g];
-      geninv[g] = cs_spalloc(dimM, dimM, nnzXWG[2+g], true, false);
-      for(k = 0; k < nnzXWG[2+g]; k++){
+      dimM = dimZWG[4+g];	// dimensions for generalized inverses
+      geninv[g] = cs_spalloc(dimM, dimM, nnzWG[1+g], true, false);
+      for(k = 0; k < nnzWG[1+g]; k++){
         geninv[g]->i[k] = igeninv[si+k];
         geninv[g]->x[k] = xgeninv[si+k];
       }
       for(k = 0; k <= dimM; k++){
         geninv[g]->p[k] = pgeninv[si2+k];
       }
-      si += nnzXWG[2+g]; si2 += dimM+1;
+      si += nnzWG[1+g]; si2 += dimM+1;
     }  // End if non-diagonal
   }  // End for g
 
 
+  nffx = ny[0] - nminffx[0];
+
   // Setup inverse matrix of Fixed effects prior (Bpinv)
   //// See Schaeffer 1991's summary of Henderson's development on this
   //// empty/zeroes if no prior specified
-  Bpinv = cs_spalloc(dimXZWG[1], dimXZWG[1], nnzBpinv[0], true, false);
+  Bpinv = cs_spalloc(nffx, nffx, nnzBpinv[0], true, false);
   for(k = 0; k < nnzBpinv[0]; k++){
     Bpinv->i[k] = iBpinv[k];
     Bpinv->x[k] = xBpinv[k];
   }
-  for(k = 0; k <= dimXZWG[1]; k++){
+  for(k = 0; k <= nffx; k++){
     Bpinv->p[k] = pBpinv[k];
   }  
   //TODO: do I need to cs_sprealloc() to get rid of zeroes explicitly stored?
-
-
-  // 1 Create mixed model array (M) and coefficient matrix of MME (C)
-  //// quadratic at bottom-right (Meyer & Smith 1996, eqn 6)
-  //// setup W=[X Z]
-  W = cs_spalloc(dimXZWG[4], dimXZWG[5], nnzXWG[1], true, false);
-    for(k = 0; k < nnzXWG[1]; k++){
-      W->i[k] = iW[k];
-      W->x[k] = xW[k];
-    }
-    for(k = 0; k <= dimXZWG[5]; k++){
-      W->p[k] = pW[k];
-    }
-  tW = cs_transpose(W, true);
-  tWW = cs_multiply(tW, W); //TODO add statement to include `Rinv`
-    // Now take transpose of transpose to correctly order (don't ask why)
-    tWWtmp = cs_transpose(tWW, true);
-    cs_spfree(tWW);
-    tWW = cs_transpose(tWWtmp, true);
-    cs_spfree(tWWtmp);
-
-  // setup 0 initialized RHS 1-column matrix
-  //// ?Potentially: having explicit 0s in RHS will ensure M ordered with RHS last
-  ////TODO check this last statement
-  //// XXX KEEP explicit 0s for BLUXs cholesky/triangular solve to work
-  RHS = cs_spalloc(dimXZWG[5], 1, dimXZWG[5], true, false);
-  tmpBLUXs = cs_spalloc(dimXZWG[5], 1, dimXZWG[5], true, false);  // *sln matrix
-  BLUXs = cs_spalloc(dimXZWG[5], 1, dimXZWG[5], true, false);    // sln matrix
-  for(k = 0; k < dimXZWG[5]; k++){
-    RHS->i[k] = k;
-    tmpBLUXs->i[k] = k;
-    BLUXs->i[k] = k;
-    RHS->x[k] = 0.0;
-    tmpBLUXs->x[k] = 0.0;
-    BLUXs->x[k] = 0.0;
-  }
-  RHS->p[0] = 0; RHS->p[1] = dimXZWG[5];
-  tmpBLUXs->p[0] = 0; tmpBLUXs->p[1] = dimXZWG[5];
-  BLUXs->p[0] = 0; BLUXs->p[1] = dimXZWG[5];
-
-
-  // setup matrix for residuals
-  R = cs_spalloc(dimXZWG[5], 1, dimXZWG[5], true, false);
-  for(k = 0; k < ny[0]; k++){
-    R->i[k] = k;
-  }
-  R->p[0] = 0; R->p[1] = ny[0];
-
-
 
 
 
@@ -192,72 +133,157 @@ if(v[0] > 3) t = tic();
   //// Assumes, just 1 R matrix 
   si = 0; for(g = 0; g < nG; g++) si += nnzGRs[g];
   dimM = dimGRs[nG];
-  cRinv = cs_spalloc(dimM, dimM, nnzGRs[nG], true, false);
+  R = cs_spalloc(dimM, dimM, nnzGRs[nG], true, false);
   for(k = 0; k < nnzGRs[nG]; k++){
-    cRinv->i[k] = iGRs[si+k];
-    cRinv->x[k] = 1.0 / sqrt(theta[si+k]);
+    R->i[k] = iGRs[si+k];
+    R->x[k] = nu[si+k];
   }
   for(k = 0; k <= dimM; k++){
-    cRinv->p[k] = k*dimM;
+    R->p[k] = k*dimM;
   }
-  //TODO Transform starting parameters to 'nu' scale
-  //// cholesky of covariance matrices, then log of transformed diagonals
-  //////TODO reference for above method (Meyer?)
 
-/*TODO re-instate after make multivariate (also need an R matrix setup just like cRinv is above
-  if(cR == NULL){
+  Rinv = cs_inv(R);
+/* 
+could do a check to make sure R was inverted correctly:
+  if(Rinv == NULL){
     error("R-structure %i starting value(s) is/are improperly specified: check that all eigenvalues (`eigen(R)$values`) > 0 and that the cholesky decomposition can be formed (`chol(R)`)\n", nR);
   }
 */
-  tcRinv = cs_transpose(cRinv, true);
-
 
 
 
 
 
   // setup G matrices
-  //// FIXME: with strategy of factoring out univariate sigma2E (see Meyer 1989)
   si = 0;
   for(g = 0; g < nG; g++){
     dimM = dimGRs[g];
     G[g] = cs_spalloc(dimM, dimM, nnzGRs[g], true, false);
     for (k = 0; k < nnzGRs[g]; k++){        
       G[g]->i[k] = iGRs[si+k];
-      G[g]->x[k] = theta[si+k];
+      G[g]->x[k] = nu[si+k];
     }
     si += nnzGRs[g];
     for(k = 0; k<= dimM; k++){
       G[g]->p[k] = k*dimM;
     }
-    GcRinv[g] = cs_multiply(tcRinv, G[g]);  // Next two lines from Meyer 1991, p.77
-    GRinv[g] = cs_multiply(GcRinv[g], cRinv);
-    invGRinv[g] = cs_inv(GRinv[g]);
+    Ginv[g] = cs_inv(G[g]);
   }
+
 
 
 
 
 
   //////////////////////////////////////////////////////////////////////////////
+  // 1 Setup to create coefficient matrix of MME (C)
+  // initialize W=[X Z]
+  W = cs_spalloc(dimZWG[2], dimZWG[3], nnzWG[0], true, false);
+    for(k = 0; k < nnzWG[0]; k++){
+      W->i[k] = iW[k];
+      W->x[k] = xW[k];
+    }
+    for(k = 0; k <= dimZWG[3]; k++){
+      W->p[k] = pW[k];
+    }
+  tW = cs_transpose(W, true);
+
+
+
+
+
+  // setup 0 initialized RHS 1-column matrix
+  //// keep explicit 0s for cs_gaxpy to work in forming RHS
+  RHS = cs_spalloc(dimZWG[3], 1, dimZWG[3], true, false);
+    // since will be iterating over same dimensions, set up Solution matrices
+    //// XXX KEEP explicit 0s for BLUXs cholesky/triangular solve to work
+    tmpBLUXs = cs_spalloc(dimZWG[3], 1, dimZWG[3], true, false);  // *sln matrix
+    BLUXs = cs_spalloc(dimZWG[3], 1, dimZWG[3], true, false);  // sln matrix
+  for(k = 0; k < dimZWG[3]; k++){
+    RHS->i[k] = k;
+    tmpBLUXs->i[k] = k;
+    BLUXs->i[k] = k;
+    RHS->x[k] = 0.0;
+    tmpBLUXs->x[k] = 0.0;
+    BLUXs->x[k] = 0.0;
+  }
+  RHS->p[0] = 0; RHS->p[1] = dimZWG[3];
+  tmpBLUXs->p[0] = 0; tmpBLUXs->p[1] = dimZWG[3];
+  BLUXs->p[0] = 0; BLUXs->p[1] = dimZWG[3];
+
+
+
+  // lambda: (co)variance ratios
+  if(lambda[0] == 1){
+    tWKRinvW = cs_multiply(tW, W);
+    // Fill in RHS
+    cs_gaxpy(tW, y, RHS->x);  // y = A*x+y XXX my `y` is cs_gaxpy's `x` 
+    // form tyy (crossprod(y)), but call it tyRinvy for conciseness
+    tyRinvy = 0.0;
+    for(k = 0; k < ny[0]; k++){
+      tyRinvy += y[k] * y[k];
+    }
+
+  //// NOT lambda: Straight (co)variances
+  }else{
+    // Rinv Kronecker with Diagonal/I
+    //// Make sure ORDER is correct
+    ////// (determine if want traits w/in individs or individs w/in traits)
+    KRinv = cs_kroneckerI(Rinv, dimZWG[2]); 
+    // setup tyRinv [t(y) %*% KRinv] to receive output from cs_gaxpy
+    tyRinv = cs_spalloc(1, dimZWG[2], dimZWG[2], true, false);
+      for(k = 0; k < dimZWG[2]; k++){
+        tyRinv->i[k] = 0;
+        tyRinv->p[k] = k;
+        tyRinv->x[k] = 0.0;
+      }
+      tyRinv->p[dimZWG[2]] = dimZWG[2];
+    // ASSUME cs_gaxpy does KRinv %*% y, which gives correct values for tyRinv@x
+    cs_gaxpy(KRinv, y, tyRinv->x);  // y = A*x+y XXX my `y` is cs_gaxpy's `x` 
+    tyRinvy = 0.0;   
+    for(k = 0; k < ny[0]; k++){
+      tyRinvy += tyRinv->x[k] * y[k];  
+    }
+    
+
+
+
+    // Components of Meyer 1989 eqn 2
+    tWKRinv = cs_multiply(tW, KRinv);
+    tWKRinvW = cs_multiply(tWKRinv, W);
+    // Next creates RHS
+    //// Meyer '97 eqn 11
+    //// (Note different order of RHS from Meyer '89 eqn 6; Meyer '91 eqn 4)
+    cs_gaxpy(tWKRinv, y, RHS->x);  // y = A*x+y XXX my `y` is cs_gaxpy's `x` 
+
+  }    // end if lambda=FALSE
+
+  // Now take transpose of transpose to correctly order (don't ask why)
+  ttWKRinvW = cs_transpose(tWKRinvW, true);
+  cs_spfree(tWKRinvW);
+  tWKRinvW = cs_transpose(ttWKRinvW, true);
+  cs_spfree(ttWKRinvW);
+
+
+
+
+
   // 1c Now make coefficient matrix of MME
-  //// invert G_i and form Kronecker product with ginverse element (i.e., I or geninv)
+  //// form Kronecker products for each G and ginverse element (i.e., I or geninv)
   for(g = 0; g < nG; g++){
-    if(ndgeninv[g] == 0){   // Diagonal matrix kronecker product: invGRinv %x% I
-      KGRinv[g] = cs_kroneckerI(invGRinv[g], dimXZWG[6+g]);
-    }else{  // generalized inverse kronecker product: invGRinv %x% geninv
-      KGRinv[g] = cs_kroneckerA(invGRinv[g], geninv[g]);
+    if(ndgeninv[g] == 0){   // Diagonal matrix kronecker product: Ginv %x% I
+      KGinv[g] = cs_kroneckerI(Ginv[g], dimZWG[4+g]);
+    }else{  // generalized inverse kronecker product: Ginv %x% geninv
+      KGinv[g] = cs_kroneckerA(Ginv[g], geninv[g]);
     }
   }
-
   //// Construct C
   if(nG > 0){
-    Ctmp = cs_omega(KGRinv, nG, Bpinv);
-    C = cs_add(tWW, Ctmp, 1.0, 1.0);
+    Ctmp = cs_omega(KGinv, nG, Bpinv);
+    C = cs_add(tWKRinvW, Ctmp, 1.0, 1.0);
   }else{
-    C = cs_add(tWW, Bpinv, 1.0, 1.0);
+    C = cs_add(tWKRinvW, Bpinv, 1.0, 1.0);
   }
-  Cn = C->n;
 
 
 
@@ -271,47 +297,26 @@ if(v[0] > 3){
 
 
 
-  // Create Mixed Model Array (M) matrix
-  cs_gaxpy(tW, y, RHS->x);  // y = A*x+y XXX my `y` is cs_gaxpy's `x`
-  RHSD = cs_spalloc(dimXZWG[5]+1, 1, RHS->nzmax+1, true, false);
-  si = 0;
-  for(k = 0; k < RHS->nzmax; k++){
-    RHSD->i[k] = RHS->i[k];
-    RHSD->x[k] = RHS->x[k];
-    si++;
-  }
-  RHSD->i[si] = dimXZWG[5];
-  RHSD->x[si] = D[0];
-  RHSD->p[0] = 0; RHSD->p[1] = si + 1;
- 
-  tCRHS = cs_cbind(C, RHS);
-  CRHS = cs_transpose(tCRHS, true);
-  cs_spfree(tCRHS);
-  M = cs_cbind(CRHS, RHSD);
-  cs_spfree(CRHS); cs_spfree(RHSD);
 
-  //1d Find best order of MMA/C/pivots!
+
+  //1d Find best order of C pivots!
   //// Graser et al. 1987 (p1363) when singular C, |C| not invariant to order
   //// of C, therefore same order (of pivots) must be used in each loglik iteration
   //// Hadfield (2010, MCMCglmm paper App B): details on chol, ordering, and updating
   
-  // Symbolic Cholesky factorization of M
-  sLm = cs_schol(1, M);
-  if(sLm == NULL){
-      error("FAILED: symbolic Cholesky factorization of Mixed Model Array (`M`)\n");
+  //// TODO Supernodal decomposition??? Can do it with Csparse? Need something else?
+  // Symbolic Cholesky factorization of C
+  sLc = cs_schol(1, C);
+  if(sLc == NULL){
+    error("FAILED: symbolic Cholesky factorization of Coefficient matrix (`C`)\n");
   }
-  if(sLm->pinv[Cn] != Cn){
-    Rprintf("sLm->pinv[%i]=%i\n", Cn, sLm->pinv[Cn]);
-    error("Ordering of M has not left RHS as last row/column\n");
-  }
-  // Allocate permutation matrix for C (all but last entry)
-  for(k = 0; k < Cn; k++) Pinv[k] = sLm->pinv[k];
-  P = cs_pinv(Pinv, Cn);
+
+
 
 
 if(v[0] > 3){
   took = toc(t);
-  Rprintf("  %6.4f sec. (CPU clock): initial cpp cs_schol(M)\n", took);
+  Rprintf("  %6.4f sec. (CPU clock): initial cpp cs_schol(C)\n", took);
   t = tic();
 }
 
@@ -321,11 +326,12 @@ if(v[0] > 3){
 
   // Create variables needed for log-likelihood calculations
   // Used for log(|R|) and log(|G|) <-- Meyer 1989 (univar.) & 1991 (multivar.)
-  int	 *rfxlvls = new int[nG];
-    for(g = 0; g < nG; g++){
-      rfxlvls[g] = dimZgs[2*g+1];
-    }
-    nminfrfx = nminffx - nr; 
+  for(g = 0; g < nG; g++){
+    rfxlvls[g] = dimZgs[2*g+1];
+  }
+  nminfrfx = nminffx[0] - nr; 
+
+
 
 
 
@@ -338,6 +344,13 @@ if(v[0] > 3){
   Rprintf("  %6.4f sec. (CPU clock): rest of initial cpp setup\n", took);
 }
 
+
+
+
+
+
+
+
   //////////////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
   //XXX									     XXX
@@ -349,16 +362,17 @@ if(v[0] > 3){
     T = tic();
     if(i == 0){vitout = 0;}else{vitout = (i+1)%vit[0];}  // always do first iteration
     if(v[0] > 0 && vitout == 0){
-      Rprintf("  %i of max %i\n", i+1, maxit[0]); //TODO TIME of DAY?
+      Rprintf("  %i of max %i\n", i+1, maxit[0]);//TODO TIME of DAY format as remlIt
     }
 
     if(i > 0){
-      cs_spfree(tcRinv);
+      cs_spfree(R); cs_spfree(Rinv);
       for(g = 0; g < nG; g++){
-        cs_spfree(GcRinv[g]); cs_spfree(GRinv[g]); cs_spfree(invGRinv[g]);
+        cs_spfree(G[g]);
+        cs_spfree(Ginv[g]);
       }
       cs_spfree(C);
-      cs_nfree(Lm);
+      cs_nfree(Lc);
 
 
 
@@ -367,76 +381,97 @@ if(v[0] > 3){
       si = 0; for(g = 0; g < nG; g++) si += nnzGRs[g];
       dimM = dimGRs[nG];
       for(k = 0; k < nnzGRs[nG]; k++){
-        cRinv->x[k] = 1.0 / sqrt(theta[si+k]);
+        R->x[k] = nu[si+k];
       }
 
-    //TODO Transform starting parameters to 'nu' scale (don't need for EM algorithm)
-    //// cholesky of covariance matrices, then log of transformed diagonals
-    //////TODO reference for above method (Meyer?)
-
-/*TODO re-instate after make multivariate
-  if(cR == NULL){
+      Rinv = cs_inv(R);
+/* 
+could do a check to make sure R was inverted correctly:
+  if(Rinv == NULL){
     error("R-structure %i starting value(s) is/are improperly specified: check that all eigenvalues (`eigen(R)$values`) > 0 and that the cholesky decomposition can be formed (`chol(R)`)\n", nR);
   }
 */
-      tcRinv = cs_transpose(cRinv, true);
-
-
 
 
 
       // setup G matrices
-      //// FIXME: with strategy of factoring out univariate sigma2E (see Meyer 1989)
       si = 0;
       for(g = 0; g < nG; g++){
         dimM = dimGRs[g];
         for (k = 0; k < nnzGRs[g]; k++){        
-          G[g]->x[k] = theta[si+k];
+          G[g]->x[k] = nu[si+k];
         }
         si += nnzGRs[g];
-        GcRinv[g] = cs_multiply(tcRinv, G[g]);  // Next two lines from Meyer 1991, p.77
-        GRinv[g] = cs_multiply(GcRinv[g], cRinv);
-        invGRinv[g] = cs_inv(GRinv[g]);
+        Ginv[g] = cs_inv(G[g]);
       }
-
-
-
 
 
       //////////////////////////////////////////////////////////////////////////
+      // 1 Setup to create coeeficient matrix of MME (C)
+      //// only do this part for NOT lambda: straight (co)variances
+      ////// same terms under lambda model don't contain Rinv so don't change
+      if(lambda[0] == 0){
+        cs_spfree(KRinv);
+        cs_spfree(tWKRinv);
+        cs_spfree(tWKRinvW);
+
+        // Update `KRinv` (Rinv Kronecker with Diagonal/I)
+        //// Make sure ORDER is correct
+        ////// (determine if want traits w/in individs or individs w/in traits)
+        cs_kroneckerIupdate(Rinv, dimZWG[2], KRinv);
+        // Reset tyRinv to 0.0 so cs_gaxpy works right
+        for(k = 0; k < dimZWG[2]; k++) tyRinv->x[k] = 0.0;
+        // ASSUME cs_gaxpy does KRinv %*% y, giving correct values for tyRinv@x
+        cs_gaxpy(KRinv, y, tyRinv->x);  // y = A*x+y XXX my `y` is cs_gaxpy's `x`
+ 
+        tyRinvy = 0.0;   
+        for(k = 0; k < ny[0]; k++){
+          tyRinvy += tyRinv->x[k] * y[k];  
+        }
+
+        // Components of Meyer 1989 eqn 2
+        tWKRinv = cs_multiply(tW, KRinv);
+        tWKRinvW = cs_multiply(tWKRinv, W);
+        // Next creates RHS
+        //// Meyer '97 eqn 11
+        //// (Note different order of RHS from Meyer '89 eqn 6; Meyer '91 eqn 4)
+        // Reset RHS to 0.0 so cs_gaxpy works right
+        for(k = 0; k < dimZWG[3]; k++) RHS->x[k] = 0.0;
+        cs_gaxpy(tWKRinv, y, RHS->x);  // y = A*x+y XXX my `y` is cs_gaxpy's `x` 
+
+      }    // end if lambda=FALSE
+
+      // Now take transpose of transpose to correctly order (don't ask why)
+      ttWKRinvW = cs_transpose(tWKRinvW, true);
+      cs_spfree(tWKRinvW);
+      tWKRinvW = cs_transpose(ttWKRinvW, true);
+      cs_spfree(ttWKRinvW);
+
+
+
+
       // 1c Now make coefficient matrix of MME
-      //// invert G_i and form Kronecker product with ginverse element (i.e., I or geninv)
+      //// form Kronecker products for each G and ginverse element (i.e., I or geninv)
       for(g = 0; g < nG; g++){
-        if(ndgeninv[g] == 0){   // Diagonal matrix kronecker product: invGRinv %x% I
-          cs_kroneckerIupdate(invGRinv[g], dimXZWG[6+g], KGRinv[g]);
-        }else{  // generalized inverse kronecker product: invGRinv %x% geninv
-          cs_kroneckerAupdate(invGRinv[g], geninv[g], KGRinv[g]);
+        if(ndgeninv[g] == 0){   // Diagonal matrix kronecker product: Ginv %x% I
+          cs_kroneckerIupdate(Ginv[g], dimZWG[4+g], KGinv[g]);
+        }else{  // generalized inverse kronecker product: Ginv %x% geninv
+          cs_kroneckerAupdate(Ginv[g], geninv[g], KGinv[g]);
         }
       }
-
       //// Construct C
       if(nG > 0){
-        cs_omegaupdate(KGRinv, nG, Bpinv, Ctmp); 
-        C = cs_add(tWW, Ctmp, 1.0, 1.0);
+        cs_omegaupdate(KGinv, nG, Bpinv, Ctmp); 
+        C = cs_add(tWKRinvW, Ctmp, 1.0, 1.0);
       }else{
-        C = cs_add(tWW, Bpinv, 1.0, 1.0);
-      }
-      // order rows within columns (necessary for updating M)
-      tC = cs_transpose(C, true);
-      cs_spfree(C);
-      C = cs_transpose(tC, true);
-      cs_spfree(tC);
-
-      // update M
-      // non-zero pattern hasn't changed - nor has last row & column
-      for(k = 0; k < Cn; k++){
-        for(g = C->p[k], rw = M->p[k]; g < C->p[k+1]; g++, rw++){
-          M->x[rw] = C->x[g];
-        }
+        C = cs_add(tWKRinvW, Bpinv, 1.0, 1.0);
       }
 
 
     }  // End if i>0
+
+
+
 
 
 
@@ -449,149 +484,40 @@ if(v[0] > 3){
 
 
 
-    Lm = cs_chol(M, sLm);  //TODO update when i>0? (cs_updown)
-//    Lm = cs_chol(M, sLm);  //TODO update when i>0? (cs_updown)
-    if(Lm == NULL){
-      error("Mixed Model Array singular: possibly caused by a bad combination of G and R (co)variance parameters\n");
+
+
+    // Update Cholesky factorization of C
+    Lc = cs_chol(C, sLc);  //TODO update when i>0? (cs_updown)
+    if(Lc == NULL){
+      error("Mixed Model Coefficient matrix (C) singular: possibly caused by a bad combination of G and R (co)variance parameters\n");
     }
 
 
-if(v[0] > 3){
-  took = toc(t);
-  Rprintf("    %6.4f sec. (CPU clock): cpp REML i=%i cs_chol(M)\n", took, i);
-  t = tic();
-}
 
-
-
-    // Obtain Cholesky factor of C (Lc) from Lm (first Cn rows & columns of Lm)
-    //// Assume, same non-zero pattern each iteration (i.e., order of rows same)
-    if(i == 0){
-      // form a triplet matrix
-      //// allocate max. entries according to non-zeroes in m-1 columns of M 
-      //// does include the non-zeroes from last row of M
-      Lcij = cs_spalloc(Cn, Cn, Lm->L->p[Cn], true, true);
-      k = 0; rw = 0;
-      for(g = 0; g < Lm->L->p[Cn]; g++){
-        if(g >= Lm->L->p[k+1]) k++;
-        if(Lm->L->i[g] != Cn){
-          Lcij->i[rw] = Lm->L->i[g];
-          Lcij->p[rw] = k;
-          Lcij->x[rw] = Lm->L->x[g];
-          rw++;
-        }
-      Lcij->nz = rw;
-      }
-
-    } else{
-      rw = 0;
-      for(g = 0; g < Lm->L->p[Cn]; g++){
-        if(Lm->L->i[g] != Cn){
-          Lcij->x[rw] = Lm->L->x[g];
-          rw++;
-        }
-      }
-    }    
-    // Convert triplet matrix into sparse compressed column matrix
-    Lc = cs_compress(Lcij);    // PERMUTED order (NOT order of C)
 
 
 if(v[0] > 3){
   took = toc(t);
-  Rprintf("\t    %6.4f sec. (CPU clock): cpp REML i=%i chol(C) from chol(M)\n", took, i);
+  Rprintf("    %6.4f sec. (CPU clock): cpp REML i=%i cs_chol(C)\n", took, i);
   t = tic();
 }
 
 
 
 
-
-
-
-  
-
-
-
-    /* No longer use explicit inverse (deprecated cs_emCinv uses it)
-    pCinv = cs_chol2inv(Lc);
-    if(pCinv == NULL){
-      error("Error inverting C\n");
-    }
-
-    Cinv = cs_permute(pCinv, P, Pinv, 1);  //<-- permute values 0/1=FALSE/TRUE
-    // Do t(t(Cinv)) to order correctly
-    cs_spfree(pCinv);   
-    pCinv = cs_transpose(Cinv, true);
-    cs_spfree(Cinv);
-    Cinv = cs_transpose(pCinv, true);
-    cs_spfree(pCinv);
-
-if(v[0] > 3){
-  took = toc(t);
-  Rprintf("\t    %6.4f sec. (CPU clock): cpp REML i=%i chol2inv(Lc) to Cinv\n", took, i);
-  t = tic();
-}
-    */
-    /*		XXX		XXX		XXX		XXX	*/
-
-    ////////////////////////////////////////////////////////////////////////////
-    // 5 record log-like, check convergence, & determine next varcomps to evaluate  
-    //// 5a determine log(|C|) and y'Py
-    ////// Meyer & Smith 1996, eqns 12-14 (and 9)
-    //// Also see Meyer & Kirkpatrick 2005 GSE. eqn. 18: if cholesky of MMA = LL'
-    dsLc = 0.0; tyPy = 0.0; loglik = 0.0;  // set diagonal sum of Lc, tyPy, and loglik back to 0
-    // Meyer & Smith 1996, eqn. 13
-    for(k = 0; k < Cn; k++){
-      rw = Lm->L->p[k];
-      dsLc += log(Lm->L->x[rw]);
-    }
-    logDetC = 2.0 * dsLc;
-    // Meyer & Smith 1996, eqn. 14
-    tyPy += Lm->L->x[Lm->L->p[Cn]];
-      tyPy *= tyPy;
-
-    sigma2e = tyPy / nminffx;             // residual variance
-    loglik += nminffx + logDetC;         // nminffx is tyPy/sigma2e, simplified b/c sigma2e=tyPy/nminffx 
-    
-    // log(|R|) contribution TODO Assumes X of full rank
-    //// Alternatively: if Rinv NOT factored out of MMA `loglik += ny*log(start$R)`
-    loglik += nminfrfx * log(sigma2e);
-    // log(|G|) contribution
-    //// FIXME only works for independent random effects
-    //// See also alternative (using starting value for residual when factored Rinv)
-    if(nG > 0){
-      for(g = 0; g < nG; g++){
-        //FIXME below assumes only one entry in GRinv[g]
-        loglik += rfxlvls[g] * log(GRinv[g]->x[0] * sigma2e);
-      }
-    }
-    loglik += rfxlL[0];
-    loglik *= -0.5;
-
-
-
-if(v[0] > 3){
-  took = toc(t);
-  Rprintf("    %6.4f sec. (CPU clock): cpp REML i=%i log-likelihood calc.\n", took, i);
-  t = tic();
-}
-
-    //XXX	**** END LOG-LIKELIHOOD CALCULATION **** 		XXX
-    //XXX	**** END LOG-LIKELIHOOD CALCULATION **** 		XXX
-    /**************************************************************************/
 
 
 
 
     ////////////////////////////////////////////////////////////////////////////
     // solve MME for BLUEs/BLUPs
-////TODO Might not need to solve for BLUEs (see Knight 2008 for just getting BLUPs eqn 2.13-15
-    //// see Mrode 2005 chapter
+    //// Do now, because need solutions as part of log-likelihood calc. (for tyPy)
     //XXX tmpBLUXs must have EXPLICIT 0s, else triangular solve = incorrect answer
-    cs_ipvec (Pinv, RHS->x, tmpBLUXs->x, Cn) ;   /* x = P*b */
-    cs_lsolve (Lc, tmpBLUXs->x) ;                /* x = L\x */
-    cs_ltsolve (Lc, tmpBLUXs->x) ;               /* x = L'\x */
-    cs_pvec (Pinv, tmpBLUXs->x, BLUXs->x, Cn) ;  /* b = P'*x */
+    cs_ipvec(sLc->pinv, RHS->x, tmpBLUXs->x, C->n) ;   /* x = P*b */
+    cs_lsolve(Lc->L, tmpBLUXs->x) ;                    /* x = L\x */
+    cs_ltsolve(Lc->L, tmpBLUXs->x) ;                   /* x = L'\x */
+    cs_pvec(sLc->pinv, tmpBLUXs->x, BLUXs->x, C->n) ;  /* b = P'*x */
+
 
 if(v[0] > 3){
   took = toc(t);
@@ -600,16 +526,18 @@ if(v[0] > 3){
 }
 
 
+
     // calculate residuals as r = y - W %*% sln
-    // put y in R->x to be over-written
+    // put y in r to be over-written
     for(k = 0; k < ny[0]; k++){
-      R->x[k] = -1.0 * y[k];
+      res[k] = -1.0 * y[k];
     }
     //// below rearranges to -r = W %*% sln - y
-    cs_gaxpy(W, BLUXs->x, R->x);   //  y = A*x+y
+    cs_gaxpy(W, BLUXs->x, res);   //  y = A*x+y
     for(k = 0; k < ny[0]; k++){
-      R->x[k] *= -1.0;
+      res[k] *= -1.0;
     }
+
 
 
 
@@ -621,8 +549,99 @@ if(v[0] > 3){
 
 
 
+
+
+
+
+
+
+    ////////////////////////////////////////////////////////////////////////////
+    // 5 record log-likelihood, check convergence, & determine next varcomps  
+    //// 5a determine log(|C|) and y'Py
+    // Boldman and Van Vleck 1991 eqn. 6 (tyPy) and 7 (log|C|)    
+    // Meyer 1997 eqn. 13 (tyPy)
+
+    // set diagonal sum of Lc, tyPy, and loglik back to 0/starting values
+    tyPy = tyRinvy;
+    dsLc = 0.0; loglik = 0.0;  
+
+    // 'by hand' calculate `tyPy = tyRinvy -  crossprod(BLUXs, RHS)`
+    for(k = 0; k < dimZWG[3]; k++){
+      tyPy -= BLUXs->x[k] * RHS->x[k];
+    }
+    
+    // calculate logDetC from diagonals of Lc
+    for(k = 0; k < C->n; k++){
+      rw = Lc->L->p[k];
+      dsLc += log(Lc->L->x[rw]);
+    }
+    logDetC = 2.0 * dsLc;
+
+    // Factored out residual variance (only for lambda scale)
+    if(lambda[0] == 1) sigma2e = tyPy / nminffx[0]; else sigma2e = -1.0;
+
+    // Construct the log-likelihood (Meyer 1997 eqn. 8)
+    //// (firt put together as `-2 log-likelihood`)
+    // `log(|R|)`
+    if(lambda[0] == 1){
+      loglik += nminfrfx * log(sigma2e);
+    }else{
+      loglik += ny[0] * log(nu[p[0]-1]);  //FIXME won't work when R (co)variances
+    }
+
+    // `log(|G|)`
+    //// Meyer 1997 eqn. 9 for lambda=FALSE equation
+    //// NOTE: setting `sigma2e=1.0` above when lambda=FALSE means 1 line below
+    //// FIXME only works for independent random effects
+    if(nG > 0){
+      for(g = 0; g < nG; g++){
+        //FIXME below assumes only one entry in a Ginv[g]
+        loglik += rfxlvls[g] * log(Ginv[g]->x[0] * sigma2e);
+      }
+    }
+    loglik += rfxlL[0];    // rfxIncContrib2loglik
+
+    // log(|C|) + tyPy
+    //// if lambda=TRUE then nminffx=tyPy/sigma2e simplified below
+    ////// (because sigma2e=tyPy/nminffx)
+    if(lambda[0] == 1){
+      loglik += logDetC + nminffx[0];
+    }else{
+      loglik += logDetC + tyPy;
+    }
+    
+    // Multiply by -0.5 to calculate `loglik` from `-2loglik`
+    loglik *= -0.5;
+
+
+
+
+
+
+if(v[0] > 3){
+  took = toc(t);
+  Rprintf("    %6.4f sec. (CPU clock): cpp REML i=%i log-likelihood calc.\n", took, i);
+  t = tic();
+}
+
+
+
+
+    //XXX	**** END LOG-LIKELIHOOD CALCULATION **** 		XXX
+    //XXX	**** END LOG-LIKELIHOOD CALCULATION **** 		XXX
+    /**************************************************************************/
+    /**************************************************************************/
+    /**************************************************************************/
+
+
+
+
+
+    /* `itc` elements for each iteration:
+    nus | sigma2e | tyPy | logDetC | loglik | time
+    */
     for(k = 0; k < p[0]; k++){
-      itMat[itc] += theta[k];
+      itMat[itc] += nu[k];
       itc++;
     }
     itMat[itc] += sigma2e; itc++;
@@ -641,34 +660,38 @@ if(v[0] > 3){
 }
 
 
+
     ////////////////////////////////////////////////////////////////////////////
     // 5c check convergence criteria
     //// Knight ('08 ch. 6): Searle et al.'92 & Longford '93 discuss diff. crit. types
     //// Appendix 2 of WOMBAT help manual for 4 criteria specified
-    for(k = 0; k <= 4; k++) cc[k] = 0;     // Keep track of sum in last position
+    for(k = 0; k <= 4; k++) cc[k] = 0;     // Keep track of sum as last position
     d = 0.0; cc2 = 0.0; cc2d = 0.0;
     if(i > 0){
-      // Change in log-likelihood
+      // Change in log-likelihood: Wombat 1
       cc[0] += (itMat[itc-6-p[0]] - loglik) < cctol[0];
         cc[4] += cc[0];
-      // Change in theta: wombat eqn. A.1 also Knight 2008 eqn. 6.1
+      // Change in nu: wombat eqn. A.1 also Knight 2008 eqn. 6.1
       for(k = 0; k < p[0]; k++){
-        d = theta[k] - itMat[itc-(9+2*p[0])+k];
+        d = nu[k] - itMat[itc-(9+2*p[0])+k];
         cc2 += d*d;
-        cc2d += theta[k] * theta[k];
+        cc2d += nu[k] * nu[k];
       }
       cc[1] += sqrt(cc2 / cc2d) < cctol[1];
         cc[4] += cc[1];
       // 3 & 4 are only for optimzation algorithms which produce derivatives
       if(algit[i] > 0){    // 0=EM, 1=AI
         // Norm of gradient vector: wombt eqn. A.2
-          //TODO Does this go here or maybe after AI
-          //// Does this step happen for last AI matrix (i-1) or current (i)?
-          //  cc[4] += cc[2];
+//TODO Does this go here or maybe after AI
+//// Does this step happen for last AI matrix (i-1) or current (i)?
+        d = 0.0;
+        for(k = 0; k < p[0]; k++) d += dLdnu[k] * dLdnu[k];
+        cc[2] += sqrt(d) < cctol[2];
+          cc[4] += cc[2];
         // Newton decrement: wombat eqn A.3 and Boyd & Vandenberghe 2004
           //TODO
           //  cc[4] += cc[3];
-      }
+      }  // end if AI
     }  // end convergence criteria if i>0
 
 
@@ -684,37 +707,57 @@ if(v[0] > 3){
 
     ////////////////////////////////////////////////////////////////////////////
     // 5d Determine next (co)variance parameters to evaluate: REML NOT CONVERGED
-    // Meyer and Smith 1996 for algorithm using derivatives of loglik
-    //// eqn 15-18 (+ eqn 33-42ish) for derivatives of tyPy and logDetC
-    //// Smith 1995 for very technical details
-//XXX trace of a matrix corresponds to the derivative of the determinant
     if(cc[4] < 2){
+
+      /////////////////////////////
       // Expectation Maximization
-      // EM refs: Hofer 1998 eqn 10-12
-      // XXX note Hofer eqn 12 missing sigma2e in last term of non-residual formula
-      ////XXX see instead Mrode 2005 (p. 241-245)
+      /////////////////////////////
       if(algit[i] == 0){
         if(v[0] > 1 && vitout == 0) Rprintf("\tEM to find next theta");
-        if(!cs_em(BLUXs, theta, Cinv_ii,
-	  nG, rfxlvls, dimXZWG[1], ndgeninv, geninv, Lc, P, Pinv)){
+        if(!cs_em(BLUXs, nu, Cinv_ii,
+	  nG, rfxlvls, nffx, ndgeninv, geninv, Lc->L, sLc->pinv)){
           error("Unusccessful EM algorithm in iteration %i\n");
         }
         // Calculate EM for residual:
         //// crossprod(y, r) / nminffx
         d = 0.0;
-        for(k = 0; k < ny[0]; k++) d += y[k] * R->x[k]; // assumes R has explicit 0s
-        theta[nG] = d / nminffx;
+        for(k = 0; k < ny[0]; k++) d += y[k] * r[k]; 
+        nu[nG] = d / nminffx[0];
       }  // end EM
+      /////////////////////////////
 
+
+
+
+      /////////////////////////////
       // Average Information
-      // Appendix 5 WOMBAT manual:how to modify AI matrix ensure improvements of logLik
+      /////////////////////////////
       if(algit[i] == 1){
-        //if(v[0] > 1 && vitout == 0) Rprintf("\tAI to find next theta");
+        if(v[0] > 1 && vitout == 0) Rprintf("\tAI to find next theta");
+        if(lambda[0] == 1){
+          if(!cs_ai(BLUXs, nu, AI, R, KRinv, tWKRinv,
+	      y, W, tW, n, p[0], nG, rfxlvls, nffx, Lc->L, sLc->pinv,
+	      0, sigma2e, ezero[0])){
+            error("Unusccessful AI algorithm in iteration %i\n");
+          }  // end if cs_ai
+        }else{
+          if(!cs_ai(BLUXs, nu, AI, R, KRinv, tWKRinv,
+	    res, W, tW, n, p[0], nG, rfxlvls, nffx, Lc->L, sLc->pinv,
+	    thetaR, 1.0, ezero[0])){
+              error("Unusccessful AI algorithm in iteration %i\n");
+          }  // end if cs_ai
+        }  // end if/else lambda
+
         //TODO do I need to check convergence criteria here (i.e., cc[3:4])
 
-        //TODO if AI not successful, then change algit[i] = 0 (if EM was successful)
 
       }  // end AI
+      /////////////////////////////
+
+
+
+
+
 
 
 if(v[0] > 3){
@@ -820,37 +863,35 @@ if(v[0] > 3) t = tic();
 */
 
   //// Residual vector
-  for(k = 0; k < ny[0]; k++) r[k] += R->x[k];
+  for(k = 0; k < ny[0]; k++) res[k] += R->x[k];
   //TODO
   //// return AI and dLdtheta
 
   //////////////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
-  //  cs_spfree(X);
   cs_spfree(Bpinv);
-  cs_spfree(W); cs_spfree(tW); cs_spfree(tWW);
-  cs_spfree(cRinv); cs_spfree(tcRinv);
+  cs_spfree(W); cs_spfree(tW);
+  cs_spfree(R); cs_spfree(Rinv); cs_spfree(KRinv);
+  cs_spfree(tWKRinv); cs_spfree(tWKRinvW);
   cs_spfree(Ctmp); cs_spfree(C); //cs_spfree(Cinv);
-  cs_spfree(Lcij); cs_spfree(Lc);
-  cs_spfree(RHS); cs_spfree(tmpBLUXs); cs_spfree(BLUXs); cs_spfree(R);
+  cs_spfree(RHS); cs_spfree(tmpBLUXs); cs_spfree(BLUXs); cs_spfree(Res);
 
-  cs_sfree(sLm);
+  cs_sfree(sLc);
 
-  cs_nfree(Lm);
+  cs_nfree(Lc);
 
 //
   for(g = 0; g < nG; g++){
     if(ndgeninv[g] == 1) cs_spfree(geninv[g]);
-    cs_spfree(G[g]); cs_spfree(GcRinv[g]); cs_spfree(GRinv[g]);
-    cs_spfree(invGRinv[g]); cs_spfree(KGRinv[g]);
+    cs_spfree(G[g]); cs_spfree(Ginv[g]);
+    cs_spfree(KGinv[g]);
   } 
 //
   delete [] geninv;
-  delete [] G; delete [] GcRinv; delete [] GRinv;
-  delete [] invGRinv; delete [] KGRinv;
+  delete [] G; delete [] Ginv;
+  delete [] KGinv;
 //
-  delete [] Pinv; delete [] P;
   delete [] rfxlvls;
   delete [] cc;
 
