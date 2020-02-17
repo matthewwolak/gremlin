@@ -746,7 +746,7 @@ if(v[0] > 3){
 	      ny[0], p[0], nG, rfxlvls, nffx, ndgeninv,
 	      geninv, BLUXs, Lc->L, sLc->pinv, 
               sigma2e,    // 1.0 if lambda=FALSE
-	      0, 0.0,      // 0/0.0 if lambda=TRUE
+	      0, res,      // 0 if lambda=TRUE
 	      ezero[0])){
             error("Unusccessful gradient calculation in iteration %i\n", i);
           }  // end if cs_gradFun
@@ -762,7 +762,7 @@ if(v[0] > 3){
 	      ny[0], p[0], nG, rfxlvls, nffx, ndgeninv,
 	      geninv, BLUXs, Lc->L, sLc->pinv, 
               1.0,    // 1.0 if lambda=FALSE
-	      nG, res,      // 0/0.0 if lambda=TRUE
+	      nG, res,      // 0 if lambda=TRUE
 	      ezero[0])){
             error("Unusccessful gradient calculation in iteration %i\n", i);
           }  // end if cs_gradFun

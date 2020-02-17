@@ -17,7 +17,7 @@ csi cs_gradFun(double *nu, double *dLdnu, double *Cinv_ii,
 	cs **geninv,
 	const cs *BLUXs, const cs *Lc, const csi *Pinv,
         double sigma2e,    // 1.0 if lambda=FALSE
-	csi thetaR, double *r,      // 0/0.0 if lambda=TRUE
+	csi thetaR, double *r,      // 0 if lambda=TRUE
 	double ezero
 ){
 

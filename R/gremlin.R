@@ -285,7 +285,7 @@ browser() #XXX XXX DELETEME
 	  W@Dim,						# W Dims
 	  unlist(lapply(modMats$listGeninv, FUN = function(g){g@Dim[[1L]]}))))), # geninv Dims
 	as.integer(with(grMod, c(length(W@x),		# No. nonzero W
-	  sapply(seq(nG), FUN = function(g){length(listGeninv[[g]]@x)})))), # No. nnz geninvs
+	  sapply(seq(length(thetaG)), FUN = function(g){length(modMats$listGeninv[[g]]@x)})))), # No. nnz geninvs
 	as.integer(grMod$W@i), 					     #W
 	as.integer(grMod$W@p),
 	as.double(grMod$W@x),
