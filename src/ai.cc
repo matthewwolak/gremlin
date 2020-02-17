@@ -4,7 +4,7 @@
 
 
 /* AI returned */
-csi cs_ai(const cs *BLUXs, double *nu,
+cs *cs_ai(const cs *BLUXs, double *nu,
         const cs *R, const cs *KRinv, const cs *tWKRinv,
         double *rory,  // residuals if lambda=FALSE else y if lambda=TRUE
         const cs *W, const cs *tW, csi n, csi p, csi nG, csi *rfxlvls, csi nb,
@@ -18,9 +18,12 @@ csi cs_ai(const cs *BLUXs, double *nu,
   double  sln_k;
   cs      *AI, *Rinv, *B, *tB, *BRHS, *tBRinvB, *tBKRinv, *tS, *Scol, *tSBRHS;
   csi     g, i, k, cnt, si, qi, ei;
-  double  *tmp_sln = new double[BLUXs->m];
 
-  if(!CS_CSC(BLUXs) || !tmp_sln || !nu) return(cs_done(AI, tmp_sln, NULL, 0));
+  if(!CS_CSC(BLUXs) || !nu) return(0);
+
+  double  *tmp_sln = new double[BLUXs->m];
+  if(!tmp_sln) return(0);
+
   if(thetaR != 0 && fabs(sigma2e - 1.00) < ezero) lambda = 0; else lambda = 1;
 
   if(lambda == 1){
@@ -146,9 +149,10 @@ csi cs_ai(const cs *BLUXs, double *nu,
   cs_spfree(Scol);
   cs_spfree(tSBRHS);
 
+//  delete [] tmp_sln;
+// return(AI);
   // success, free tmp_sln, return AI and 1=success
  return(cs_done(AI, tmp_sln, NULL, 1));
-
 }
 
 

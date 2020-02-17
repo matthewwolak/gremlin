@@ -274,13 +274,12 @@ gremlin <- function(formula, random = NULL, rcov = ~ units,
 
   gnu <- lapply(grMod$nu, FUN = as, "dgCMatrix") #FIXME do this directly to begin with or just use dense matrices (class="matrix")
   nuv <- sapply(grMod$nu, FUN = slot, name = "x")
-browser() #XXX XXX DELETEME
+
   Cout <- .C("ugremlin", PACKAGE = "gremlin",
 	as.double(grMod$modMats$y),
 	as.integer(grMod$modMats$ny),
 	as.integer(grMod$nminffx),		# No. observations - No. Fxd Fx
 	as.integer(grMod$ndgeninv),		# non-diagonal ginverses
-#	as.integer(length(ndgeninv)),		# No. non-diagonal ginverses
 	as.integer(c(grMod$dimsZg)),
 	as.integer(with(grMod, c(rowSums(dimsZg),		# Z Dims
 	  W@Dim,						# W Dims
