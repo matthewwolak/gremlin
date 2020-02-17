@@ -381,8 +381,13 @@ if(v[0] > 3){
       //// Assumes, just 1 R matrix 
       si = 0; for(g = 0; g < nG; g++) si += nnzGRs[g];
       dimM = dimGRs[nG];
+      R = cs_spalloc(dimM, dimM, nnzGRs[nG], true, false);
       for(k = 0; k < nnzGRs[nG]; k++){
+        R->i[k] = iGRs[si+k];
         R->x[k] = nu[si+k];
+      }
+      for(k = 0; k <= dimM; k++){
+        R->p[k] = k*dimM;
       }
 
       Rinv = cs_inv(R);
@@ -399,10 +404,15 @@ could do a check to make sure R was inverted correctly:
       si = 0;
       for(g = 0; g < nG; g++){
         dimM = dimGRs[g];
+        G[g] = cs_spalloc(dimM, dimM, nnzGRs[g], true, false);
         for (k = 0; k < nnzGRs[g]; k++){        
+          G[g]->i[k] = iGRs[si+k];
           G[g]->x[k] = nu[si+k];
         }
         si += nnzGRs[g];
+        for(k = 0; k<= dimM; k++){
+          G[g]->p[k] = k*dimM;
+        }
         Ginv[g] = cs_inv(G[g]);
       }
 
