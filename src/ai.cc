@@ -19,8 +19,8 @@ csi cs_ai(const cs *BLUXs, double *nu, const cs *AI,
   cs      *Rinv, *B, *tB, *BRHS, *tBRinvB, *tBKRinv, *tS, *Scol;
   csi     g, i, j, k, cnt, si, qi, ei;
 
-  if(thetaR != 0 && fabs(sigma2e - 1.00) < ezero) lambda = 0; else lambda = 1;
   if(!CS_CSC (BLUXs) || !nu) return (0);    // check arguments
+  if(thetaR != 0 && fabs(sigma2e - 1.00) < ezero) lambda = 0; else lambda = 1;
 
   if(lambda == 1){
     Rinv = cs_spalloc(1, 1, 1, true, false);

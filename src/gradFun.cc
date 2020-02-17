@@ -39,8 +39,8 @@ csi cs_gradFun(double *nu, double *dLdnu, double *Cinv_ii,
   //// `g` is the gth component of the G-structure to model
   //// `geninv` is the generalized inverse
   ////// (not the inverse of the G-matrix/(co)variance components)
-  double trace = new double[nG];
-  double tugug = new double[nG];  // includes crossprod(residual) for when !lambda
+  double  *trace = new double[nG];
+  double  *tugug = new double[nG];  // includes crossprod(residual) when !lambda
   double  *tmp_sln = new double[nsln];
   double  *w = new double[nsln];
     for(k = 0; k < n; k++){

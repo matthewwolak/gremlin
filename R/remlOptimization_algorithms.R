@@ -213,8 +213,8 @@ reml <- function(nu, skel, thetaG, sLc,
 ### eqn 15-18 (+ eqn 33-42ish) for derivatives of tyPy and logDetC
 ### Smith 1995 for very technical details
 # EM refs: Hofer 1998 eqn 10-12
-## XXX note Hofer eqn 12 missing sigma2e in last term of non-residual formula
-### see instead Mrode 2005 (p. 241-245)
+## note Hofer eqn 12 has no sigma2e in last term of non-residual formula
+### ?mistake? in Mrode 2005 (p. 241-245), which does include sigma2e
 #' @rdname reml
 #' @export
 em <- function(nuvin, thetaG, thetaR,
@@ -319,13 +319,25 @@ ai <- function(nuvin, skel, thetaG,
     BRHS <- Matrix(crossprod(W, B), sparse = TRUE) 
     tBRinvB <- crossprod(B)
   } else{
+      # could pass KRinv and tWKRinv (if lambda=FALSE) from reml() into ai() 
       KRinv <- kronecker(Rinv, Diagonal(x = 1, n = modMats$Zr@Dim[[2L]]))
+      BRHS <- Matrix(tWKRinv %*% B, sparse = TRUE)
       tWKRinv <- crossprod(W, KRinv)
       tBRinvB <- crossprod(B, KRinv) %*% B
-      BRHS <- Matrix(tWKRinv %*% B, sparse = TRUE)
     }
   ## tBPB
-  ### Meyer 1997 eqns 22-23 (extends Johnson & Thompson 1995 eqns 8,9b,9c)
+  ### Johnson & Thompson 1995 eqns 8,9b,9c
+  #### (accomplishes same thing as Meyer 1997 eqns 22-23 for a Cholesky
+  #### factorization as Boldman & Van Vleck eqn 6 applied to AI calculation)
+  ## how to do this in c++ with Csparse
+#   tS <- matrix(NA, nrow = ncol(BRHS), ncol = nrow(BRHS))
+#    for(c in 1:p){
+#      slv1P <- solve(sLc, BRHS[, c], system = "P")
+#      slv1L <- solve(sLc, slv1P, system = "L")
+#      slv1Lt <- solve(sLc, slv1L, system = "Lt")
+#      tS[c, ] <- solve(sLc, slv1Lt, system = "Pt")@x
+#    }
+#    tBPB <- tBRinvB - (tS %*% BRHS)
   tBPB <- tBRinvB - crossprod(solve(sLc, BRHS, system = "A"), BRHS)
   AI <- 0.5 * tBPB 
   if(lambda) AI <- AI / sigma2e
@@ -333,6 +345,7 @@ ai <- function(nuvin, skel, thetaG,
  as(AI, "matrix")
 }  #<-- end `ai()`
 ################################################################################    
+
 
 
 
@@ -413,4 +426,172 @@ gradFun <- function(nuvin, thetaG, modMats, Cinv, sln,
 # Changing ginverse elements to `dsCMatrix` doesn't speedup traces, since
 ## they end up more or less as dense matrices but in dgCMatrix from the product
 ##########################
+
+#######################################################
+    # Note: trace of a product == the sum of the element-by-element product
+    ## Consequently, don't have to make `Cinv`, just diagonals
+#XXX TODO see Knight 2008 thesis eqns 2.36 & 2.42 (and intermediates) for more generalized form of what is in Mrode (i.e., multivariate/covariance matrices instead of single varcomps)
+##XXX eqn. 2.44 is the score/gradient! for a varcomp
+
+#XXX NOTE: if use this or next, won't need `tr()` functions/methods anymore...I think
+gradFun_TEST <- function(nuvin, thetaG,
+	modMats, sLc, ndgeninv, sln,
+	sigma2e = NULL,   #<-- NULL if lambda==FALSE
+	thetaR = NULL, r = NULL, nminfrfx = NULL){  #<-- NULL if lambda==TRUE
+
+  lambda <- is.null(r)  #<-- lambda scale model
+  p <- length(nuvin)
+  dLdnu <- matrix(0, nrow = p, ncol = 1, dimnames = list(names(nuvin), NULL))
+  # tee = e'e
+  if(!lambda) tee <- crossprod(r)
+
+  # `Cinv_ii` is the diagonals only of the C-inverse matrix
+  # `trace` = trace[Cinv_gg %*% geninv_gg]
+  # `tugug` = t(u_gg) %*% geninv_gg %*% u_gg
+  ## `g` is the gth component of the G-structure to model
+  ## `geninv` is the generalized inverse
+  ### (not the inverse of the G-matrix/(co)variance components)
+  si <- modMats$nb + 1
+  Ig <- Diagonal(n = sLc@Dim[1L], x = 1)
+  trace <- tugug <- rep(0, length(thetaG))
+  Cinv_ii <- matrix(0, nrow = nrow(sln), ncol = 1)
+  for(g in thetaG){
+    qi <- ncol(modMats$Zg[[g]])
+    ei <- si - 1 + qi
+
+#TODO XXX for using covariance matrices, see Johnson & Thompson 1995 eqn 11a
+    ## Johnson & Thompson 1995 equations 9 & 10
+    if(ndgeninv[g]){
+      ### Generalized inverse associated with the random effects
+      ### Johnson & Thompson 1995 eqn 9a
+      #### `tugug` is the numerator of the 3rd term in the equation
+      tugug[g] <- (crossprod(sln[si:ei, , drop = FALSE], modMats$listGeninv[[g]]) %*% sln[si:ei, , drop = FALSE])@x
+
+      #### create trace (numerator of 2nd) term in the equation
+      for(k in si:ei){
+        Cinv_siei_k <- solve(sLc, b = Ig[, k], system = "A")[si:ei, , drop = TRUE]
+        Cinv_ii[k] <- Cinv_siei_k[k-si+1]       
+        trace[g] <- trace[g] + sum(modMats$listGeninv[[g]][(k-si+1), , drop = TRUE] * Cinv_siei_k)
+      }  #<-- end for k
+    } else{
+        ### No generalized inverse associated with the random effects
+        ### Johnson & Thompson 1995 eqn 10a
+        #### `tugug` is the numerator of the 3rd term in the equation
+        tugug[g] <- crossprod(sln[si:ei, , drop = FALSE])
+
+        #### create trace (numerator of 2nd) term in the equation
+        for(k in si:ei){
+          Cinv_ii[k] <- solve(sLc, b = Ig[, k], system = "A")[k,]
+          trace[g] <- trace[g] + Cinv_ii[k]
+        }  #<-- end for k
+      }  #<-- end if else whether a diagonal g-inverse associated with rfx
+
+    si <- ei+1
+  }  #<-- end `for g in thetaG`
+
+  # First derivatives (gradient/score)
+  if(lambda){
+    for(g in thetaG){
+      # Johnson and Thompson 1995 Appendix 2 eqn B3 and eqn 9a and 10a
+      dLdnu[g] <- (ncol(modMats$Zg[[g]]) / nuvin[g]) - (1 / nuvin[g]^2) * (trace[g] + tugug[g] / sigma2e)
+    }  #<-- end for g
+
+  } else{  #<-- else when NOT lambda scale
+      ## Johnson and Thompson 1995 eqn 9b
+#FIXME change `[p]` below to be number of residual (co)variances
+      dLdnu[p] <- (nminfrfx / nuvin[thetaR]) - (tee / nuvin[thetaR]^2)
+      for(g in thetaG){
+        dLdnu[p] <- dLdnu[p] + (1 / nuvin[thetaR]) * (trace[g] /nuvin[g]) 
+        # Johnson and Thompson 1995 eqn 9a and 10a
+        dLdnu[g] <- (ncol(modMats$Zg[[g]]) / nuvin[g]) - (1 / nuvin[g]^2) * (trace[g] + tugug[g])
+      }  #<-- end for g
+    }
+    
+ # Johnson and Thompson 1995 don't use -0.5, because likelihood is -2 log likelihood
+ ## see `-2` on left-hand side of Johnson & Thompson eqn 3
+ -0.5 * dLdnu
+}  #<-- end `gradFun()`
+################################################################################
+gradFun_TEST2 <- function(nuvin, thetaG,
+	modMats, sLc, ndgeninv, sln,
+	sigma2e = NULL,   #<-- NULL if lambda==FALSE
+	thetaR = NULL, r = NULL, nminfrfx = NULL){  #<-- NULL if lambda==TRUE
+
+  lambda <- is.null(r)  #<-- lambda scale model
+  p <- length(nuvin)
+  dLdnu <- matrix(0, nrow = p, ncol = 1, dimnames = list(names(nuvin), NULL))
+  # tee = e'e
+  if(!lambda) tee <- crossprod(r)
+
+  # `Cinv_ii` is the diagonals only of the C-inverse matrix
+  # `trace` = trace[Cinv_gg %*% geninv_gg]
+  # `tugug` = t(u_gg) %*% geninv_gg %*% u_gg
+  ## `g` is the gth component of the G-structure to model
+  ## `geninv` is the generalized inverse
+  ### (not the inverse of the G-matrix/(co)variance components)
+  si <- modMats$nb + 1
+  Ig <- Matrix(0.0, nrow = sLc@Dim[1L], ncol = 1, sparse = TRUE)
+  trace <- tugug <- rep(0, length(thetaG))
+  Cinv_ii <- matrix(0, nrow = nrow(sln), ncol = 1)
+  for(g in thetaG){
+    qi <- ncol(modMats$Zg[[g]])
+    ei <- si - 1 + qi
+
+#TODO XXX for using covariance matrices, see Johnson & Thompson 1995 eqn 11a
+    ## Johnson & Thompson 1995 equations 9 & 10
+    if(ndgeninv[g]){
+      ### Generalized inverse associated with the random effects
+      ### Johnson & Thompson 1995 eqn 9a
+      #### `tugug` is the numerator of the 3rd term in the equation
+      tugug[g] <- (crossprod(sln[si:ei, , drop = FALSE], modMats$listGeninv[[g]]) %*% sln[si:ei, , drop = FALSE])@x
+
+      #### create trace (numerator of 2nd) term in the equation
+      for(k in si:ei){
+        Ig[k, ] <- 1.0
+        Cinv_siei_k <- solve(sLc, b = Ig, system = "A")[si:ei, , drop = TRUE]
+        Ig[k, ] <- 0.0
+        Cinv_ii[k] <- Cinv_siei_k[k-si+1]       
+        trace[g] <- trace[g] + sum(modMats$listGeninv[[g]][(k-si+1), , drop = TRUE] * Cinv_siei_k)
+      }  #<-- end for k
+    } else{
+        ### No generalized inverse associated with the random effects
+        ### Johnson & Thompson 1995 eqn 10a
+        #### `tugug` is the numerator of the 3rd term in the equation
+        tugug[g] <- crossprod(sln[si:ei, , drop = FALSE])
+
+        #### create trace (numerator of 2nd) term in the equation
+        for(k in si:ei){
+          Ig[k, ] <- 1.0
+          Cinv_ii[k] <- solve(sLc, b = Ig, system = "A")[k,]
+          Ig[k, ] <- 0.0
+          trace[g] <- trace[g] + Cinv_ii[k]
+        }  #<-- end for k
+      }  #<-- end if else whether a diagonal g-inverse associated with rfx
+
+    si <- ei+1
+  }  #<-- end `for g in thetaG`
+
+  # First derivatives (gradient/score)
+  if(lambda){
+    for(g in thetaG){
+      # Johnson and Thompson 1995 Appendix 2 eqn B3 and eqn 9a and 10a
+      dLdnu[g] <- (ncol(modMats$Zg[[g]]) / nuvin[g]) - (1 / nuvin[g]^2) * (trace[g] + tugug[g] / sigma2e)
+    }  #<-- end for g
+
+  } else{  #<-- else when NOT lambda scale
+      ## Johnson and Thompson 1995 eqn 9b
+#FIXME change `[p]` below to be number of residual (co)variances
+      dLdnu[p] <- (nminfrfx / nuvin[thetaR]) - (tee / nuvin[thetaR]^2)
+      for(g in thetaG){
+        dLdnu[p] <- dLdnu[p] + (1 / nuvin[thetaR]) * (trace[g] /nuvin[g]) 
+        # Johnson and Thompson 1995 eqn 9a and 10a
+        dLdnu[g] <- (ncol(modMats$Zg[[g]]) / nuvin[g]) - (1 / nuvin[g]^2) * (trace[g] + tugug[g])
+      }  #<-- end for g
+    }
+    
+ # Johnson and Thompson 1995 don't use -0.5, because likelihood is -2 log likelihood
+ ## see `-2` on left-hand side of Johnson & Thompson eqn 3
+ -0.5 * dLdnu
+}  #<-- end `gradFun()`
+################################################################################
 

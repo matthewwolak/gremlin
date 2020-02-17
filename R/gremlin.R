@@ -271,7 +271,55 @@ gremlin <- function(formula, random = NULL, rcov = ~ units,
   mGmc <- as.call(c(quote(gremlinSetup), mc[-1]))
   grMod <- eval(mGmc, parent.frame())
 
-  grModOut <- remlIt(grMod)
+  gnu <- lapply(grMod$nu, FUN = as, "dgCMatrix") #FIXME do this directly to begin with or just use dense matrices (class="matrix")
+  nuv <- sapply(grMod$nu, FUN = slot, name = "x")
+browser() #XXX XXX DELETEME
+  Cout <- .C("ugremlin", PACKAGE = "gremlin",
+	as.double(grMod$modMats$y),
+	as.integer(grMod$modMats$ny),
+	as.integer(grMod$nminffx),		# No. observations - No. Fxd Fx
+	as.integer(grMod$ndgeninv),		# non-diagonal ginverses
+#	as.integer(length(ndgeninv)),		# No. non-diagonal ginverses
+	as.integer(c(grMod$dimsZg)),
+	as.integer(with(grMod, c(rowSums(dimsZg),		# Z Dims
+	  W@Dim,						# W Dims
+	  unlist(lapply(modMats$listGeninv, FUN = function(g){g@Dim[[1L]]}))))), # geninv Dims
+	as.integer(with(grMod, c(length(W@x),		# No. nonzero W
+	  sapply(seq(nG), FUN = function(g){length(listGeninv[[g]]@x)})))), # No. nnz geninvs
+	as.integer(grMod$W@i), 					     #W
+	as.integer(grMod$W@p),
+	as.double(grMod$W@x),
+	as.integer(unlist(lapply(grMod$modMats$listGeninv[grMod$ndgeninv], FUN = function(g){g@i}))), #geninv (generalized inverses)
+
+	as.integer(unlist(lapply(grMod$modMats$listGeninv[grMod$ndgeninv], FUN = function(g){g@p}))),
+	as.double(unlist(lapply(grMod$modMats$listGeninv[grMod$ndgeninv], FUN = function(g){g@x}))),
+	as.double(grMod$rfxIncContrib2loglik),		# Random Fx contribution to log-Likelihood
+        as.integer(grMod$lambda),		# TRUE/FALSE lambda (variance ratio?)
+	as.integer(grMod$p),				#p=No. nu params
+	as.integer(c(length(grMod$thetaG), length(grMod$thetaR))), #No. G and R nus
+	as.integer(unlist(lapply(gnu, FUN = function(g) g@Dim[[1L]]))),#dim GRs
+	as.integer(unlist(lapply(gnu, FUN = function(g) g@i))),	      #i GRs
+	as.integer(unlist(lapply(gnu, FUN = function(g) g@p))),	      #p GRs
+	as.integer(unlist(lapply(gnu, FUN = function(g) length(g@x)))), #no. non-zero GRs
+	as.double(unlist(lapply(gnu, FUN = function(g) g@x))),	#nu vector
+	as.integer(length(grMod$Bpinv@x)),		#Bpinv (fixed fx prior inverse)
+	as.integer(grMod$Bpinv@i),
+	as.integer(grMod$Bpinv@p),
+	as.double(grMod$Bpinv@x),
+	as.double(rep(0, grMod$p)),			#empty dLdnu
+	as.double(rep(0, grMod$p^2)),	#empty column-wise vector of average information matrix
+	as.double(c(grMod$sln)), 			#empty sln
+        as.double(c(grMod$Cinv_ii)),			#empty diag(Cinv)
+	as.double(c(grMod$r)),				#empty resdiuals
+	as.double(rep(0, grMod$maxit*(grMod$p+5))),	#itMat
+	as.integer(factor(grMod$algit[1:grMod$maxit], levels = c("EM", "AI"), ordered = TRUE))-1, #algorithm for each iteration
+	as.integer(grMod$maxit),			#max it./n algit
+	as.double(grMod$cctol),				#convergence tol.
+	as.double(grMod$ezero),				#effective 0
+#uni?
+	as.integer(grMod$v),				#verbosity
+	as.integer(grMod$vit))				#when to output status
+#  grModOut <- remlIt(grMod)
 
   endTime <- Sys.time()
   if(v > 0) cat("gremlin ended:\t\t", format(endTime, "%H:%M:%S"), "\n")
@@ -715,6 +763,8 @@ remlIt.default <- function(grMod, ...){
       if(grMod$algit[i] == "AI"){
         # wombat 3 (eqn. A.2): Norm of the gradient vector
         # AI only
+#TODO Does this go here or maybe after AI
+## Does this step happen for last AI matrix (i-1) or current (i)?
         cc[3] <- sqrt(sum(dLdnu * dLdnu)) < grMod$cctol[3]
         # wombat 4 (eqn A.3): Newton decrement (see Boyd & Vandenberghe 2004 cited in wombat)
         # AI only
@@ -750,17 +800,26 @@ if(nrow(theta[[thetaR]]) != 1){
 }
         Cinv <- solve(a = sLc, b = Ic, system = "A")
         grMod$Cinv_ii <- diag(Cinv)
+browser()
         if(lambda){
           AI <- ai(nuv, skel, thetaG,
 	              grMod$modMats, grMod$W, sLc, grMod$sln, grMod$r,
 	  	      thetaR = NULL,
-		      sigma2e)  #<-- non-NULL if lambda==TRUE
-          dLdnu <- gradFun(nuv, thetaG, grMod$modMats, Cinv, grMod$sln,
-	    sigma2e = sigma2e, r = NULL, nminfrfx = NULL)
-        } else{
+		      sigma2e)  #<-- NULL if lambda==FALSE
+	  dLdnu <- gradFun(nuv, thetaG, grMod$modMats, Cinv, grMod$sln,
+	    	      sigma2e = sigma2e, r = NULL, nminfrfx = NULL)
+          dLdnu_TEST <- gradFun_TEST(nuv, thetaG,
+	  	      grMod$modMats, sLc, grMod$ndgeninv, grMod$sln,	
+		      sigma2e = sigma2e,   #<-- NULL if lambda==FALSE
+		      thetaR = NULL, r = NULL, nminfrfx = NULL)  #<-- NULL if lambda==TRUE
+          dLdnu_TEST2 <- gradFun_TEST2(nuv, thetaG,
+	  	      grMod$modMats, sLc, grMod$ndgeninv, grMod$sln,	
+		      sigma2e = sigma2e,   #<-- NULL if lambda==FALSE
+		      thetaR = NULL, r = NULL, nminfrfx = NULL)  #<-- NULL if lambda==TRUE
+       } else{
             AI <- ai(nuv, skel, thetaG,
         		grMod$modMats, grMod$W, sLc, grMod$sln, grMod$r,
-                        thetaR,   #<-- non-NULL if lambda==FALSE
+                        thetaR,   #<-- NULL if lambda==TRUE
 		        sigma2e = NULL)
             dLdnu <- gradFun(nuv, thetaG, grMod$modMats, Cinv, grMod$sln,
   	      sigma2e = NULL, grMod$r, grMod$nminfrfx)
@@ -841,7 +900,15 @@ stop("Not allowing `minqa::bobyqa()` right now")
 #	control = list(maximize = FALSE, trace = v))
       }
 #        nuvout <- optim(par = nuv, fn = reml, hessian = TRUE, method = "BFGS", skel = skel)
-    }
+
+
+
+    }  #<-- end if REML did not converge and other convergence checks
+
+
+
+
+
 
 
     ############################################################################

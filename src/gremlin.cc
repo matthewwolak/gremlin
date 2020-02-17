@@ -15,7 +15,6 @@ void ugremlin(
 	int *ny,		// No. responses
 	int *nminffx,		// No. observations - No. Fxd Fx
 	int *ndgeninv,		// Non-diagonal ginverse (geninv) matrices
-//	int *nndgeninv,		// No. of non-diagonal geninv matrices
 	int *dimZgs,		// dimensions of Zg matrices
 	int *dimZWG,		// dimensions of Z, W, & geninv matrices
 	int *nnzWG,		// No. non-zeros in W and geninvs
@@ -59,8 +58,8 @@ void ugremlin(
 	 *RHS, *tmpBLUXs, *BLUXs,
 	 *AI;
 
-  css    *sLc;
-  csn    *Lc;
+  css    *sLc, *sLai;
+  csn    *Lc, *Lai;
 
   int    nG = nGR[0];
 //  int    nR = nGR[1];
@@ -83,7 +82,6 @@ void ugremlin(
   int	 *rfxlvls = new int[nG];
 
   int	 *cc = new int[5];
-
 
 
 
@@ -365,6 +363,9 @@ if(v[0] > 3){
       Rprintf("  %i of max %i\n", i+1, maxit[0]);//TODO TIME of DAY format as remlIt
     }
 
+
+
+    // For ALL iterations i=1 and greater
     if(i > 0){
       cs_spfree(R); cs_spfree(Rinv);
       for(g = 0; g < nG; g++){
@@ -469,7 +470,6 @@ could do a check to make sure R was inverted correctly:
 
 
     }  // End if i>0
-
 
 
 
@@ -715,13 +715,13 @@ if(v[0] > 3){
       if(algit[i] == 0){
         if(v[0] > 1 && vitout == 0) Rprintf("\tEM to find next theta");
         if(!cs_em(BLUXs, nu, Cinv_ii,
-	  nG, rfxlvls, nffx, ndgeninv, geninv, Lc->L, sLc->pinv)){
-          error("Unusccessful EM algorithm in iteration %i\n");
+	    nG, rfxlvls, nffx, ndgeninv, geninv, Lc->L, sLc->pinv)){
+          error("Unusccessful EM algorithm in iteration %i\n", i);
         }
         // Calculate EM for residual:
         //// crossprod(y, r) / nminffx
         d = 0.0;
-        for(k = 0; k < ny[0]; k++) d += y[k] * r[k]; 
+        for(k = 0; k < ny[0]; k++) d += y[k] * res[k]; 
         nu[nG] = d / nminffx[0];
       }  // end EM
       /////////////////////////////
@@ -734,25 +734,112 @@ if(v[0] > 3){
       /////////////////////////////
       if(algit[i] == 1){
         if(v[0] > 1 && vitout == 0) Rprintf("\tAI to find next theta");
+
         if(lambda[0] == 1){
           if(!cs_ai(BLUXs, nu, AI, R, KRinv, tWKRinv,
 	      y, W, tW, n, p[0], nG, rfxlvls, nffx, Lc->L, sLc->pinv,
 	      0, sigma2e, ezero[0])){
-            error("Unusccessful AI algorithm in iteration %i\n");
+            error("Unusccessful AI algorithm in iteration %i\n", i);
           }  // end if cs_ai
+
+          if(!cs_gradFun(nu, dLdnu, Cinv_ii,
+	      n, p[0], nG, rfxlvls, nffx, ndgeninv,
+	      geninv, BLUXs, Lc->L, sLc->pinv, 
+              sigma2e,    // 1.0 if lambda=FALSE
+	      0, NULL,      // 0/NULL if lambda=TRUE
+	      ezero[0])){
+            error("Unusccessful gradient calculation in iteration %i\n", i);
+          }  // end if cs_gradFun
+
         }else{
           if(!cs_ai(BLUXs, nu, AI, R, KRinv, tWKRinv,
-	    res, W, tW, n, p[0], nG, rfxlvls, nffx, Lc->L, sLc->pinv,
-	    thetaR, 1.0, ezero[0])){
-              error("Unusccessful AI algorithm in iteration %i\n");
+	      res, W, tW, n, p[0], nG, rfxlvls, nffx, Lc->L, sLc->pinv,
+	      nG, 1.0, ezero[0])){
+            error("Unusccessful AI algorithm in iteration %i\n", i);
           }  // end if cs_ai
+
+          if(!cs_gradFun(nu, dLdnu, Cinv_ii,
+	      n, p[0], nG, rfxlvls, nffx, ndgeninv,
+	      geninv, BLUXs, Lc->L, sLc->pinv, 
+              1.0,    // 1.0 if lambda=FALSE
+	      nG, res,      // 0/NULL if lambda=TRUE
+	      ezero[0])){
+            error("Unusccessful gradient calculation in iteration %i\n", i);
+          }  // end if cs_gradFun
+
         }  // end if/else lambda
 
         //TODO do I need to check convergence criteria here (i.e., cc[3:4])
 
 
+        // Find next set of parameters using a quasi-Newton method/algorithm
+        //// Meyer 1989 pp. 326-327 describes quasi-Newton methods 
+//TODO see Meyer 1997 eqn 58 for Marquardt 1963: theta_t+1=theta_t - (H_t + k_t * I)^{-1} g_t 
+        //// Mrode 2005 eqn 11.4
+        //// Johnson and Thompson 1995 eqn 12
+        //////(though gremlin uses `+` instead of J & T '95 `-` because
+        ////// gremlin multiplies gradient by -0.5 in `gradFun()`)
+
+        //// Check/modify AI matrix to 'ensure' positive definiteness
+        //// `fI` is factor to adjust AI matrix
+        ////// (e.g., Meyer 1997 eqn 58 and WOMBAT manual A.5 strategy 3b)
+
+/*
+        check if any small/zero eigenvalues of AI
+        AIeigvals <- eigen(AI)$values
+          d <- (3*10^-6) * AIeigvals[1]
+          f <- max(0, d - AIeigvals[nrow(AI)])
+        fI <- f * diag(x = 1, nrow = nrow(AI))
+	//////// modified 'Hessian'
+        H <- fI + AI
+*/
+        // Check if AI can be inverted
+        if(i == 0) sLai = cs_schol(0, AI); // only done once and 0=don't order
+        Lai = cs_chol(AI, sLai);
+        if(Lai == NULL){
+          if(v[0] > 1){
+            Rprintf("AI cholesky decomposition failed:\n\t AI matrix may be singular - switching to an iteration of the EM algorithm\n");
+          } // end if v>1
+
+          //////////////  TEMPORARY EM    /////////
+          if(v[0] > 1 && vitout == 0) Rprintf("\t\tEM to find next theta");
+          if(!cs_em(BLUXs, nu, Cinv_ii,
+	      nG, rfxlvls, nffx, ndgeninv, geninv, Lc->L, sLc->pinv)){
+            error("Unusccessful EM algorithm in iteration %i\n", i);
+          }
+          // Calculate EM for residual:
+          //// crossprod(y, r) / nminffx
+          d = 0.0;
+          for(k = 0; k < ny[0]; k++) d += y[k] * r[k]; 
+          nu[nG] = d / nminffx[0];
+        // end EM
+        //// if AI cannot be inverted do EM
+
+        } else{  //<-- end if AI cannot be inverted
+
+          AIinv = cs_inv(AI);
+          //Hinv = cs_inv(H);
+//TODO need a check that not proposing negative/0 variance or |correlation|>1
+//// Require restraining naughty components
+          //  cs_gaxpy is y = A*x+y where y=nu and x=dLdnu
+          cs_gaxpy(AIinv, dLdnu, nu);
+          for(g = 0; g < p[0]; g++){
+            //FIXME check variances and cov/corr separately
+            if(nu[g] < ezero[0]){
+              if(v[0] > 1){
+                Rprintf("Variance component %i fixed to zero\n", g+1);
+              }
+              nu[g] = ezero[0];  //FIXME TODO!!!
+            }  // end if nu < ezero
+          }  // end for g
+
+        }  //<-- end else AI can be inverted
       }  // end AI
       /////////////////////////////
+
+
+
+
 
 
 
@@ -766,6 +853,8 @@ if(v[0] > 3){
   t = tic();
 }
 
+
+
     }  // end if REML did not converge
 
 
@@ -774,8 +863,15 @@ if(v[0] > 3){
 
 
 
+
+
+
+
+
     ////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////
+    if(lambda[0] == 1) nu[nG] = 1.0;  // keep R=1 (R factored out)
+                                      // TODO FIXME if >1 residual (co)variance
 
     took = toc(T);                 // Capture cpu clock time for i REML iteration
     // V=1 LEVEL of OUTPUT
@@ -810,7 +906,15 @@ if(v[0] > 3){
         
         // V=3 LEVEL of OUTPUT
         if(v[0] > 2){
-          Rprintf("\n\n"); //TODO
+          if(algit[i] == 1){
+            Rprintf("\tgradient\t| AI\n--------\t--------\n");
+            for(g = 0; g < p[0]; g++){
+              Rprintf("\t%6.4f\t| ", dLdnu[g]);  // prints gradient value
+              for(k = 0; k < p[0]; k++){
+                Rprintf("%6.4f\t", AI[k*p[0] + g]);  // prints AI[g, k]
+              }  // end for k (column of AI)
+            }  // end for g (gth parameter/row of AI)  
+          }  // end of algit == AI
         }  // end if v>2
       }  // end if v>1
     }  // end if v>0
@@ -825,7 +929,7 @@ if(v[0] > 3){
    
     // Determine if model has converged
     //FIXME: change number of parameters that must be true as add criteria
-    if(cc[4] > 1){ // FIXME: change number of parameters that must be true
+    if(cc[4] > 2){ // FIXME: change number of parameters that must be true
       Rprintf("\n\nREML converged\n\n");      
       break;
     }
@@ -848,8 +952,10 @@ if(v[0] > 3) t = tic();
 
   // Pass information to R
   //// Solution vector
-  for(k = 0; k < dimXZWG[5]; k++) sln[k] += BLUXs->x[k];
+  for(k = 0; k < dimZWG[3]; k++) sln[k] += BLUXs->x[k];
 
+
+//XXX keep this commented out bit for ref on how to un-pack a cs matrix
 /* No longer needed - cs_em automatically replaces and don't make Cinv
   //// diagonals of Cinv (sln sampling variances) 
   for(k = 0; k < Cn; k++){
@@ -862,10 +968,10 @@ if(v[0] > 3) t = tic();
   }  // end for k
 */
 
-  //// Residual vector
-  for(k = 0; k < ny[0]; k++) res[k] += R->x[k];
-  //TODO
-  //// return AI and dLdtheta
+  //// return AI
+  ////// FIXME assume AI is completely full - no zeroes
+  for(k = 0; k < p[0]*p[0]; k++) AIvec[k] = AI->x[k];
+  
 
   //////////////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
@@ -875,11 +981,13 @@ if(v[0] > 3) t = tic();
   cs_spfree(R); cs_spfree(Rinv); cs_spfree(KRinv);
   cs_spfree(tWKRinv); cs_spfree(tWKRinvW);
   cs_spfree(Ctmp); cs_spfree(C); //cs_spfree(Cinv);
-  cs_spfree(RHS); cs_spfree(tmpBLUXs); cs_spfree(BLUXs); cs_spfree(Res);
+  cs_spfree(RHS); cs_spfree(tmpBLUXs); cs_spfree(BLUXs); cs_spfree(AI);
 
   cs_sfree(sLc);
+  cs_sfree(sLai);
 
   cs_nfree(Lc);
+  cs_nfree(Lai);
 
 //
   for(g = 0; g < nG; g++){
