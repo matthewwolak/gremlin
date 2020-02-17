@@ -10,8 +10,8 @@ XXX eqn. 2.44 is the score/gradient! for a varcomp
 */
 
 /* return 1 if successful else returns 0
-/* dLdnu overwritten with output */
-/* Cinv_ii overwritten with diag(Cinv) */
+       dLdnu overwritten with output
+       Cinv_ii overwritten with diag(Cinv) */
 csi cs_gradFun(double *nu, double *dLdnu, double *Cinv_ii,
 	csi n, csi p, csi nG, csi *rfxlvls, csi nb, csi *ndgeninv,
 	cs **geninv,

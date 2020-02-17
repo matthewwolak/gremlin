@@ -3,8 +3,8 @@
 
 
 
-/* AI overwritten with new AI */
-csi cs_ai(const cs *BLUXs, double *nu, const cs *AI,
+/* AI returned */
+csi cs_ai(const cs *BLUXs, double *nu,
         const cs *R, const cs *KRinv, const cs *tWKRinv,
         double *rory,  // residuals if lambda=FALSE else y if lambda=TRUE
         const cs *W, const cs *tW, csi n, csi p, csi nG, csi *rfxlvls, csi nb,
@@ -16,10 +16,11 @@ csi cs_ai(const cs *BLUXs, double *nu, const cs *AI,
 
   int     lambda;
   double  sln_k;
-  cs      *Rinv, *B, *tB, *BRHS, *tBRinvB, *tBKRinv, *tS, *Scol, *tSBRHS;
-  csi     g, i, j, k, cnt, si, qi, ei;
+  cs      *AI, *Rinv, *B, *tB, *BRHS, *tBRinvB, *tBKRinv, *tS, *Scol, *tSBRHS;
+  csi     g, i, k, cnt, si, qi, ei;
+  double  *tmp_sln = new double[BLUXs->m];
 
-  if(!CS_CSC (BLUXs) || !nu) return (0);    // check arguments
+  if(!CS_CSC(BLUXs) || !tmp_sln || !nu) return(cs_done(AI, tmp_sln, NULL, 0));
   if(thetaR != 0 && fabs(sigma2e - 1.00) < ezero) lambda = 0; else lambda = 1;
 
   if(lambda == 1){
@@ -31,7 +32,6 @@ csi cs_ai(const cs *BLUXs, double *nu, const cs *AI,
   B = cs_spalloc(n, p, (n * p), true, false);
     B->p[0] = 0;
 
-  double  *tmp_sln = new double[BLUXs->m];
   si = nb;
 
   for(g = 0; g < nG; g++){
@@ -146,15 +146,9 @@ csi cs_ai(const cs *BLUXs, double *nu, const cs *AI,
   cs_spfree(Scol);
   cs_spfree(tSBRHS);
 
-  delete [] tmp_sln;
+  // success, free tmp_sln, return AI and 1=success
+ return(cs_done(AI, tmp_sln, NULL, 1));
 
-/*
-TODO below from cs_directsum.c: Figure out what arguments 2-4 of cs_done() are
-Why not just do cs_spfree?
-    return (cs_done (B, NULL, NULL, 1)) ;	/* success; free workspace, return B 
-*/
-//XXX Make sure `1` returned if successful!!!!!!! Else, return `0` to signal error
-  return(1);
 }
 
 

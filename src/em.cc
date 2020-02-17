@@ -20,7 +20,7 @@ csi cs_em(const cs *BLUXs, double *nu, double *Cinv_ii,
 	cs **geninv, const cs *Lc, const csi *Pinv
 ){
 
-  double  *Bx, r, o, tr;
+  double  *Bx, o, tr;
   csi     g, i, j, k, n, si, qi, ei;
   if(!CS_CSC (BLUXs) || !nb || !nu) return (0);    // check arguments
   n = BLUXs->m;
@@ -32,7 +32,6 @@ csi cs_em(const cs *BLUXs, double *nu, double *Cinv_ii,
     }
   Bx = BLUXs->x;
   si = nb;
-  r = nu[nG];                       //   residual var
 
   for(g = 0; g < nG; g++){
     qi = rfxlvls[g];

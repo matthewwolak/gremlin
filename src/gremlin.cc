@@ -736,12 +736,11 @@ if(v[0] > 3){
         if(v[0] > 1 && vitout == 0) Rprintf("\tAI to find next theta");
         cs_spfree(AI);
         if(lambda[0] == 1){
-          if(!cs_ai(BLUXs, nu, AI, R, KRinv, tWKRinv,
+          AI = cs_ai(BLUXs, nu, R, KRinv, tWKRinv,
 	      y, W, tW, ny[0], p[0], nG, rfxlvls, nffx, Lc->L, sLc->pinv,
-	      0, sigma2e, ezero[0])){
-            error("Unusccessful AI algorithm in iteration %i\n", i);
-          }  // end if cs_ai
-
+	      0, sigma2e, ezero[0]);
+          if(AI == NULL) error("Unusccessful AI algorithm in iteration %i\n", i);
+       
           if(!cs_gradFun(nu, dLdnu, Cinv_ii,
 	      ny[0], p[0], nG, rfxlvls, nffx, ndgeninv,
 	      geninv, BLUXs, Lc->L, sLc->pinv, 
@@ -751,13 +750,13 @@ if(v[0] > 3){
             error("Unusccessful gradient calculation in iteration %i\n", i);
           }  // end if cs_gradFun
 
-        }else{
-          if(!cs_ai(BLUXs, nu, AI, R, KRinv, tWKRinv,
-	      res, W, tW, ny[0], p[0], nG, rfxlvls, nffx, Lc->L, sLc->pinv,
-	      nG, 1.0, ezero[0])){
-            error("Unusccessful AI algorithm in iteration %i\n", i);
-          }  // end if cs_ai
 
+        }else{
+          AI = cs_ai(BLUXs, nu, R, KRinv, tWKRinv,
+	      res, W, tW, ny[0], p[0], nG, rfxlvls, nffx, Lc->L, sLc->pinv,
+	      nG, 1.0, ezero[0]);
+          if(AI == NULL) error("Unusccessful AI algorithm in iteration %i\n", i);
+          
           if(!cs_gradFun(nu, dLdnu, Cinv_ii,
 	      ny[0], p[0], nG, rfxlvls, nffx, ndgeninv,
 	      geninv, BLUXs, Lc->L, sLc->pinv, 

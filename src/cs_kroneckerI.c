@@ -2,11 +2,14 @@
 
 cs *cs_kroneckerI(const cs *A, int nI){
 
-    int i, j, k, cnt, anz, cnz, *Cp, *Ap, *Ci, *Ai, am, an, cm, cn;
+    int i, j, k, cnt, anz, cnz, *Cp, *Ci, am, an, cm, cn;
     double *Cx, *Ax;
     cs *C;
-    if (!CS_CSC (A)) return (NULL);                         
-    am = A->m ; an = A->n ; anz = A->nzmax; Ap = A->p ; Ai = A->i ; Ax = A->x ;
+    if (!CS_CSC (A)) return (NULL);      
+    // MEW 2020 02 17: Ai and Ap set but not used
+    // int *Ai, *Ap;   
+    // Ap = A->p ; Ai = A->i ;                
+    am = A->m ; an = A->n ; anz = A->nzmax; Ax = A->x ;
     cm = am*nI; cn = an*nI; cnz = anz*nI;
     C = cs_spalloc (cm, cn, cnz, 1, 0) ;	 /* allocate result */
     if (!C ) return (cs_done (C, NULL, NULL, 0));  

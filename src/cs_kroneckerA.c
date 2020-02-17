@@ -2,12 +2,15 @@
 
 cs *cs_kroneckerA(const cs *G, const cs *A){
 
-    int i, j, k, l, cnt, anz, gnz, cnz, *Cp, *Ap, *Gp, *Ci, *Ai, *Gi, an, gn, cn;
+    int i, j, k, l, cnt, anz, gnz, cnz, *Cp, *Ap, *Gp, *Ci, *Ai, an, gn, cn;
     double *Cx, *Ax, *Gx;
     cs *C;
+    // MEW 2020 02 17: Gi and Gp set, but  not used
+    // int *Gi, *Gp;
+    // Gi = G->i ; Gp = G->p ; 
     if (!CS_CSC (A)) return (NULL);                         
     an = A->n ; anz = A->nzmax; Ap = A->p ; Ai = A->i ; Ax = A->x ;
-    gn = G->n ; gnz = G->nzmax; Gp = G->p ; Gi = G->i ; Gx = G->x ;
+    gn = G->n ; gnz = G->nzmax; Gx = G->x ;
 
     cn = an*gn; cnz = anz*gnz;
     C = cs_spalloc (cn, cn, cnz, 1, 0) ;	 /* allocate result */
