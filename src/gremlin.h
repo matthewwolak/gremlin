@@ -21,6 +21,20 @@ csi cs_ai(const cs *BLUXs, double *nu, const cs *AI,
         double sigma2e,    // 1.0 if lambda=FALSE
 	double ezero);
 
+/* Gradient/Score (first derivative) function
+     return 1 if successful else returns 0
+     dLdnu overwritten with output
+     Cinv_ii overwritten with diag(Cinv) */
+csi cs_gradFun(double *nu, double *dLdnu, double *Cinv_ii,
+	csi n, csi p, csi nG, csi *rfxlvls, csi nb, csi *ndgeninv,
+	cs **geninv,
+	const cs *BLUXs, const cs *Lc, const csi *Pinv,
+        double sigma2e,    // 1.0 if lambda=FALSE
+	csi thetaR, double r,      // 0/NULL if lambda=TRUE
+	double ezero
+){
+
+
 /* Expectation Maximization Algorithm:
      replaces elements in theta. Returns 1=success else 0 */
 csi cs_em(const cs *BLUXs, double *nu, double *Cinv_ii,
