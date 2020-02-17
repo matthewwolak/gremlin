@@ -16,7 +16,7 @@ csi cs_ai(const cs *BLUXs, double *nu, const cs *AI,
 
   int     lambda;
   double  sln_k;
-  cs      *Rinv, *B, *tB, *BRHS, *tBRinvB, *tBKRinv, *tS, *Scol;
+  cs      *Rinv, *B, *tB, *BRHS, *tBRinvB, *tBKRinv, *tS, *Scol, *tSBRHS;
   csi     g, i, j, k, cnt, si, qi, ei;
 
   if(!CS_CSC (BLUXs) || !nu) return (0);    // check arguments
@@ -72,18 +72,16 @@ csi cs_ai(const cs *BLUXs, double *nu, const cs *AI,
   // Set up modified MME like the MMA of Meyer 1997 eqn. 23
   //// Substitute `B` instead of `y`
 
-  // below fill AI with tBRinvB so that last steps are AI -= tS%*%BRHS; AI *= 0.5;
-  cs_spfree(AI);  
   // lambda: (co)variance ratios
   if(lambda == 1){
     BRHS = cs_multiply(tW, B);
-    AI = cs_multiply(tB, B);
+    tBRinvB = cs_multiply(tB, B);
 
   //// NOT lambda: Straight (co)variances
   }else{
     tBKRinv = cs_multiply(tB, KRinv);
     // next is actually `tBKRinvB`, want 1 name for this and when lambda=TRUE
-    AI = cs_multiply(tBKRinv, B);
+    tBRinvB = cs_multiply(tBKRinv, B);
       cs_spfree(tBKRinv);
     BRHS = cs_multiply(tWKRinv, B);
   }    // end if lambda=FALSE
@@ -111,7 +109,7 @@ csi cs_ai(const cs *BLUXs, double *nu, const cs *AI,
     Scol->i[k] = k;
     Scol->x[k] = 0.0;
   }
-  tS->p[ts->n] = cnt;
+  tS->p[tS->n] = cnt;
   Scol->p[1] = Scol->m;
 
   for(k = 0; k < p; k++){
@@ -122,8 +120,8 @@ csi cs_ai(const cs *BLUXs, double *nu, const cs *AI,
 
     cs_ipvec(Pinv, tmp_sln, Scol->x, BRHS->m);	     // x = P*b 
     cs_lsolve(Lc, Scol->x);                          // x = L\x 
-    cs_ltsolve (Lc, Scol->x);		             // x = L'\x 
-    cs_pvec (Pinv, Scol->x, tmp_sln, BRHS->m)        // b = P'*x 
+    cs_ltsolve(Lc, Scol->x);		             // x = L'\x 
+    cs_pvec(Pinv, Scol->x, tmp_sln, BRHS->m);        // b = P'*x 
   
     // put tmp_sln into kth row of tS
     for(i = 0; i < BRHS->m; i++){
@@ -131,9 +129,12 @@ csi cs_ai(const cs *BLUXs, double *nu, const cs *AI,
     }  
   }
 
-  AI -= cs_multiply(tS, BRHS);
-  AI *= 0.5;
-  if(lambda == 1) AI /= sigma2e;
+  tSBRHS = cs_multiply(tS, BRHS);
+  // AI = -0.5 * (tBRinvB - tS %*% BRHS)
+  //// `alpha*A + beta*B` gives 1*tBRinvB + -1*tSBRHS
+  AI = cs_add(tBRinvB, tSBRHS, 1.0, -1.0);  
+  for(i = 0; i < AI->p[AI->n]; i++) AI->x[i] *= 0.5;
+  if(lambda == 1) for(i = 0; i < AI->p[AI->n]; i++) AI->x[i] /= sigma2e;
 
 
   cs_spfree(Rinv);
@@ -142,7 +143,8 @@ csi cs_ai(const cs *BLUXs, double *nu, const cs *AI,
   cs_spfree(BRHS);
   cs_spfree(tBRinvB);  
   cs_spfree(tS);
-  cs_sprfree(Scol);
+  cs_spfree(Scol);
+  cs_spfree(tSBRHS);
 
   delete [] tmp_sln;
 

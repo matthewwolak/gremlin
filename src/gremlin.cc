@@ -56,7 +56,7 @@ void ugremlin(
 	 *R, *Rinv, *KRinv, *tyRinv, *tWKRinv, *tWKRinvW, *ttWKRinvW,
 	 *Ctmp, *C,// *pCinv, *Cinv,
 	 *RHS, *tmpBLUXs, *BLUXs,
-	 *AI;
+	 *AI, *AIinv;
 
   css    *sLc, *sLai;
   csn    *Lc, *Lai;
@@ -734,35 +734,35 @@ if(v[0] > 3){
       /////////////////////////////
       if(algit[i] == 1){
         if(v[0] > 1 && vitout == 0) Rprintf("\tAI to find next theta");
-
+        cs_spfree(AI);
         if(lambda[0] == 1){
           if(!cs_ai(BLUXs, nu, AI, R, KRinv, tWKRinv,
-	      y, W, tW, n, p[0], nG, rfxlvls, nffx, Lc->L, sLc->pinv,
+	      y, W, tW, ny[0], p[0], nG, rfxlvls, nffx, Lc->L, sLc->pinv,
 	      0, sigma2e, ezero[0])){
             error("Unusccessful AI algorithm in iteration %i\n", i);
           }  // end if cs_ai
 
           if(!cs_gradFun(nu, dLdnu, Cinv_ii,
-	      n, p[0], nG, rfxlvls, nffx, ndgeninv,
+	      ny[0], p[0], nG, rfxlvls, nffx, ndgeninv,
 	      geninv, BLUXs, Lc->L, sLc->pinv, 
               sigma2e,    // 1.0 if lambda=FALSE
-	      0, NULL,      // 0/NULL if lambda=TRUE
+	      0, 0.0,      // 0/0.0 if lambda=TRUE
 	      ezero[0])){
             error("Unusccessful gradient calculation in iteration %i\n", i);
           }  // end if cs_gradFun
 
         }else{
           if(!cs_ai(BLUXs, nu, AI, R, KRinv, tWKRinv,
-	      res, W, tW, n, p[0], nG, rfxlvls, nffx, Lc->L, sLc->pinv,
+	      res, W, tW, ny[0], p[0], nG, rfxlvls, nffx, Lc->L, sLc->pinv,
 	      nG, 1.0, ezero[0])){
             error("Unusccessful AI algorithm in iteration %i\n", i);
           }  // end if cs_ai
 
           if(!cs_gradFun(nu, dLdnu, Cinv_ii,
-	      n, p[0], nG, rfxlvls, nffx, ndgeninv,
+	      ny[0], p[0], nG, rfxlvls, nffx, ndgeninv,
 	      geninv, BLUXs, Lc->L, sLc->pinv, 
               1.0,    // 1.0 if lambda=FALSE
-	      nG, res,      // 0/NULL if lambda=TRUE
+	      nG, res,      // 0/0.0 if lambda=TRUE
 	      ezero[0])){
             error("Unusccessful gradient calculation in iteration %i\n", i);
           }  // end if cs_gradFun
@@ -810,7 +810,7 @@ if(v[0] > 3){
           // Calculate EM for residual:
           //// crossprod(y, r) / nminffx
           d = 0.0;
-          for(k = 0; k < ny[0]; k++) d += y[k] * r[k]; 
+          for(k = 0; k < ny[0]; k++) d += y[k] * res[k]; 
           nu[nG] = d / nminffx[0];
         // end EM
         //// if AI cannot be inverted do EM
@@ -981,7 +981,8 @@ if(v[0] > 3) t = tic();
   cs_spfree(R); cs_spfree(Rinv); cs_spfree(KRinv);
   cs_spfree(tWKRinv); cs_spfree(tWKRinvW);
   cs_spfree(Ctmp); cs_spfree(C); //cs_spfree(Cinv);
-  cs_spfree(RHS); cs_spfree(tmpBLUXs); cs_spfree(BLUXs); cs_spfree(AI);
+  cs_spfree(RHS); cs_spfree(tmpBLUXs); cs_spfree(BLUXs);
+  cs_spfree(AI); cs_spfree(AIinv);
 
   cs_sfree(sLc);
   cs_sfree(sLai);

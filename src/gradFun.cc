@@ -17,7 +17,7 @@ csi cs_gradFun(double *nu, double *dLdnu, double *Cinv_ii,
 	cs **geninv,
 	const cs *BLUXs, const cs *Lc, const csi *Pinv,
         double sigma2e,    // 1.0 if lambda=FALSE
-	csi thetaR, double r,      // 0/NULL if lambda=TRUE
+	csi thetaR, double *r,      // 0/0.0 if lambda=TRUE
 	double ezero
 ){
 
@@ -129,7 +129,7 @@ csi cs_gradFun(double *nu, double *dLdnu, double *Cinv_ii,
   //// see `-2` on left-hand side of Johnson & Thompson eqn 3
   // Johnson and Thompson 1995: base to Appendix 2 eqn B3 and eqn 9a and 10a
   for(g = 0; g < nG; g++){
-    dLdnu[g] = (rfxlvls[g] / nu[g])
+    dLdnu[g] = (rfxlvls[g] / nu[g]);
   }  // end for g
 
   if(lambda == 1){
@@ -144,11 +144,11 @@ csi cs_gradFun(double *nu, double *dLdnu, double *Cinv_ii,
     tugug[thetaR] = 0.0;
       for(k = 0; k < n; k++) tugug[thetaR] += r[k] * r[k];  // crossprod(residual)
 //FIXME change `[thetaR]` below to be number of residual (co)variances
-    dLdnu[thetaR] = (nminfrfx / nu[thetaR]) - (tugug[thetaR] / (nu[thetaR] * nu[thetaR]))
+    dLdnu[thetaR] = (nminfrfx / nu[thetaR]) - (tugug[thetaR] / (nu[thetaR] * nu[thetaR]));
     for(g = 0; g < nG; g++){
-      dLdnu[thetaR] += (1 / nu[thetaR]) * (trace[g] / nu[g])
+      dLdnu[thetaR] += (1 / nu[thetaR]) * (trace[g] / nu[g]);
       // Johnson and Thompson 1995 eqn 9a and 10a
-      dLdnu[g] -= (1 / (nu[g] * nu[g])) * (trace[g] + tugug[g])
+      dLdnu[g] -= (1 / (nu[g] * nu[g])) * (trace[g] + tugug[g]);
       dLdnu[g] *= -0.5;
     }  // end for g
     dLdnu[thetaR] *= -0.5;

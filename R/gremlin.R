@@ -800,7 +800,6 @@ if(nrow(theta[[thetaR]]) != 1){
 }
         Cinv <- solve(a = sLc, b = Ic, system = "A")
         grMod$Cinv_ii <- diag(Cinv)
-browser()
         if(lambda){
           AI <- ai(nuv, skel, thetaG,
 	              grMod$modMats, grMod$W, sLc, grMod$sln, grMod$r,
@@ -808,14 +807,14 @@ browser()
 		      sigma2e)  #<-- NULL if lambda==FALSE
 	  dLdnu <- gradFun(nuv, thetaG, grMod$modMats, Cinv, grMod$sln,
 	    	      sigma2e = sigma2e, r = NULL, nminfrfx = NULL)
-          dLdnu_TEST <- gradFun_TEST(nuv, thetaG,
-	  	      grMod$modMats, sLc, grMod$ndgeninv, grMod$sln,	
-		      sigma2e = sigma2e,   #<-- NULL if lambda==FALSE
-		      thetaR = NULL, r = NULL, nminfrfx = NULL)  #<-- NULL if lambda==TRUE
-          dLdnu_TEST2 <- gradFun_TEST2(nuv, thetaG,
-	  	      grMod$modMats, sLc, grMod$ndgeninv, grMod$sln,	
-		      sigma2e = sigma2e,   #<-- NULL if lambda==FALSE
-		      thetaR = NULL, r = NULL, nminfrfx = NULL)  #<-- NULL if lambda==TRUE
+#          dLdnu_TEST <- gradFun_TEST(nuv, thetaG,
+#	  	      grMod$modMats, sLc, grMod$ndgeninv, grMod$sln,	
+#		      sigma2e = sigma2e,   #<-- NULL if lambda==FALSE
+#		      thetaR = NULL, r = NULL, nminfrfx = NULL)  #<-- NULL if lambda==TRUE
+#          dLdnu_TEST2 <- gradFun_TEST2(nuv, thetaG,
+#	  	      grMod$modMats, sLc, grMod$ndgeninv, grMod$sln,	
+#		      sigma2e = sigma2e,   #<-- NULL if lambda==FALSE
+#		      thetaR = NULL, r = NULL, nminfrfx = NULL)  #<-- NULL if lambda==TRUE
        } else{
             AI <- ai(nuv, skel, thetaG,
         		grMod$modMats, grMod$W, sLc, grMod$sln, grMod$r,
