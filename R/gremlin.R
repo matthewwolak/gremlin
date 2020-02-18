@@ -324,16 +324,11 @@ gremlin <- function(formula, random = NULL, rcov = ~ units,
   i <- Cout[[34]]
 
   grMod$nu[] <- vech2matlist(Cout[[22]], grMod$skel)
-  # Make sure to do this after `grMod$nu <-` assignment from `Cout`
-  if(grMod$lambda){
-    theta <- grMod$nu2theta(grMod$nu, itMat[i, "sigma2e"],
-      grMod$thetaG, grMod$thetaR)
-  } else theta <- grMod$nu2theta(grMod$nu)
-  grMod$thetav[] <- sapply(theta, FUN = slot, name = "x") 
-
   grMod$dLdnu[] <- Cout[[27]]
-  grMod$AI <- matrix(Cout[[28]], nrow = grMod$p, ncol = grMod$p, byrow = FALSE)
-    dimnames(grMod$AI) <- list(rownames(grMod$dLdnu), rownames(grMod$dLdnu))
+  if(all(Cout[[28]] == 0)) grMod$AI <- NULL else{
+    grMod$AI <- matrix(Cout[[28]], nrow = grMod$p, ncol = grMod$p, byrow = FALSE)
+      dimnames(grMod$AI) <- list(rownames(grMod$dLdnu), rownames(grMod$dLdnu))
+  }
   grMod$sln[] <- Cout[[29]]
   grMod$Cinv_ii <- Cout[[30]] 
   grMod$r[] <- Cout[[31]]
@@ -342,14 +337,32 @@ gremlin <- function(formula, random = NULL, rcov = ~ units,
   grMod$sLcPinv <- Cout[[39]]
 
   itMat <- matrix(Cout[[32]], nrow = i, ncol = grMod$p+5, byrow = TRUE)
-    itMat <- cbind(itMat,
-      matrix(0.0, nrow = i, ncol = grMod$p))[, c(seq(grMod$p),
-          seq(grMod$p+6, 2*grMod$p+5), seq(grMod$p+1, grMod$p+5))]
     dimnames(itMat) <- list(paste(seq(i), grMod$algit[1:i], sep = "-"),
-	c(paste0(names(nuv), "_nu"), paste0(names(nuv), "_theta"),
-		"sigma2e", "tyPy", "logDetC", "loglik", "itTime"))
-  grMod$sigma2e[] <- itMat[i, "sigma2e"]
+	c(paste0(names(nuv), "_nu"), "sigma2e",
+           "tyPy", "logDetC", "loglik", "itTime"))
+  if(grMod$lambda){
+    itMat <- cbind(itMat,
+      t(apply(itMat[, c(paste0(names(nuv), "_nu"), "sigma2e")], MARGIN = 1,
+	FUN = function(itvec){ sapply(grMod$nu2theta(itvec[1:grMod$p],
+        		sigma2e = itvec[grMod$p+1], grMod$thetaG, grMod$thetaR),
+		FUN = slot, name = "x")})))[, c(seq(grMod$p),
+      seq(grMod$p+6, 2*grMod$p+5), seq(grMod$p+1, grMod$p+5))] #<-- thetas named 'nu' in colnames for now, use numeric indices to rearrange
 
+  } else{
+      itMat <- cbind(itMat,
+        t(apply(itMat[, c(paste0(names(nuv), "_nu"), "sigma2e")], MARGIN = 1,
+	  FUN = function(itvec){ sapply(grMod$nu2theta(itvec[1:grMod$p]),
+		FUN = slot, name = "x")})))[, c(seq(grMod$p),
+        seq(grMod$p+6, 2*grMod$p+5), seq(grMod$p+1, grMod$p+5))] #<-- thetas named 'nu' in colnames for now, use numeric indices to rearrange
+
+    }  #<-- end if/else lambda
+  # Now sort out the column names
+  colnames(itMat) <- c(paste0(names(nuv), "_nu"),
+			paste0(names(nuv), "_theta"),
+			"sigma2e", "tyPy", "logDetC", "loglik", "itTime")
+
+  grMod$sigma2e[] <- itMat[i, "sigma2e"]
+  grMod$thetav[] <- itMat[i, paste0(names(nuv), "_theta")]
 
 
 
@@ -361,7 +374,7 @@ gremlin <- function(formula, random = NULL, rcov = ~ units,
 #TODO fix return values:
 ## are sln same as on theta scale?
 ## are Cinv_ii (var of sln) same as on theta scale
-
+## Calculate Cinv_ii for fixed effects BEFORE returning from c++
 
 
 

@@ -343,7 +343,7 @@ residuals.gremlin <- function(object,
 #' @method summary gremlin
 summary.gremlin <- function(object, ...){
   nit <- nrow(object$itMat)
-  nvc <- nrow(object$grMod$p)     # No. of (co)variance parameters
+  nvc <- object$grMod$p      # No. of (co)variance parameters
   formulae <- list(fxd = object$grMod$call[["formula"]],
 	random = object$grMod$call[["random"]]) #FIXME need to include R (or combine with G)
 

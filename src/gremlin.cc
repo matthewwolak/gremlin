@@ -573,7 +573,6 @@ if(v[0] > 3){
     // set diagonal sum of Lc, tyPy, and loglik back to 0/starting values
     tyPy = tyRinvy;
     dsLc = 0.0; loglik = 0.0;  
-
     // 'by hand' calculate `tyPy = tyRinvy -  crossprod(BLUXs, RHS)`
     for(k = 0; k < dimZWG[3]; k++){
       tyPy -= BLUXs->x[k] * RHS->x[k];
@@ -597,6 +596,7 @@ if(v[0] > 3){
     }else{
       loglik += ny[0] * log(nu[p[0]-1]);  //FIXME won't work when R (co)variances
     }
+    if(v[0] > 3) Rprintf("\t log|R|=%6.4f\n", loglik);
 
     // `log(|G|)`
     //// Meyer 1997 eqn. 9 for lambda=FALSE equation
@@ -604,11 +604,13 @@ if(v[0] > 3){
     //// FIXME only works for independent random effects
     if(nG > 0){
       for(g = 0; g < nG; g++){
-        //FIXME below assumes only one entry in a Ginv[g]
-        loglik += rfxlvls[g] * log(Ginv[g]->x[0] * sigma2e);
+        //FIXME below assumes only one entry in a G[g]
+        loglik += rfxlvls[g] * log(G[g]->x[0] * sigma2e);
       }
     }
+      if(v[0] > 3) Rprintf("\t log|G| added=%6.4f\n", loglik);
     loglik += rfxlL[0];    // rfxIncContrib2loglik
+      if(v[0] > 3) Rprintf("\t\t log|G| rfxlL(%6.4f) added=%6.4f\n", rfxlL[0], loglik);
 
     // log(|C|) + tyPy
     //// if lambda=TRUE then nminffx=tyPy/sigma2e simplified below
@@ -618,9 +620,11 @@ if(v[0] > 3){
     }else{
       loglik += logDetC + tyPy;
     }
+      if(v[0] > 3) Rprintf("\t log|C|+tyPy added=%6.4f\n", loglik);
     
     // Multiply by -0.5 to calculate `loglik` from `-2loglik`
     loglik *= -0.5;
+      if(v[0] > 3) Rprintf("\t multiplied by -0.5=%6.4f\n", loglik);
 
 
 
@@ -743,7 +747,7 @@ if(v[0] > 3){
       /////////////////////////////
       if(algit[i] == 1){
         if(v[0] > 1 && vitout == 0) Rprintf("\tAI to find next theta");
-        cs_spfree(AI);
+        if(CS_CSC(AI)) cs_spfree(AI);
         if(lambda[0] == 1){
           AI = cs_ai(BLUXs, nu, R, 0, 0,
 	      y, W, tW, ny[0], p[0], nG, rfxlvls, nffx, Lc->L, sLc->pinv,
@@ -979,7 +983,7 @@ if(v[0] > 3) t = tic();
 */
 
   //// return AI
-  if(AI->m > 0){
+  if(CS_CSC(AI)){
     for(k = 0; k < p[0]; k++){
       for(g = AI->p[k]; g < AI->p[k+1]; g++){
         i = AI->i[g];
