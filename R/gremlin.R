@@ -307,12 +307,12 @@ gremlin <- function(formula, random = NULL, rcov = ~ units,
 	as.integer(grMod$Bpinv@p),
 	as.double(grMod$Bpinv@x),
 	as.double(rep(0, grMod$p)),			#empty dLdnu
-	as.double(rep(0, grMod$p^2)),	#empty column-wise vector of average information matrix
+	as.double(rep(0, grMod$p^2)),	#empty column-wise vector of AI matrix
 	as.double(c(grMod$sln)), 			#empty sln
         as.double(c(grMod$Cinv_ii)),			#empty diag(Cinv)
 	as.double(c(grMod$r)),				#empty resdiuals
 	as.double(rep(0, grMod$maxit*(grMod$p+5))),	#itMat
-	as.integer(factor(grMod$algit[1:grMod$maxit], levels = c("EM", "AI"), ordered = TRUE))-1, #algorithm for each iteration
+	as.integer(as.integer(factor(grMod$algit[1:grMod$maxit], levels = c("EM", "AI"), ordered = TRUE))-1), #algorithm for each iteration
 	as.integer(grMod$maxit),			#max it./n algit
 	as.double(grMod$cctol),				#convergence tol.
 	as.double(grMod$ezero),				#effective 0

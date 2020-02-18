@@ -2,7 +2,7 @@
 
 cs *cs_kroneckerA(const cs *G, const cs *A){
 
-    int i, j, k, l, cnt, anz, gnz, cnz, *Cp, *Ap, *Gp, *Ci, *Ai, an, gn, cn;
+    int i, j, k, l, cnt, anz, gnz, cnz, *Cp, *Ap, *Ci, *Ai, an, gn, cn;
     double *Cx, *Ax, *Gx;
     cs *C;
     // MEW 2020 02 17: Gi and Gp set, but  not used

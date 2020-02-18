@@ -54,7 +54,7 @@ void ugremlin(
 
   cs	 *Bpinv, *W, *tW,
 	 *R, *Rinv, *KRinv, *tyRinv, *tWKRinv, *tWKRinvW, *ttWKRinvW,
-	 *Ctmp, *C,// *pCinv, *Cinv,
+	 *Ctmp, *C,
 	 *RHS, *tmpBLUXs, *BLUXs,
 	 *AI, *AIinv;
 
@@ -62,7 +62,6 @@ void ugremlin(
   csn    *Lc, *Lai;
 
   int    nG = nGR[0];
-//  int    nR = nGR[1];
 
   cs*    *geninv = new cs*[nG];
   cs*    *G = new cs*[nG];
@@ -362,7 +361,6 @@ if(v[0] > 3){
     if(v[0] > 0 && vitout == 0){
       Rprintf("  %i of max %i\n", i+1, maxit[0]);//TODO TIME of DAY format as remlIt
     }
-
 
 
     // For ALL iterations i=1 and greater
@@ -746,7 +744,7 @@ if(v[0] > 3){
         if(v[0] > 1 && vitout == 0) Rprintf("\tAI to find next theta");
         cs_spfree(AI);
         if(lambda[0] == 1){
-          AI = cs_ai(BLUXs, nu, R, KRinv, tWKRinv,
+          AI = cs_ai(BLUXs, nu, R, 0, 0,
 	      y, W, tW, ny[0], p[0], nG, rfxlvls, nffx, Lc->L, sLc->pinv,
 	      0, sigma2e, ezero[0]);
           if(AI == NULL) error("Unusccessful AI algorithm in iteration %i\n", i);
@@ -803,7 +801,7 @@ if(v[0] > 3){
         H <- fI + AI
 */
         // Check if AI can be inverted
-        if(i == 0) sLai = cs_schol(0, AI); // only done once and 0=don't order
+        if(sLai == NULL) sLai = cs_schol(0, AI); // only done once and 0=don't order
         Lai = cs_chol(AI, sLai);
         if(Lai == NULL){
           if(v[0] > 1){
@@ -843,6 +841,8 @@ if(v[0] > 3){
           }  // end for g
 
         }  //<-- end else AI can be inverted
+        cs_spfree(AIinv);
+        cs_nfree(Lai);
       }  // end AI
       /////////////////////////////
 
@@ -978,26 +978,49 @@ if(v[0] > 3) t = tic();
 */
 
   //// return AI
-  ////// FIXME assume AI is completely full - no zeroes
-  for(k = 0; k < p[0]*p[0]; k++) AIvec[k] = AI->x[k];
-  
+  if(AI->m > 0){
+    for(k = 0; k < p[0]; k++){
+      for(g = AI->p[k]; g < AI->p[k+1]; g++){
+        i = AI->i[g];
+        AIvec[k*p[0]+i] += AI->x[g];
+      }
+    }
+    cs_spfree(AI);
+    cs_sfree(sLai);
+  }  // end if AI NOT NULL
+
+
+
+
 
   //////////////////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////
+
+
+
+
+
+
+
+
+
+
+
   //////////////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
   cs_spfree(Bpinv);
   cs_spfree(W); cs_spfree(tW);
-  cs_spfree(R); cs_spfree(Rinv); cs_spfree(KRinv);
-  cs_spfree(tWKRinv); cs_spfree(tWKRinvW);
-  cs_spfree(Ctmp); cs_spfree(C); //cs_spfree(Cinv);
+  cs_spfree(R); cs_spfree(Rinv); 
+  if(lambda[0] == 0){
+    cs_spfree(KRinv); cs_spfree(tWKRinv); 
+  }
+  cs_spfree(tWKRinvW);
+  cs_spfree(Ctmp); cs_spfree(C);
   cs_spfree(RHS); cs_spfree(tmpBLUXs); cs_spfree(BLUXs);
-  cs_spfree(AI); cs_spfree(AIinv);
 
   cs_sfree(sLc);
-  cs_sfree(sLai);
 
   cs_nfree(Lc);
-  cs_nfree(Lai);
 
 //
   for(g = 0; g < nG; g++){
