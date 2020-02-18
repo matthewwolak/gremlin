@@ -48,7 +48,8 @@ void ugremlin(
 	double *cctol,		// convergence criteria tolerances
 	double *ezero,		// effective zero
 	int *v,			// verbosity level of  output messages
-	int *vit		// at what iterations to output messages
+	int *vit,		// at what iterations to output messages
+        int *sLcPinv		// empty Cholesky permutation vector
 		
 ){
 
@@ -586,7 +587,7 @@ if(v[0] > 3){
     logDetC = 2.0 * dsLc;
 
     // Factored out residual variance (only for lambda scale)
-    if(lambda[0] == 1) sigma2e = tyPy / nminffx[0]; else sigma2e = -1.0;
+    if(lambda[0] == 1) sigma2e = tyPy / nminffx[0]; else sigma2e = 1.0;
 
     // Construct the log-likelihood (Meyer 1997 eqn. 8)
     //// (firt put together as `-2 log-likelihood`)
@@ -990,7 +991,8 @@ if(v[0] > 3) t = tic();
   }  // end if AI NOT NULL
 
 
-
+  // return permutation matrix of symbolic Cholesky factorization of C
+  for(k = 0; k < C->m; k++) sLcPinv[k] += sLc->pinv[k];
 
 
   //////////////////////////////////////////////////////////////////////////////

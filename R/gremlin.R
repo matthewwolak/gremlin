@@ -318,15 +318,59 @@ gremlin <- function(formula, random = NULL, rcov = ~ units,
 	as.double(grMod$ezero),				#effective 0
 #uni?
 	as.integer(grMod$v),				#verbosity
-	as.integer(grMod$vit))				#when to output status
-#  grModOut <- remlIt(grMod)
+	as.integer(grMod$vit),				#when to output status
+	as.integer(rep(0, length(grMod$sln))))		#empty sLc->pinv
+
+  i <- Cout[[34]]
+
+  grMod$nu[] <- vech2matlist(Cout[[22]], grMod$skel)
+  # Make sure to do this after `grMod$nu <-` assignment from `Cout`
+  if(grMod$lambda){
+    theta <- grMod$nu2theta(grMod$nu, itMat[i, "sigma2e"],
+      grMod$thetaG, grMod$thetaR)
+  } else theta <- grMod$nu2theta(grMod$nu)
+  grMod$thetav[] <- sapply(theta, FUN = slot, name = "x") 
+
+  grMod$dLdnu[] <- Cout[[27]]
+  grMod$AI <- matrix(Cout[[28]], nrow = grMod$p, ncol = grMod$p, byrow = FALSE)
+    dimnames(grMod$AI) <- list(rownames(grMod$dLdnu), rownames(grMod$dLdnu))
+  grMod$sln[] <- Cout[[29]]
+  grMod$Cinv_ii <- Cout[[30]] 
+  grMod$r[] <- Cout[[31]]
+  #TODO Will definitely need R vs. c++ methods for `update.gremlin()`
+  #### can directly use R's `grMod$sLc`, but will need to figure out how to give c++'s `cs_schol()` a pinv (need to reconstruct `sLc` in c++ around pinv (see old code on how I may have done this when I made sLc from sLm)
+  grMod$sLcPinv <- Cout[[39]]
+
+  itMat <- matrix(Cout[[32]], nrow = i, ncol = grMod$p+5, byrow = TRUE)
+    itMat <- cbind(itMat,
+      matrix(0.0, nrow = i, ncol = grMod$p))[, c(seq(grMod$p),
+          seq(grMod$p+6, 2*grMod$p+5), seq(grMod$p+1, grMod$p+5))]
+    dimnames(itMat) <- list(paste(seq(i), grMod$algit[1:i], sep = "-"),
+	c(paste0(names(nuv), "_nu"), paste0(names(nuv), "_theta"),
+		"sigma2e", "tyPy", "logDetC", "loglik", "itTime"))
+  grMod$sigma2e[] <- itMat[i, "sigma2e"]
+
+
+
+
+
+
+#TODO calculate AI/AIinv for last set of parameters (sampling covariances for final varcomps
+###TODO make sure final varcomps returned are ones for which AI was evaluated (if using AI from above)
+
+#TODO fix return values:
+## are sln same as on theta scale?
+## are Cinv_ii (var of sln) same as on theta scale
+
+
+
 
   endTime <- Sys.time()
   if(v > 0) cat("gremlin ended:\t\t", format(endTime, "%H:%M:%S"), "\n")
 
- return(structure(list(grMod = grModOut$grMod,
-		itMat = grModOut$itMat),
-	class = "gremlin",
+ return(structure(list(grMod = grMod,
+		itMat = itMat),
+	class = c("gremlin"), #TODO consider making "gremlinCpp" class
 	startTime = attr(grMod, "startTime"), endTime = endTime))
 }  #<-- end `gremlin()`
 
