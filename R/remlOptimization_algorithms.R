@@ -294,7 +294,7 @@ ai <- function(nuvin, skel, thetaG,
     }
   Ginv <- lapply(thetaG, FUN = function(x){as(solve(nuin[[x]]), "symmetricMatrix")})
   si <- modMats$nb+1
-  B <- Matrix(0, nrow = modMats$ny, ncol = p, sparse = TRUE)
+  B <- matrix(0, nrow = modMats$ny, ncol = p)
   for(g in thetaG){ #FIXME assumes thetaG is same length as nuvin
     qi <- ncol(modMats$Zg[[g]])
     ei <- si - 1 + qi
