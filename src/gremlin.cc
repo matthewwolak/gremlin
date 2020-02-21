@@ -749,7 +749,7 @@ if(v[0] > 3){
         if(v[0] > 1 && vitout == 0) Rprintf("\tAI to find next theta");
         if(CS_CSC(AI)) cs_spfree(AI);
         if(lambda[0] == 1){
-          AI = cs_ai(BLUXs, nu, R, 0, 0,
+          AI = cs_ai(BLUXs, Ginv, R, 0, 0,
 	      y, W, tW, ny[0], p[0], nG, rfxlvls, nffx, Lc->L, sLc->pinv,
 	      0, sigma2e, ezero[0]);
           if(AI == NULL) error("Unusccessful AI algorithm in iteration %i\n", i);
@@ -762,10 +762,11 @@ if(v[0] > 3){
 	      ezero[0])){
             error("Unusccessful gradient calculation in iteration %i\n", i);
           }  // end if cs_gradFun
-
+Rprintf("\nexited cs_gradFun");
+for(i = 0; i < p[0]; i++) Rprintf("\ngrad[%i]=%6.4f", i, dLdnu[i]);
 
         }else{
-          AI = cs_ai(BLUXs, nu, R, KRinv, tWKRinv,
+          AI = cs_ai(BLUXs, Ginv, R, KRinv, tWKRinv,
 	      res, W, tW, ny[0], p[0], nG, rfxlvls, nffx, Lc->L, sLc->pinv,
 	      nG, 1.0, ezero[0]);
           if(AI == NULL) error("Unusccessful AI algorithm in iteration %i\n", i);
@@ -778,7 +779,8 @@ if(v[0] > 3){
 	      ezero[0])){
             error("Unusccessful gradient calculation in iteration %i\n", i);
           }  // end if cs_gradFun
-
+Rprintf("\nexited cs_gradFun");
+for(i = 0; i < p[0]; i++) Rprintf("\ngrad[%i]=%6.4f", i, dLdnu[i]);
         }  // end if/else lambda
 
         //TODO do I need to check convergence criteria here (i.e., cc[3:4])

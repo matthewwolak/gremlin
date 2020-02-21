@@ -12,7 +12,7 @@ extern "C" {
 
 /* Average Information Algorithm:
      replaces elements in AI. Returns 1=success else 0 */
-cs *cs_ai(const cs *BLUXs, double *nu,
+cs *cs_ai(const cs *BLUXs, cs **Ginv,
         const cs *R, const cs *KRinv, const cs *tWKRinv,
         double *rory,  // residuals if lambda=FALSE else y if lambda=TRUE
         const cs *W, const cs *tW, csi n, csi p, csi nG, csi *rfxlvls, csi nb,

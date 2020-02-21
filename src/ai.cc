@@ -4,7 +4,7 @@
 
 
 /* AI returned */
-cs *cs_ai(const cs *BLUXs, double *nu,
+cs *cs_ai(const cs *BLUXs, cs **Ginv,
         const cs *R, const cs *KRinv, const cs *tWKRinv,
         double *rory,  // residuals if lambda=FALSE else y if lambda=TRUE
         const cs *W, const cs *tW, csi n, csi p, csi nG, csi *rfxlvls, csi nb,
@@ -15,14 +15,20 @@ cs *cs_ai(const cs *BLUXs, double *nu,
 ){
 
   int     lambda;
-  double  sln_k;
-  cs      *AI, *Rinv, *B, *tB, *BRHS, *tBRinvB, *tBKRinv, *tS, *Scol, *tSBRHS;
-  csi     g, i, k, cnt, si, qi, ei;
+  double  *BRHSx;
+  cs      *AI, *Rinv, *Zg, *B, *tB, *BRHS, *tBRinvB, *tBKRinv,
+	  *S, *tS, *tSBRHS;
+  csi     g, i, k, cnt, si, qi, ei, *Sp;
 
-  if(!CS_CSC(BLUXs) || !nu) return(0);
+  if(!CS_CSC(BLUXs)) return(0);
 
-  double  *tmp_sln = new double[BLUXs->m];
-  if(!tmp_sln) return(0);
+  double  *p_sln = new double[BLUXs->m];
+  double  *Scol = new double[BLUXs->m];
+  if(!p_sln || !Scol) return(0);
+ 
+  double  *Btmp = new double[n];
+  if(!Btmp) return(0);
+    for(i = 0; i < n; i++) Btmp[i] = 0.0;  // intialize at 0.0 so cs_gaxpy works below
 
   if(thetaR != 0 && fabs(sigma2e - 1.00) < ezero) lambda = 0; else lambda = 1;
 
@@ -33,44 +39,60 @@ cs *cs_ai(const cs *BLUXs, double *nu,
     Rinv = cs_inv(R);
   }
   B = cs_spalloc(n, p, (n * p), true, false);
-    B->p[0] = 0;
+  // Fill B with all zeroes
+  cnt = 0;
+  B->p[0] = 0;
+  for(k = 0; k < p; k++){
+    for(g = 0; g < n; g++){
+      B->i[n*k + g] = g;     
+      B->x[n*k + g] = 0.0;
+      cnt++;
+    }
+    B->p[k+1] = cnt;
+  }
 
   si = nb;
 
   for(g = 0; g < nG; g++){
     qi = rfxlvls[g];
     ei = si - 1 + qi;
+    Zg = cs_spalloc(n, qi, W->p[ei+1] - W->p[si], true, false);
+    double  *sln_g = new double[qi];  // TODO: just make 1 sln_g size=max(rfxlvls)?
+      if(!sln_g) return(0);
+      for(i = 0; i < qi; i++) sln_g[i] = BLUXs->x[si + i];
+
+    cnt = 0;
+    for(k = W->p[si]; k < W->p[ei+1]; k++){
+      Zg->i[cnt] = W->i[k];
+      Zg->x[cnt] = W->x[k];
+      cnt++;
+    } 
+    for(k = 0; k < qi; k++) Zg->p[k] = W->p[si+k] - W->p[si];
+    Zg->p[qi] = cnt;
+
     // Meyer 1997: eqn. 20 [also f(theta) in Johnson & Thompson 1995 eqn 9c)]
     // Knight 2008: eqn 2.32-2.35 and 3.11-3.13 (p.34)
     //TODO for covariances see Johnson & Thompson 1995 eqn 11b
-
-    //// Go column-by-column of part of W corresponding to gth Z
-    ////// assign inverse-(co)variance * kth solution to each individual
-//FIXME TODO: think currently ASSUMES each Z has only ONE non-zero per row
-//FIXME
-//FIXME just send list of Zs to c++ then this function and do actual matrix multiplications
-    ////// B[,g] = Z_g %*% sln[si:ei, 1] %*% Ginv[g] FIXME is order correct? See difference in order between Johnson & Thompson (e.g., eqn. 11b) and Meyer 1997 eqn 20
-    cnt = 0;
-    for(k = si; k < ei; k++){
-      sln_k = BLUXs->x[k];
-      for(i = W->p[k]; i < W->p[k+1]; i++){
-        B->i[cnt] = W->i[i];
-        B->x[cnt] = W->x[i] * sln_k * (1.0 / nu[g]);
-        cnt++;
-      }  // end for i (each row in a column of Z - share same solution) 
-      B->p[k-si+1] = cnt;
-    }  // end for k (each solution for a given gth parameter)
+    //// B[,g] = Z_g %*% sln[si:ei, 1] %*% Ginv[g] FIXME is order correct? See difference in order between Johnson & Thompson (e.g., eqn. 11b) and Meyer 1997 eqn 20
+    ////// B[,g] = Z_g %*% sln[si:ei, 1] ...
+    cs_gaxpy(Zg, sln_g, Btmp);  /* y = A*x+y */
+    ////// B[,g] = .... %*% Ginv[g]
+    for(i = 0; i < n; i++){
+      B->x[B->p[g] + i] += Btmp[i] * Ginv[g]->x[0];  //TODO ?? what to do if Ginv is a matrix?
+      Btmp[i] = 0.0;  // clear Btmp for next time
+    }
+    cs_spfree(Zg);
+    delete [] sln_g;
     si = ei + 1;
   }  // end for g
 
   //FIXME TODO Check what to do if more than 1 residual variance parameter
   for(k = 0; k < n; k++){
-    B->i[cnt] = k;
-    B->x[cnt] = rory[k] * Rinv->x[0];  //TODO ?? what to do if Rinv is a matrix?
-    cnt++;
+    B->x[B->p[nG] + k] += rory[k] * Rinv->x[0];  //TODO ?? what to do if Rinv is a matrix?
   }
-  B->p[p] = cnt;
-  tB = cs_transpose(B, true);
+  tB = cs_transpose(B, 1);
+
+
   
   // Set up modified MME like the MMA of Meyer 1997 eqn. 23
   //// Substitute `B` instead of `y`
@@ -82,77 +104,82 @@ cs *cs_ai(const cs *BLUXs, double *nu,
 
   //// NOT lambda: Straight (co)variances
   }else{
+    BRHS = cs_multiply(tWKRinv, B);
     tBKRinv = cs_multiply(tB, KRinv);
     // next is actually `tBKRinvB`, want 1 name for this and when lambda=TRUE
     tBRinvB = cs_multiply(tBKRinv, B);
       cs_spfree(tBKRinv);
-    BRHS = cs_multiply(tWKRinv, B);
   }    // end if lambda=FALSE
+  // double-transpose to get BRHS in correct order
+  tBKRinv = cs_transpose(BRHS, 1);
+    cs_spfree(BRHS);
+  BRHS = cs_transpose(tBKRinv, 1);
+    cs_spfree(tBKRinv);
+  BRHSx = BRHS->x;
+
+
 
   // tBPB
   //// Johnson & Thompson 1995 eqns 8,9b,9c
   ////// (accomplishes same thing as Meyer 1997 eqns 22-23 for a Cholesky
   ////// factorization as Boldman & Van Vleck eqn 6 applied to AI calculation)
-  // directly create transpose to pre-multiply with BRHS in `... - crossprod()`
-  tS = cs_spalloc(BRHS->n, BRHS->m, BRHS->p[BRHS->n], true, false);
-
-  // create temporary "row" of tS as a 1 column matrix
-  Scol = cs_spalloc(BRHS->m, 1, BRHS->m, true, false);
-  Scol->p[0] = 0;
-
+  // create temporary column of S as a 1 column matrix
+  S = cs_spalloc(BRHS->m, BRHS->n, BRHS->m * BRHS->n, true, false);
+    Sp = S->p;
+    Sp[0] = 0;
   cnt = 0;
-  for(k = 0; k < BRHS->m; k++){
-    tS->p[k] = cnt;
-    for(i = 0; i < p; i++){
-      tS->i[cnt] = i;
-      tS->x[cnt] = 0.0;
-      cnt++;
-    }  // end rows in column k
-    // Now deal with Scol (just 1 column)
-    Scol->i[k] = k;
-    Scol->x[k] = 0.0;
-  }
-  tS->p[tS->n] = cnt;
-  Scol->p[1] = Scol->m;
-
   for(k = 0; k < p; k++){
-    cnt = k * BRHS->m;
+    g = 0;
     for(i = 0; i < BRHS->m; i++){
-      tmp_sln[k] = BRHS->x[cnt+i];
-    }
-
-    cs_ipvec(Pinv, tmp_sln, Scol->x, BRHS->m);	     // x = P*b 
-    cs_lsolve(Lc, Scol->x);                          // x = L\x 
-    cs_ltsolve(Lc, Scol->x);		             // x = L'\x 
-    cs_pvec(Pinv, Scol->x, tmp_sln, BRHS->m);        // b = P'*x 
+      // permute when make p_sln so skip `cs_ipvec` step below
+      if(i == BRHS->i[BRHS->p[k] + g]){
+        p_sln[Pinv[i]] = BRHSx[BRHS->p[k] + g];
+        g++;
+      } else{ 
+        p_sln[Pinv[i]] = 0.0; 
+      }
+      Scol[i] = 0.0;
+    }  // end for i
+    cs_lsolve(Lc, p_sln);                         // x = L\x 
+    cs_ltsolve(Lc, p_sln);		          // x = L'\x 
+    cs_pvec(Pinv, p_sln, Scol, BRHS->m);          // b = P'*x 
   
-    // put tmp_sln into kth row of tS
+    // put Scol into kth column of S
     for(i = 0; i < BRHS->m; i++){
-      tS->x[i*p + k] = tmp_sln[i];
-    }  
-  }
+      S->i[cnt] = i;
+      S->x[cnt] = Scol[i];
+      cnt++;
+    }  // end for i
+    Sp[k + 1] = cnt;
 
-  tSBRHS = cs_multiply(tS, BRHS);
+  }  // end for k in columns of S (ncol(S)=p)
+  S->p = Sp;
+  tS = cs_transpose(S, 1);
+
+
   // AI = -0.5 * (tBRinvB - tS %*% BRHS)
-  //// `alpha*A + beta*B` gives 1*tBRinvB + -1*tSBRHS
-  AI = cs_add(tBRinvB, tSBRHS, 1.0, -1.0);  
+  //// cs_add() below = `alpha*A + beta*B` gives 1*tBRinvB + -1*tSBRHS
+  tSBRHS = cs_multiply(tS, BRHS);
+  AI = cs_add(tBRinvB, tSBRHS, 1.0, -1.0); 
   for(i = 0; i < AI->p[AI->n]; i++) AI->x[i] *= 0.5;
   if(lambda == 1) for(i = 0; i < AI->p[AI->n]; i++) AI->x[i] /= sigma2e;
+  //////////////////////////////////////////////////////////////////////////////
 
 
-  cs_spfree(Rinv);
-  cs_spfree(B);
-  cs_spfree(tB);
-  cs_spfree(BRHS);
+  cs_spfree(tSBRHS);
   cs_spfree(tBRinvB);  
   cs_spfree(tS);
-  cs_spfree(Scol);
-  cs_spfree(tSBRHS);
+  cs_spfree(BRHS);
+  cs_spfree(S);
+  cs_spfree(tB);
+  cs_spfree(B);
+  cs_spfree(Rinv);
 
-//  delete [] tmp_sln;
-// return(AI);
-  // success, free tmp_sln, return AI and 1=success
- return(cs_done(AI, tmp_sln, NULL, 1));
+  delete [] Btmp;
+  delete [] p_sln;
+  delete [] Scol;
+
+ return(AI);
 }
 
 
