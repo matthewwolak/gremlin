@@ -489,6 +489,7 @@ gradFun_TEST <- function(nuvin, thetaG,
     si <- ei+1
   }  #<-- end `for g in thetaG`
 
+
   # First derivatives (gradient/score)
   if(lambda){
     for(g in thetaG){
@@ -547,8 +548,15 @@ gradFun_TEST2 <- function(nuvin, thetaG,
 
       #### create trace (numerator of 2nd) term in the equation
       for(k in si:ei){
-        Ig[k, ] <- 1.0
+        Ig[k, ] <- 1.0  #<-- Ig is 1-column matrix
         Cinv_siei_k <- solve(sLc, b = Ig, system = "A")[si:ei, , drop = TRUE]
+        ## how to do this in c++ with Csparse
+#         slv1P <- solve(sLc, Ig, system = "P")
+#         slv1L <- solve(sLc, slv1P, system = "L")
+#         slv1Lt <- solve(sLc, slv1L, system = "Lt")
+#         Cinv_siei_k <- solve(sLc, slv1Lt, system = "Pt")@x
+#    }
+
         Ig[k, ] <- 0.0
         Cinv_ii[k] <- Cinv_siei_k[k-si+1]       
         trace[g] <- trace[g] + sum(modMats$listGeninv[[g]][(k-si+1), , drop = TRUE] * Cinv_siei_k)
@@ -570,6 +578,7 @@ gradFun_TEST2 <- function(nuvin, thetaG,
 
     si <- ei+1
   }  #<-- end `for g in thetaG`
+
 
   # First derivatives (gradient/score)
   if(lambda){

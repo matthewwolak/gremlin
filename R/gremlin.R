@@ -780,7 +780,7 @@ remlIt.default <- function(grMod, ...){
   for(i in 1:nrow(itMat)){
     vitout <- ifelse(i == 1, 0, i%%grMod$vit)
     if(grMod$v > 0 && vitout == 0){
-      cat("  ", i, "of max", grMod$maxit, "\t\t\t",
+      cat(i, "of max", grMod$maxit, "\t\t\t",
 	format(Sys.time(), "%H:%M:%S"), "\n")
     }
     stItTime <- Sys.time()
@@ -862,6 +862,7 @@ if(nrow(theta[[thetaR]]) != 1){
 	              grMod$modMats, grMod$W, sLc, grMod$sln, grMod$r,
 	  	      thetaR = NULL,
 		      sigma2e)  #<-- NULL if lambda==FALSE
+
 	  dLdnu <- gradFun(nuv, thetaG, grMod$modMats, Cinv, grMod$sln,
 	    	      sigma2e = sigma2e, r = NULL, nminfrfx = NULL)
 #          dLdnu_TEST <- gradFun_TEST(nuv, thetaG,
@@ -982,7 +983,8 @@ stop("Not allowing `minqa::bobyqa()` right now")
       }
       if(grMod$v > 2){#algit[i] == "AI" && 
         sgd <- matrix(NA, nrow = p, ncol = p+4)  #<-- `sgd` is summary.gremlinDeriv 
-          dimnames(sgd) <- list(row.names(dLdnu), c("gradient", "", "AI", "", "AI-inv", rep("", p-1)))
+          dimnames(sgd) <- list(row.names(dLdnu),
+            c("gradient", "", "AI", "", "AI-inv", rep("", p-1)))
         sgd[, 1] <- dLdnu
         if(grMod$algit[i] == "EM") AIinv <- AI
         for(rc in 1:p){
