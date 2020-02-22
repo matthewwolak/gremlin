@@ -90,23 +90,22 @@ csi cs_gradFun(double *nu, double *dLdnu, double *Cinv_ii,
     //////// forward solve with Identity[, k] then backsolve
     for(k = si; k <= ei; k++){
     // use tmp_sln as working vector: first zero out and create Identity[, k]
-    //// however, Lc is permuted, so need to use t(P) %*% I[, k]
-      for(i = si; i < ei; i++) tmp_sln[i] = 0.0;  // clear tmp_sln
+      for(i = 0; i < nsln; i++) tmp_sln[i] = 0.0;  // clear tmp_sln
+    //// Lc is permuted, use t(P) %*% I[, k]
       tmp_sln[Pinv[k]] += 1.0;              /* essentially `cs_ipvec` */
       cs_lsolve (Lc, tmp_sln);              /* x = L\x */      
       cs_ltsolve(Lc, tmp_sln);              /* x = L'\x */
       // Now tmp_sln holds a permuted ordering of Cinv[, k]
 //TODO combine pvec (take code out of function) and multiplication in next step
-      cs_pvec(Pinv, tmp_sln, w, n);         /* b = P'*x */
+      cs_pvec(Pinv, tmp_sln, w, nsln);      /* b = P'*x */
       // w holds Cinv[, k]
-
       // write sampling variance for kth BLUP
       Cinv_ii[k] = w[k];
 
       if(ndgeninv[g] == 0){
         // if a diagonal geninv, trace=sum(diag(Cinv[si:ei, si:ei]))
         //// trace (numerator of 2nd) term in the equation
-        trace[g] += w[k];
+        trace[g] += Cinv_ii[k];
       } else{
         // Contribution to the trace: calculate diagonal of matrix product
         //(geninv[g]%*%Cinv[si:ei, si:ei])[k,k] = geninv[g][k,]%*%Cinv[si:ei,k]
@@ -117,8 +116,8 @@ csi cs_gradFun(double *nu, double *dLdnu, double *Cinv_ii,
         }  // end for i
       }  // end if/else non-diagonal geninv trace calculation
     }  // end for k
-
     si = ei + 1;
+
   }  // end for g in nG
 
 
