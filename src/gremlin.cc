@@ -74,6 +74,7 @@ void ugremlin(
 
   int 	 g, i, k, rw, si, si2, vitout,
 	 itc = 0,
+         aiformed = 0,
          dimM,      // GENERIC dimension of a matrix variable to be REUSED
 	 nr = dimZWG[1],
 	 nffx,
@@ -288,7 +289,7 @@ could do a check to make sure R was inverted correctly:
 
 if(v[0] > 3){
   took = toc(t); 
-  Rprintf("%6.4f sec. (CPU clock): initial cpp setup (to get C)\n", took);
+  Rprintf("%6.4f sec.: initial cpp setup (to get C)\n", took);
   t = tic();
 }
 
@@ -314,7 +315,7 @@ if(v[0] > 3){
 
 if(v[0] > 3){
   took = toc(t);
-  Rprintf("  %6.4f sec. (CPU clock): initial cpp cs_schol(C)\n", took);
+  Rprintf("  %6.4f sec.: initial cpp cs_schol(C)\n", took);
   t = tic();
 }
 
@@ -339,7 +340,7 @@ if(v[0] > 3){
 
 if(v[0] > 3){
   took = toc(t);
-  Rprintf("  %6.4f sec. (CPU clock): rest of initial cpp setup\n", took);
+  Rprintf("  %6.4f sec.: rest of initial cpp setup\n", took);
 }
 
 
@@ -486,7 +487,7 @@ could do a check to make sure R was inverted correctly:
 
 if(v[0] > 3){
   took = toc(t);
-  Rprintf("  %6.4f sec. (CPU clock): cpp REML i=%i setup\n", took, i);
+  Rprintf("  %6.4f sec.: cpp REML i=%i setup\n", took, i);
   t = tic();
 }
 
@@ -507,7 +508,7 @@ if(v[0] > 3){
 
 if(v[0] > 3){
   took = toc(t);
-  Rprintf("    %6.4f sec. (CPU clock): cpp REML i=%i cs_chol(C)\n", took, i);
+  Rprintf("    %6.4f sec.: cpp REML i=%i cs_chol(C)\n", took, i);
   t = tic();
 }
 
@@ -530,7 +531,7 @@ if(v[0] > 3){
 
 if(v[0] > 3){
   took = toc(t);
-  Rprintf("\t    %6.4f sec. (CPU clock): cpp REML i=%i sln forward/back solve with chol(C)\n", took, i);
+  Rprintf("\t    %6.4f sec.: cpp REML i=%i sln forward/back solve with chol(C)\n", took, i);
   t = tic();
 }
 
@@ -552,7 +553,7 @@ if(v[0] > 3){
 
 if(v[0] > 3){
   took = toc(t);
-  Rprintf("    %6.4f sec. (CPU clock): cpp REML i=%i sln/r calc.\n", took, i);
+  Rprintf("    %6.4f sec.: cpp REML i=%i sln/r calc.\n", took, i);
   t = tic();
 }
 
@@ -633,7 +634,7 @@ if(v[0] > 3){
 
 if(v[0] > 3){
   took = toc(t);
-  Rprintf("    %6.4f sec. (CPU clock): cpp REML i=%i log-likelihood calc.\n", took, i);
+  Rprintf("    %6.4f sec.: cpp REML i=%i log-likelihood calc.\n", took, i);
   t = tic();
 }
 
@@ -668,7 +669,7 @@ if(v[0] > 3){
 
 if(v[0] > 3){
   took = toc(t);
-  Rprintf("    %6.4f sec. (CPU clock): cpp REML i=%i itMat recording took\n", took, i);
+  Rprintf("    %6.4f sec.: cpp REML i=%i itMat recording took\n", took, i);
   t = tic();
 }
 
@@ -712,7 +713,7 @@ if(v[0] > 3){
 
 if(v[0] > 3){
   took = toc(t);
-  Rprintf("    %6.4f sec. (CPU clock): cpp REML i=%i convergence crit. calc.\n", took, i);
+  Rprintf("    %6.4f sec.: cpp REML i=%i convergence crit. calc.\n", took, i);
   t = tic();
 }
 
@@ -747,7 +748,7 @@ if(v[0] > 3){
       /////////////////////////////
       if(algit[i] == 1){
         if(v[0] > 1 && vitout == 0) Rprintf("\tAI to find next theta");
-        if(CS_CSC(AI)) cs_spfree(AI);
+        if(aiformed == 1) cs_spfree(AI);
         if(lambda[0] == 1){
           AI = cs_ai(BLUXs, Ginv, R, 0, 0,
 	      y, W, tW, ny[0], p[0], nG, rfxlvls, nffx, Lc->L, sLc->pinv,
@@ -762,8 +763,6 @@ if(v[0] > 3){
 	      ezero[0])){
             error("Unusccessful gradient calculation in iteration %i\n", i);
           }  // end if cs_gradFun
-Rprintf("\nexited cs_gradFun");
-for(i = 0; i < p[0]; i++) Rprintf("\ngrad[%i]=%6.4f", i, dLdnu[i]);
 
         }else{
           AI = cs_ai(BLUXs, Ginv, R, KRinv, tWKRinv,
@@ -779,8 +778,6 @@ for(i = 0; i < p[0]; i++) Rprintf("\ngrad[%i]=%6.4f", i, dLdnu[i]);
 	      ezero[0])){
             error("Unusccessful gradient calculation in iteration %i\n", i);
           }  // end if cs_gradFun
-Rprintf("\nexited cs_gradFun");
-for(i = 0; i < p[0]; i++) Rprintf("\ngrad[%i]=%6.4f", i, dLdnu[i]);
         }  // end if/else lambda
 
         //TODO do I need to check convergence criteria here (i.e., cc[3:4])
@@ -808,8 +805,13 @@ for(i = 0; i < p[0]; i++) Rprintf("\ngrad[%i]=%6.4f", i, dLdnu[i]);
         H <- fI + AI
 */
         // Check if AI can be inverted
-        if(sLai == NULL) sLai = cs_schol(0, AI); // only done once and 0=don't order
+        if(aiformed == 1){
+          cs_sfree(sLai);  // each time in case AI pattern changes (fix components)
+          cs_nfree(Lai);
+        }
+        sLai = cs_schol(1, AI);
         Lai = cs_chol(AI, sLai);
+        aiformed = 1;
         if(Lai == NULL){
           if(v[0] > 1){
             Rprintf("AI cholesky decomposition failed:\n\t AI matrix may be singular - switching to an iteration of the EM algorithm\n");
@@ -835,8 +837,10 @@ for(i = 0; i < p[0]; i++) Rprintf("\ngrad[%i]=%6.4f", i, dLdnu[i]);
           //Hinv = cs_inv(H);
 //TODO need a check that not proposing negative/0 variance or |correlation|>1
 //// Require restraining naughty components
-          //  cs_gaxpy is y = A*x+y where y=nu and x=dLdnu
+          // fill `nu` with parameters proposed for next iteration
+          ////  cs_gaxpy is y = A*x+y where y=nu and x=dLdnu
           cs_gaxpy(AIinv, dLdnu, nu);
+
           for(g = 0; g < p[0]; g++){
             //FIXME check variances and cov/corr separately
             if(nu[g] < ezero[0]){
@@ -849,7 +853,6 @@ for(i = 0; i < p[0]; i++) Rprintf("\ngrad[%i]=%6.4f", i, dLdnu[i]);
 
         }  //<-- end else AI can be inverted
         cs_spfree(AIinv);
-        cs_nfree(Lai);
       }  // end AI
       /////////////////////////////
 
@@ -865,7 +868,7 @@ for(i = 0; i < p[0]; i++) Rprintf("\ngrad[%i]=%6.4f", i, dLdnu[i]);
 
 if(v[0] > 3){
   took = toc(t);
-  Rprintf(": %6.4f sec. (CPU clock)\n", took, i);
+  Rprintf(": %6.4f sec.\n", took, i);
   t = tic();
 }
 
@@ -893,7 +896,7 @@ if(v[0] > 3){
     // V=1 LEVEL of OUTPUT
     if(v[0] > 0 && vitout == 0){ 
       Rprintf("\n\tlL:%6.6f", loglik);
-      Rprintf("\t\ttook %6.3f sec. (CPU clock)\n", took); //TODO format units if >60 (and do for all Rprintf(took))
+      Rprintf("\t\ttook %6.3f sec.\n", took); //TODO format units if >60 (and do for all Rprintf(took))
       // To format units see const *char in: http://www.cplusplus.com/reference/cmath/round/
 
       // V=2 LEVEL of OUTPUT
@@ -923,14 +926,20 @@ if(v[0] > 3){
         // V=3 LEVEL of OUTPUT
         if(v[0] > 2){
           if(algit[i] == 1){
-            Rprintf("\tgradient\t| AI\n--------\t--------\n");
+            Rprintf("\tgradient | AI\n");
+            Rprintf("\t-------- |--------\n");
             for(g = 0; g < p[0]; g++){
               Rprintf("\t%6.4f\t| ", dLdnu[g]);  // prints gradient value
+              // print AI[g, ]
               for(k = 0; k < p[0]; k++){
-                Rprintf("%6.4f\t", AI[k*p[0] + g]);  // prints AI[g, k]
+                for(si = AI->p[k]; si < AI->p[k+1]; si++){
+                  // prints AI[g, k]
+                  if(AI->i[si] == g) Rprintf(" %6.4f", AI->x[si]);
+                }  // end for si (rows of AI column)
               }  // end for k (column of AI)
+              Rprintf("\n");  // start next row of output/AI
             }  // end for g (gth parameter/row of AI)  
-          }  // end of algit == AI
+          }  // end algit == AI
         }  // end if v>2
       }  // end if v>1
     }  // end if v>0
@@ -993,7 +1002,6 @@ if(v[0] > 3) t = tic();
       }
     }
     cs_spfree(AI);
-    cs_sfree(sLai);
   }  // end if AI NOT NULL
 
 
@@ -1027,8 +1035,12 @@ if(v[0] > 3) t = tic();
   cs_spfree(RHS); cs_spfree(tmpBLUXs); cs_spfree(BLUXs);
 
   cs_sfree(sLc);
-
   cs_nfree(Lc);
+
+  if(aiformed == 1){
+    cs_sfree(sLai);
+    cs_nfree(Lai);
+  }
 
 //
   for(g = 0; g < nG; g++){
@@ -1047,7 +1059,7 @@ if(v[0] > 3) t = tic();
 
 if(v[0] > 3){
   took = toc(t);
-  Rprintf("%6.4f sec. (CPU clock): cpp post-REML freeing-up\n", took);
+  Rprintf("%6.4f sec.: cpp post-REML freeing-up\n", took);
 }
 
 }
