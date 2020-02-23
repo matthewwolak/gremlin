@@ -321,7 +321,6 @@ gremlin <- function(formula, random = NULL, rcov = ~ units,
 	as.integer(grMod$vit),				#when to output status
 	as.integer(rep(0, length(grMod$sln))))		#empty sLc->pinv
 
-
   i <- Cout[[34]] + 1  #<-- `+1` because index from c++ is 0-based
 
   grMod$nu[] <- vech2matlist(Cout[[22]], grMod$skel)
@@ -337,7 +336,7 @@ gremlin <- function(formula, random = NULL, rcov = ~ units,
   #### can directly use R's `grMod$sLc`, but will need to figure out how to give c++'s `cs_schol()` a pinv (need to reconstruct `sLc` in c++ around pinv (see old code on how I may have done this when I made sLc from sLm)
   grMod$sLcPinv <- Cout[[39]]
 
-  itMat <- matrix(Cout[[32]], nrow = i, ncol = grMod$p+5, byrow = TRUE)
+  itMat <- matrix(Cout[[32]][1:(i*(grMod$p+5))], nrow = i, ncol = grMod$p+5, byrow = TRUE)
     dimnames(itMat) <- list(paste(seq(i), grMod$algit[1:i], sep = "-"),
 	c(paste0(names(nuv), "_nu"), "sigma2e",
            "tyPy", "logDetC", "loglik", "itTime"))
