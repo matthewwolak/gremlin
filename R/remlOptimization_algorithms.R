@@ -301,7 +301,8 @@ ai <- function(nuvin, skel, thetaG,
     # Meyer 1997: eqn. 20 [also f(theta) in Johnson & Thompson 1995 eqn 9c)]
     # Knight 2008: eqn 2.32-2.35 and 3.11-3.13 (p.34)
     #TODO for covariances see Johnson & Thompson 1995 eqn 11b
-    B[, g] <- (modMats$Zg[[g]] %*% sln[si:ei, , drop = FALSE] %*% Ginv[[g]])@x #FIXME is order correct? See difference in order between Johnson & Thompson (e.g., eqn. 11b) and Meyer 1997 eqn 20
+    Bg <- modMats$Zg[[g]] %*% sln[si:ei, , drop = FALSE] %*% Ginv[[g]] #FIXME is order correct? See difference in order between Johnson & Thompson (e.g., eqn. 11b) and Meyer 1997 eqn 20
+    B[cbind(Bg@i+1, g)] <- Bg@x
     si <- ei+1
   }  #<-- end `for g`
 
