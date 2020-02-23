@@ -18,8 +18,7 @@ cs *cs_ai(const cs *BLUXs, cs **Ginv,
         const cs *W, const cs *tW, csi n, csi p, csi nG, csi *rfxlvls, csi nb,
 	const cs *Lc, const csi *Pinv,
 	csi thetaR,       // 0 if lambda=TRUE
-        double sigma2e,    // 1.0 if lambda=FALSE
-	double ezero);
+        double sigma2e);    // 1.0 if lambda=FALSE
 
 /* Gradient/Score (first derivative) function
      return 1 if successful else returns 0
@@ -30,8 +29,7 @@ csi cs_gradFun(double *nu, double *dLdnu, double *Cinv_ii,
 	cs **geninv,
 	const cs *BLUXs, const cs *Lc, const csi *Pinv,
         double sigma2e,    // 1.0 if lambda=FALSE
-	csi thetaR, double *r,      // 0 if lambda=TRUE
-	double ezero);
+	csi thetaR, double *r);      // 0 if lambda=TRUE
 
 
 /* Expectation Maximization Algorithm:

@@ -17,8 +17,7 @@ csi cs_gradFun(double *nu, double *dLdnu, double *Cinv_ii,
 	cs **geninv,
 	const cs *BLUXs, const cs *Lc, const csi *Pinv,
         double sigma2e,    // 1.0 if lambda=FALSE
-	csi thetaR, double *r,      // 0 if lambda=TRUE
-	double ezero
+	csi thetaR, double *r      // 0 if lambda=TRUE
 ){
 
   int     lambda, nminfrfx;
@@ -26,7 +25,8 @@ csi cs_gradFun(double *nu, double *dLdnu, double *Cinv_ii,
   csi     g, i, j, k, nsln, si, qi, ei;
 
   if(!CS_CSC (BLUXs) || !nb || !nu) return (0);    // check arguments
-  if(thetaR != 0 && fabs(sigma2e - 1.00) < ezero) lambda = 0; else lambda = 1;
+  if(thetaR != 0 && fabs(sigma2e - 1.00) < DBL_EPSILON) lambda = 0; else lambda = 1;
+Rprintf("\ngrFun init dLdnu[0]=%6.10f", dLdnu[0]);
 
   nsln = BLUXs->m;
   Bx = BLUXs->x;
@@ -43,7 +43,7 @@ csi cs_gradFun(double *nu, double *dLdnu, double *Cinv_ii,
   double  *tugug = new double[nG];  // includes crossprod(residual) when !lambda
   double  *tmp_sln = new double[nsln];
   double  *w = new double[nsln];
-    for(k = 0; k < n; k++){
+    for(k = 0; k < nsln; k++){
       tmp_sln[k] = 0.0;
       w[k] = 0.0;
     }
@@ -56,32 +56,57 @@ csi cs_gradFun(double *nu, double *dLdnu, double *Cinv_ii,
 
 //TODO XXX for using covariance matrices, see Johnson & Thompson 1995 eqn 11a
     // Johnson & Thompson 1995 equations 9 & 10
+//////////////////
+    //// BUT t(BLUXs) %*% geninv == transpose of vector of geninv %*% BLUXs
     if(ndgeninv[g] > 0){
       // Non-diagonal generalized inverses
       // crossproduct of BLUXs[si:ei] with geninv (t(BLUXs) %*% geninv)
       if(!CS_CSC(geninv[g])) error("geninv[%i] not CSC matrix\n", g);
+      double  *sln_g = new double[qi];  // TODO: just make 1 sln_g size=max(rfxlvls)?
+        if(!sln_g) return(0);
+      for(i = 0; i < qi; i++) sln_g[i] = Bx[si + i];
       // Johnson & Thompson 1995 eqn 9a
-      ////// Column-by-column of geninv
-      for(k = 0; k < qi; k++){
-        j = k + si;                    // index in solution vector
-        ////// Each row (i) in col k of geninv
-        for(i = geninv[g]->p[k]; i < geninv[g]->p[k+1]; i++){
-          tmp_sln[j] += Bx[geninv[g]->i[i] + si] * geninv[g]->x[i];
-        }  // end for i (rows of geninv column k)
-      }  // end for k (columns of geninv)
-
+      cs_gaxpy(geninv[g], sln_g, tmp_sln);
+      delete [] sln_g;
     } else{
-        // Diagonal 
-        //// fill in tmp_sln with BLUXs
-        for(k = si; k <= ei; k++) tmp_sln[k] = Bx[k];
+      for(i = 0; i < qi; i++) tmp_sln[i] = Bx[si + i];  
     }  // end if/else geninv is non-diagonal
 
     // `tugug` is the numerator of the 3rd term in the equation
     //// Above (tmp_sln) post-multiplied by BLUXs (... %*% BLUXs)
-    for(k = si; k <= ei; k++){
-        tugug[g] += tmp_sln[k] * Bx[k];
-    }
+    for(k = 0; k < qi; k++){
+      tugug[g] += tmp_sln[k] * Bx[si + k];
+      //  zero out tmp_sln for use below in trace term
+      tmp_sln[k] = 0.0;  // clear tmp_sln
+    }  // end for k
 
+//////////////////
+//    if(ndgeninv[g] > 0){
+      // Non-diagonal generalized inverses
+      // crossproduct of BLUXs[si:ei] with geninv (t(BLUXs) %*% geninv)
+//      if(!CS_CSC(geninv[g])) error("geninv[%i] not CSC matrix\n", g);
+      // Johnson & Thompson 1995 eqn 9a
+      ////// Column-by-column of geninv
+//      for(k = 0; k < qi; k++){
+//        j = k + si;                    // index in solution vector
+        ////// Each row (i) in col k of geninv
+//        for(i = geninv[g]->p[k]; i < geninv[g]->p[k+1]; i++){
+//          tmp_sln[j] += Bx[geninv[g]->i[i] + si] * geninv[g]->x[i];
+//        }  // end for i (rows of geninv column k)
+//      }  // end for k (columns of geninv)
+
+//    } else{
+        // Diagonal 
+        //// fill in tmp_sln with BLUXs
+//        for(k = si; k <= ei; k++) tmp_sln[k] = Bx[k];
+//    }  // end if/else geninv is non-diagonal
+    // `tugug` is the numerator of the 3rd term in the equation
+    //// Above (tmp_sln) post-multiplied by BLUXs (... %*% BLUXs)
+//    for(k = si; k <= ei; k++){
+//        tugug[g] += tmp_sln[k] * Bx[k];
+//    }
+
+/////////////////////////////////////////////////////////////////
 
 
     // ... + trace(geninv[g] %*% Cinv[si:ei, si:ei]) ...
@@ -89,8 +114,7 @@ csi cs_gradFun(double *nu, double *dLdnu, double *Cinv_ii,
     ////// each k column of Lc, create Cinv[si:ei, si:ei] elements
     //////// forward solve with Identity[, k] then backsolve
     for(k = si; k <= ei; k++){
-    // use tmp_sln as working vector: first zero out and create Identity[, k]
-      for(i = 0; i < nsln; i++) tmp_sln[i] = 0.0;  // clear tmp_sln
+    // use tmp_sln as working vector: first create Identity[, k]
     //// Lc is permuted, use t(P) %*% I[, k]
       tmp_sln[Pinv[k]] += 1.0;              /* essentially `cs_ipvec` */
       cs_lsolve (Lc, tmp_sln);              /* x = L\x */      
@@ -99,6 +123,7 @@ csi cs_gradFun(double *nu, double *dLdnu, double *Cinv_ii,
 //TODO combine pvec (take code out of function) and multiplication in next step
       cs_pvec(Pinv, tmp_sln, w, nsln);      /* b = P'*x */
       // w holds Cinv[, k]
+      for(i = 0; i < nsln; i++) tmp_sln[i] = 0.0;  // clear tmp_sln
       // write sampling variance for kth BLUP
       Cinv_ii[k] = w[k];
 
@@ -130,9 +155,12 @@ csi cs_gradFun(double *nu, double *dLdnu, double *Cinv_ii,
   for(g = 0; g < nG; g++){
     dLdnu[g] = (rfxlvls[g] / nu[g]);
   }  // end for g
+Rprintf("\ngrFun 1 dLdnu[0]=%6.10f", dLdnu[0]);
 
   if(lambda == 1){
     for(g = 0; g < nG; g++){
+Rprintf("\n\tnu[%i]=%6.4f", g, nu[g]);
+
       // Johnson and Thompson 1995 Appendix 2 eqn B3 and eqn 9a and 10a
       dLdnu[g] -= (1 / (nu[g] * nu[g])) * (trace[g] + tugug[g] / sigma2e);
       dLdnu[g] *= -0.5;
@@ -154,7 +182,7 @@ csi cs_gradFun(double *nu, double *dLdnu, double *Cinv_ii,
   }  // end when NOT lambda scale
 
 
-
+Rprintf("\ngrFun end dLdnu[0]=%6.10f", dLdnu[0]);
   delete [] w;
   delete [] tmp_sln;
   delete [] tugug;

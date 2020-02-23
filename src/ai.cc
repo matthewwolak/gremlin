@@ -10,8 +10,7 @@ cs *cs_ai(const cs *BLUXs, cs **Ginv,
         const cs *W, const cs *tW, csi n, csi p, csi nG, csi *rfxlvls, csi nb,
 	const cs *Lc, const csi *Pinv,
 	csi thetaR,       // 0 if lambda=TRUE
-        double sigma2e,    // 1.0 if lambda=FALSE
-	double ezero
+        double sigma2e    // 1.0 if lambda=FALSE
 ){
 
   int     lambda;
@@ -30,7 +29,7 @@ cs *cs_ai(const cs *BLUXs, cs **Ginv,
   if(!Btmp) return(0);
     for(i = 0; i < n; i++) Btmp[i] = 0.0;  // intialize at 0.0 so cs_gaxpy works below
 
-  if(thetaR != 0 && fabs(sigma2e - 1.00) < ezero) lambda = 0; else lambda = 1;
+  if(thetaR != 0 && fabs(sigma2e - 1.00) < DBL_EPSILON) lambda = 0; else lambda = 1;
 
   if(lambda == 1){
     Rinv = cs_spalloc(1, 1, 1, true, false);
