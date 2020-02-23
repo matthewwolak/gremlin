@@ -26,7 +26,6 @@ csi cs_gradFun(double *nu, double *dLdnu, double *Cinv_ii,
 
   if(!CS_CSC (BLUXs) || !nb || !nu) return (0);    // check arguments
   if(thetaR != 0 && fabs(sigma2e - 1.00) < DBL_EPSILON) lambda = 0; else lambda = 1;
-Rprintf("\ngrFun init dLdnu[0]=%6.10f", dLdnu[0]);
 
   nsln = BLUXs->m;
   Bx = BLUXs->x;
@@ -56,7 +55,6 @@ Rprintf("\ngrFun init dLdnu[0]=%6.10f", dLdnu[0]);
 
 //TODO XXX for using covariance matrices, see Johnson & Thompson 1995 eqn 11a
     // Johnson & Thompson 1995 equations 9 & 10
-//////////////////
     //// BUT t(BLUXs) %*% geninv == transpose of vector of geninv %*% BLUXs
     if(ndgeninv[g] > 0){
       // Non-diagonal generalized inverses
@@ -80,33 +78,6 @@ Rprintf("\ngrFun init dLdnu[0]=%6.10f", dLdnu[0]);
       tmp_sln[k] = 0.0;  // clear tmp_sln
     }  // end for k
 
-//////////////////
-//    if(ndgeninv[g] > 0){
-      // Non-diagonal generalized inverses
-      // crossproduct of BLUXs[si:ei] with geninv (t(BLUXs) %*% geninv)
-//      if(!CS_CSC(geninv[g])) error("geninv[%i] not CSC matrix\n", g);
-      // Johnson & Thompson 1995 eqn 9a
-      ////// Column-by-column of geninv
-//      for(k = 0; k < qi; k++){
-//        j = k + si;                    // index in solution vector
-        ////// Each row (i) in col k of geninv
-//        for(i = geninv[g]->p[k]; i < geninv[g]->p[k+1]; i++){
-//          tmp_sln[j] += Bx[geninv[g]->i[i] + si] * geninv[g]->x[i];
-//        }  // end for i (rows of geninv column k)
-//      }  // end for k (columns of geninv)
-
-//    } else{
-        // Diagonal 
-        //// fill in tmp_sln with BLUXs
-//        for(k = si; k <= ei; k++) tmp_sln[k] = Bx[k];
-//    }  // end if/else geninv is non-diagonal
-    // `tugug` is the numerator of the 3rd term in the equation
-    //// Above (tmp_sln) post-multiplied by BLUXs (... %*% BLUXs)
-//    for(k = si; k <= ei; k++){
-//        tugug[g] += tmp_sln[k] * Bx[k];
-//    }
-
-/////////////////////////////////////////////////////////////////
 
 
     // ... + trace(geninv[g] %*% Cinv[si:ei, si:ei]) ...
@@ -155,11 +126,9 @@ Rprintf("\ngrFun init dLdnu[0]=%6.10f", dLdnu[0]);
   for(g = 0; g < nG; g++){
     dLdnu[g] = (rfxlvls[g] / nu[g]);
   }  // end for g
-Rprintf("\ngrFun 1 dLdnu[0]=%6.10f", dLdnu[0]);
 
   if(lambda == 1){
     for(g = 0; g < nG; g++){
-Rprintf("\n\tnu[%i]=%6.4f", g, nu[g]);
 
       // Johnson and Thompson 1995 Appendix 2 eqn B3 and eqn 9a and 10a
       dLdnu[g] -= (1 / (nu[g] * nu[g])) * (trace[g] + tugug[g] / sigma2e);
@@ -182,7 +151,7 @@ Rprintf("\n\tnu[%i]=%6.4f", g, nu[g]);
   }  // end when NOT lambda scale
 
 
-Rprintf("\ngrFun end dLdnu[0]=%6.10f", dLdnu[0]);
+
   delete [] w;
   delete [] tmp_sln;
   delete [] tugug;

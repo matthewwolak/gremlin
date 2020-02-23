@@ -11,45 +11,45 @@ static double toc (double t) { double s = tic () ; return (CS_MAX (0, s-t)) ; }
 
 extern "C"{  
 void ugremlin(
-	double *y,		// response
-	int *ny,		// No. responses
-	int *nminffx,		// No. observations - No. Fxd Fx
-	int *ndgeninv,		// Non-diagonal ginverse (geninv) matrices
-	int *dimZgs,		// dimensions of Zg matrices
-	int *dimZWG,		// dimensions of Z, W, & geninv matrices
-	int *nnzWG,		// No. non-zeros in W and geninvs
-	int *iW,		// W
-	int *pW,
-	double *xW,
-	int *igeninv,		// geninv (each geninv)
-	int *pgeninv,
-	double *xgeninv,
-	double *rfxlL,		// Random effects contribution to log-Likelihood
-	int *lambda,		// TRUE/FALSE lambda (variance ratios?)
-	int *p,			// No. nu parameters
-	int *nGR,		// No. G and R nu parameters
-	int *dimGRs,		// dimensions of G and R matrices
-	int *iGRs,		// GRs (G and R matrices of nu parameters)
-	int *pGRs,		
-	int *nnzGRs,		// No. non-zeroes in GRs	
-	double *nu,		// nus
-	int *nnzBpinv,		// inverse Fixed effects prior matrix (no prior=0s)
-	int *iBpinv,
-	int *pBpinv,
-	double *xBpinv,
-	double *dLdnu,		// gradient vector (1st deriv. of lL / nus)
-	double *AIvec,		// column-wise vector of average information matrix (2nd deriv. of lL / nu)
-	double *sln,		// solution vector
-        double *Cinv_ii,	// diagonal of Cinv: sampling variances of BLUXs
-	double *res,		// residual vector
-	double *itMat,		// parameter information at each iteration
-	int *algit,		// algorithm for optimization at each iteration
-	int *maxit,		// maximum No. iterations
-	double *cctol,		// convergence criteria tolerances
-	double *ezero,		// effective zero
-	int *v,			// verbosity level of  output messages
-	int *vit,		// at what iterations to output messages
-        int *sLcPinv		// empty Cholesky permutation vector
+/*1 */	double *y,		// response
+/*2 */	int *ny,		// No. responses
+/*3 */	int *nminffx,		// No. observations - No. Fxd Fx
+/*4 */	int *ndgeninv,		// Non-diagonal ginverse (geninv) matrices
+/*5 */	int *dimZgs,		// dimensions of Zg matrices
+/*6 */	int *dimZWG,		// dimensions of Z, W, & geninv matrices
+/*7 */	int *nnzWG,		// No. non-zeros in W and geninvs
+/*8 */	int *iW,		// W
+/*9 */	int *pW,
+/*10*/	double *xW,
+/*11*/	int *igeninv,		// geninv (each geninv)
+/*12*/	int *pgeninv,
+/*13*/	double *xgeninv,
+/*14*/	double *rfxlL,		// Random effects contribution to log-Likelihood
+/*15*/	int *lambda,		// TRUE/FALSE lambda (variance ratios?)
+/*16*/	int *p,			// No. nu parameters
+/*17*/	int *nGR,		// No. G and R nu parameters
+/*18*/	int *dimGRs,		// dimensions of G and R matrices
+/*19*/	int *iGRs,		// GRs (G and R matrices of nu parameters)
+/*20*/	int *pGRs,		
+/*21 */	int *nnzGRs,		// No. non-zeroes in GRs	
+/*22*/	double *nu,		// nus
+/*23*/	int *nnzBpinv,		// inverse Fixed effects prior matrix (no prior=0s)
+/*24*/	int *iBpinv,
+/*25*/	int *pBpinv,
+/*26*/	double *xBpinv,
+/*27*/	double *dLdnu,		// gradient vector (1st deriv. of lL / nus)
+/*28*/	double *AIvec,		// column-wise vector of average information matrix (2nd deriv. of lL / nu)
+/*29*/	double *sln,		// solution vector
+/*30*/  double *Cinv_ii,	// diagonal of Cinv: sampling variances of BLUXs
+/*31*/	double *res,		// residual vector
+/*32*/	double *itMat,		// parameter information at each iteration
+/*33*/	int *algit,		// algorithm for optimization at each iteration
+/*34*/	int *maxit,		// maximum No. iterations
+/*35*/	double *cctol,		// convergence criteria tolerances
+/*36*/	double *ezero,		// effective zero
+/*37*/	int *v,			// verbosity level of  output messages
+/*38*/	int *vit,		// at what iterations to output messages
+/*39*/  int *sLcPinv		// empty Cholesky permutation vector
 		
 ){
 
@@ -683,7 +683,7 @@ if(v[0] > 3){
     d = 0.0; cc2 = 0.0; cc2d = 0.0;
     if(i > 0){
       // Change in log-likelihood: Wombat 1
-      cc[0] += (itMat[itc-6-p[0]] - loglik) < cctol[0];
+      cc[0] += ((itMat[itc-6-p[0]] - loglik) < cctol[0]);
         cc[4] += cc[0];
       // Change in nu: wombat eqn. A.1 also Knight 2008 eqn. 6.1
       for(k = 0; k < p[0]; k++){
@@ -691,7 +691,7 @@ if(v[0] > 3){
         cc2 += d*d;
         cc2d += nu[k] * nu[k];
       }
-      cc[1] += sqrt(cc2 / cc2d) < cctol[1];
+      cc[1] += (sqrt(cc2 / cc2d) < cctol[1]);
         cc[4] += cc[1];
       // 3 & 4 are only for optimzation algorithms which produce derivatives
       if(algit[i] > 0){    // 0=EM, 1=AI
@@ -700,7 +700,7 @@ if(v[0] > 3){
 //// Does this step happen for last AI matrix (i-1) or current (i)?
         d = 0.0;
         for(k = 0; k < p[0]; k++) d += dLdnu[k] * dLdnu[k];
-        cc[2] += sqrt(d) < cctol[2];
+        cc[2] += (sqrt(d) < cctol[2]);
           cc[4] += cc[2];
         // Newton decrement: wombat eqn A.3 and Boyd & Vandenberghe 2004
           //TODO
@@ -721,7 +721,7 @@ if(v[0] > 3){
 
     ////////////////////////////////////////////////////////////////////////////
     // 5d Determine next (co)variance parameters to evaluate: REML NOT CONVERGED
-    if(cc[4] < 2){
+    if(cc[4] < 3){
 
       /////////////////////////////
       // Expectation Maximization
@@ -752,30 +752,30 @@ if(v[0] > 3){
         if(lambda[0] == 1){
           AI = cs_ai(BLUXs, Ginv, R, 0, 0,
 	      y, W, tW, ny[0], p[0], nG, rfxlvls, nffx, Lc->L, sLc->pinv,
-	      0, sigma2e, ezero[0]);
+	      0, sigma2e);
           if(AI == NULL) error("Unusccessful AI algorithm in iteration %i\n", i);
        
           if(!cs_gradFun(nu, dLdnu, Cinv_ii,
 	      ny[0], p[0], nG, rfxlvls, nffx, ndgeninv,
 	      geninv, BLUXs, Lc->L, sLc->pinv, 
               sigma2e,    // 1.0 if lambda=FALSE
-	      0, res,      // 0 if lambda=TRUE
-	      ezero[0])){
+	      0, res)){      // 0 if lambda=TRUE
+	      
             error("Unusccessful gradient calculation in iteration %i\n", i);
           }  // end if cs_gradFun
-
+Rprintf("\ndLdnu[0]=%6.10f", dLdnu[0]);
         }else{
           AI = cs_ai(BLUXs, Ginv, R, KRinv, tWKRinv,
 	      res, W, tW, ny[0], p[0], nG, rfxlvls, nffx, Lc->L, sLc->pinv,
-	      nG, 1.0, ezero[0]);
+	      nG, 1.0);
           if(AI == NULL) error("Unusccessful AI algorithm in iteration %i\n", i);
           
           if(!cs_gradFun(nu, dLdnu, Cinv_ii,
 	      ny[0], p[0], nG, rfxlvls, nffx, ndgeninv,
 	      geninv, BLUXs, Lc->L, sLc->pinv, 
               1.0,    // 1.0 if lambda=FALSE
-	      nG, res,      // 0 if lambda=TRUE
-	      ezero[0])){
+	      nG, res)){      // 0 if lambda=TRUE
+
             error("Unusccessful gradient calculation in iteration %i\n", i);
           }  // end if cs_gradFun
         }  // end if/else lambda
