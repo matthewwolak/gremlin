@@ -30,7 +30,7 @@ double cs_invR(const cs *C, const cs *A){
                                                          irow=j;
                                                          icol=k;
                                                  }
-                                         } else if (ipiv[k] > 1) error("Singular G/R structure: use proper priors\n"); // R_CheckUserInterrupt(); //exit(1);        
+                                         } else if (ipiv[k] > 1) error("Singular G/R structure\n"); // R_CheckUserInterrupt(); //exit(1);        
 								 }
                  ++(ipiv[icol]);
                  if (irow != icol) {
@@ -66,7 +66,7 @@ double cs_invR(const cs *C, const cs *A){
 
 	  if(1.0/fabs(CN) < DBL_EPSILON){
 	     PutRNGstate();
-   	   error("ill-conditioned G/R structure (CN = %f): use proper priors if you haven't or rescale data if you have\n", CN);
+   	   error("ill-conditioned G/R structure (CN = %f)\n", CN);
     }	 
     if(n==1 && A->x[0] > 1.0/DBL_EPSILON){
        A->x[0] = 1.0/DBL_EPSILON;

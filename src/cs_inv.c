@@ -39,7 +39,7 @@ cs *cs_inv(const cs *C){
                                                          irow=j;
                                                          icol=k;
                                                  }
-                                         } else if (ipiv[k] > 1) error("Singular G/R structure: use proper priors\n");// //exit(1);
+                                         } else if (ipiv[k] > 1) error("Singular G/R structure\n");// //exit(1);
                                  }
                  ++(ipiv[icol]);
                  if (irow != icol) {
@@ -79,7 +79,7 @@ cs *cs_inv(const cs *C){
 	    A->x[0] = 1.0/DBL_EPSILON;
 	  }else{
 	    PutRNGstate();
-  	       error("ill-conditioned G/R structure (CN = %f): use proper priors if you haven't or rescale data if you have\n", CN);
+  	       error("ill-conditioned G/R structure (CN = %f)\n", CN);
           }	 
 	}
 
