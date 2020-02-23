@@ -763,7 +763,7 @@ if(v[0] > 3){
 	      
             error("Unusccessful gradient calculation in iteration %i\n", i);
           }  // end if cs_gradFun
-Rprintf("\ndLdnu[0]=%6.10f", dLdnu[0]);
+
         }else{
           AI = cs_ai(BLUXs, Ginv, R, KRinv, tWKRinv,
 	      res, W, tW, ny[0], p[0], nG, rfxlvls, nffx, Lc->L, sLc->pinv,
@@ -896,7 +896,7 @@ if(v[0] > 3){
     // V=1 LEVEL of OUTPUT
     if(v[0] > 0 && vitout == 0){ 
       Rprintf("\n\tlL:%6.6f", loglik);
-      Rprintf("\t\ttook %6.3f sec.\n", took); //TODO format units if >60 (and do for all Rprintf(took))
+      Rprintf("\t\ttook %6.4f sec.\n", took); //TODO format units if >60 (and do for all Rprintf(took))
       // To format units see const *char in: http://www.cplusplus.com/reference/cmath/round/
 
       // V=2 LEVEL of OUTPUT
@@ -929,7 +929,7 @@ if(v[0] > 3){
             Rprintf("\tgradient | AI\n");
             Rprintf("\t-------- |--------\n");
             for(g = 0; g < p[0]; g++){
-              Rprintf("\t%6.4f\t| ", dLdnu[g]);  // prints gradient value
+              Rprintf("\t%6.4g\t| ", dLdnu[g]);  // prints gradient value
               // print AI[g, ]
               for(k = 0; k < p[0]; k++){
                 for(si = AI->p[k]; si < AI->p[k+1]; si++){
