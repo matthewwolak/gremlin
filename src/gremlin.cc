@@ -817,6 +817,7 @@ if(v[0] > 3){
             Rprintf("AI cholesky decomposition failed:\n\t AI matrix may be singular - switching to an iteration of the EM algorithm\n");
           } // end if v>1
 
+          //// if AI cannot be inverted do EM
           //////////////  TEMPORARY EM    /////////
           if(v[0] > 1 && vitout == 0) Rprintf("\t\tEM to find next theta");
           if(!cs_em(BLUXs, nu, Cinv_ii,
@@ -828,10 +829,10 @@ if(v[0] > 3){
           d = 0.0;
           for(k = 0; k < ny[0]; k++) d += y[k] * res[k]; 
           nu[nG] = d / nminffx[0];
+          algit[i] = 0;  // switch algorithm to EM so itMat of output is accurate
         // end EM
-        //// if AI cannot be inverted do EM
-
         } else{  //<-- end if AI cannot be inverted
+
 
           AIinv = cs_inv(AI);
           //Hinv = cs_inv(H);

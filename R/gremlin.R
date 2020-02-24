@@ -336,10 +336,13 @@ gremlin <- function(formula, random = NULL, rcov = ~ units,
   #### can directly use R's `grMod$sLc`, but will need to figure out how to give c++'s `cs_schol()` a pinv (need to reconstruct `sLc` in c++ around pinv (see old code on how I may have done this when I made sLc from sLm)
   grMod$sLcPinv <- Cout[[39]]
 
-  itMat <- matrix(Cout[[32]][1:(i*(grMod$p+5))], nrow = i, ncol = grMod$p+5, byrow = TRUE)
-    dimnames(itMat) <- list(paste(seq(i), grMod$algit[1:i], sep = "-"),
-	c(paste0(names(nuv), "_nu"), "sigma2e",
-           "tyPy", "logDetC", "loglik", "itTime"))
+  itMat <- matrix(Cout[[32]][1:(i*(grMod$p+5))], nrow = i, ncol = grMod$p+5,
+           byrow = TRUE)
+    dimnames(itMat) <- list(paste(seq(i), c("EM", "AI")[Cout[[33]][1:i] + 1],
+                sep = "-"),
+	    c(paste0(names(nuv), "_nu"), "sigma2e",
+               "tyPy", "logDetC", "loglik", "itTime"))
+
   if(grMod$lambda){
     itMat <- cbind(itMat,
       t(apply(itMat[, c(paste0(names(nuv), "_nu"), "sigma2e")], MARGIN = 1,
@@ -363,8 +366,6 @@ gremlin <- function(formula, random = NULL, rcov = ~ units,
 
   grMod$sigma2e[] <- itMat[i, "sigma2e"]
   grMod$thetav[] <- itMat[i, paste0(names(nuv), "_theta")]
-
-
 
 
 
@@ -912,6 +913,8 @@ if(nrow(theta[[thetaR]]) != 1){
               grMod$modMats, grMod$nminffx, sLc, grMod$ndgeninv, grMod$sln, grMod$r)
             nuvout <- emOut$nuv
             grMod$Cinv_ii <- emOut$Cinv_ii
+            grMod$algit[i] <- "EM"
+
         } else{  #<-- end if AI cannot be inverted
             Hinv <- solve(H)
 #TODO need a check that not proposing negative/0 variance or |correlation|>1
