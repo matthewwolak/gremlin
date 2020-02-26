@@ -27,7 +27,6 @@ csi cs_chol2inv_ii(const cs *L, const csi *Pinv, double *Cinv_ii, int r){
 
     // load diagnoal from b into output
     Cinv_ii[j] = b[j];
-Rprintf("\nb[%i]=%6.4f and b[%i]=%6.4f", j, b[j], j+1, b[j+1]);
     // Also, reset b for next column
     for(g = 0; g < n; g++) b[g] = 0.0;
   }  // end for j

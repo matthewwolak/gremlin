@@ -730,7 +730,7 @@ if(v[0] > 3){
         if(v[0] > 1 && vitout == 0) Rprintf("\tEM to find next theta");
         if(!cs_em(BLUXs, nu, Cinv_ii,
 	    nG, rfxlvls, nffx, ndgeninv, geninv, Lc->L, sLc->pinv)){
-          error("Unusccessful EM algorithm in iteration %i\n", i);
+          error("Unsuccessful EM algorithm in iteration %i\n", i);
         }
         // Calculate EM for residual:
         //// crossprod(y, r) / nminffx
@@ -753,11 +753,11 @@ if(v[0] > 3){
           AI = cs_ai(BLUXs, Ginv, R, 0, 0,
 	      y, W, tW, ny[0], p[0], nG, rfxlvls, nffx, Lc->L, sLc->pinv,
 	      0, sigma2e);
-          if(AI == NULL) error("Unusccessful AI algorithm in iteration %i\n", i);
+          if(AI == NULL) error("Unsuccessful AI algorithm in iteration %i\n", i);
 
 if(v[0] > 3){
   took = toc(t);
-  Rprintf("\n\t    %6.4f sec.: calculate AI\n", took);
+  Rprintf("\n\t    %6.4f sec.: calculate AI", took);
   t = tic();
 }
        
@@ -767,11 +767,11 @@ if(v[0] > 3){
               sigma2e,    // 1.0 if lambda=FALSE
 	      0, res)){      // 0 if lambda=TRUE
 	      
-            error("Unusccessful gradient calculation in iteration %i\n", i);
+            error("Unsuccessful gradient calculation in iteration %i\n", i);
 
 if(v[0] > 3){
   took = toc(t);
-  Rprintf("\t    %6.4f sec.: calculate gradient\n", took);
+  Rprintf("\n\t    %6.4f sec.: calculate gradient", took);
   t = tic();
 }
           }  // end if cs_gradFun
@@ -780,11 +780,11 @@ if(v[0] > 3){
           AI = cs_ai(BLUXs, Ginv, R, KRinv, tWKRinv,
 	      res, W, tW, ny[0], p[0], nG, rfxlvls, nffx, Lc->L, sLc->pinv,
 	      nG, 1.0);
-          if(AI == NULL) error("Unusccessful AI algorithm in iteration %i\n", i);
+          if(AI == NULL) error("Unsuccessful AI algorithm in iteration %i\n", i);
 
  if(v[0] > 3){
   took = toc(t);
-  Rprintf("\n\t    %6.4f sec.: calculate AI\n", took);
+  Rprintf("\n\t    %6.4f sec.: calculate AI", took);
   t = tic();
 }
           
@@ -794,11 +794,11 @@ if(v[0] > 3){
               1.0,    // 1.0 if lambda=FALSE
 	      nG, res)){      // 0 if lambda=TRUE
 
-            error("Unusccessful gradient calculation in iteration %i\n", i);
+            error("Unsuccessful gradient calculation in iteration %i\n", i);
 
 if(v[0] > 3){
   took = toc(t);
-  Rprintf("\t    %6.4f sec.: calculate gradient\n", took);
+  Rprintf("\n\t    %6.4f sec.: calculate gradient", took);
   t = tic();
 }
 
@@ -847,7 +847,7 @@ if(v[0] > 3){
           if(v[0] > 1 && vitout == 0) Rprintf("\t\tEM to find next theta");
           if(!cs_em(BLUXs, nu, Cinv_ii,
 	      nG, rfxlvls, nffx, ndgeninv, geninv, Lc->L, sLc->pinv)){
-            error("Unusccessful EM algorithm in iteration %i\n", i);
+            error("Unsuccessful EM algorithm in iteration %i\n", i);
           }
           // Calculate EM for residual:
           //// crossprod(y, r) / nminffx
@@ -1004,11 +1004,11 @@ if(v[0] > 3){
     AI = cs_ai(BLUXs, Ginv, R, 0, 0,
 	  y, W, tW, ny[0], p[0], nG, rfxlvls, nffx, Lc->L, sLc->pinv,
 	  0, sigma2e);
-    if(AI == NULL) error("Unusccessful AI algorithm at convergence %i\n", i);
+    if(AI == NULL) error("Unsuccessful AI algorithm at convergence %i\n", i);
 
 if(v[0] > 3){
   took = toc(t);
-  Rprintf("\n\t    %6.4f sec.: calculate AI\n", took);
+  Rprintf("\n\t    %6.4f sec.: calculate AI", took);
   t = tic();
 }
        
@@ -1018,11 +1018,11 @@ if(v[0] > 3){
             sigma2e,    // 1.0 if lambda=FALSE
 	    0, res)){      // 0 if lambda=TRUE
 	      
-    error("Unusccessful gradient calculation  at convergence %i\n", i);
+    error("Unsuccessful gradient calculation  at convergence %i\n", i);
 
 if(v[0] > 3){
   took = toc(t);
-  Rprintf("\t    %6.4f sec.: calculate gradient\n", took);
+  Rprintf("\n\t    %6.4f sec.: calculate gradient", took);
   t = tic();
 }
     }  // end if cs_gradFun
@@ -1031,11 +1031,11 @@ if(v[0] > 3){
     AI = cs_ai(BLUXs, Ginv, R, KRinv, tWKRinv,
           res, W, tW, ny[0], p[0], nG, rfxlvls, nffx, Lc->L, sLc->pinv,
 	  nG, 1.0);
-    if(AI == NULL) error("Unusccessful AI algorithm  at convergence %i\n", i);
+    if(AI == NULL) error("Unsuccessful AI algorithm  at convergence %i\n", i);
 
  if(v[0] > 3){
   took = toc(t);
-  Rprintf("\n\t    %6.4f sec.: calculate AI\n", took);
+  Rprintf("\n\t    %6.4f sec.: calculate AI", took);
   t = tic();
 }
           
@@ -1045,11 +1045,11 @@ if(v[0] > 3){
           1.0,    // 1.0 if lambda=FALSE
 	  nG, res)){      // 0 if lambda=TRUE
 
-    error("Unusccessful gradient calculation  at convergence %i\n", i);
+    error("Unsuccessful gradient calculation  at convergence %i\n", i);
 
 if(v[0] > 3){
   took = toc(t);
-  Rprintf("\t    %6.4f sec.: calculate gradient\n", took);
+  Rprintf("\n\t    %6.4f sec.: calculate gradient", took);
   t = tic();
 }
 
