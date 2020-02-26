@@ -997,7 +997,7 @@ if(v[0] > 3){
 
 
   // Calculate Cinv_ii, AI, and gradient for last set of parameters
-  cs_chol2inv_ii(Lc->L, sLc->pinv, Cinv_ii, nffx);
+  cs_chol2inv_ii(Lc->L, sLc->pinv, Cinv_ii, 0);
   //// Average Information
   if(aiformed == 1) cs_spfree(AI);
   if(lambda[0] == 1){

@@ -333,7 +333,7 @@ residuals.gremlin <- function(object,
 #'       matrix).}
 #'     \item{fxdSummary }{Table of fixed effects and standard errors (calculated
 #'       from the corresponding diagonal elements of the inverse of the
-#'       coefficient matrix).}
+#'       coefficient matrixm, transformed where necessary).}
 #'   }
 #'
 #' @author \email{matthewwolak@@gmail.com}
@@ -367,8 +367,9 @@ summary.gremlin <- function(object, ...){
       }
 
   ########
-  fxdSummary <- cbind(as(object$grMod$sln[1:object$grMod$modMats$nb, , drop = FALSE],
-    "matrix"), sqrt(object$grMod$Cinv_ii[1:object$grMod$modMats$nb]))
+  coefVarScale <- ifelse(object$grMod$lambda, object$grMod$sigma2e, 1.0)
+  fxdSummary <- cbind(as(object$grMod$sln[1:object$grMod$modMats$nb, , drop = FALSE], "matrix"),
+        sqrt(coefVarScale * object$grMod$Cinv_ii[1:object$grMod$modMats$nb]))
     #TODO consider reporting `|z value|` instead
     fxdSummary <- cbind(fxdSummary, fxdSummary[, 1] / fxdSummary[, 2])
     colnames(fxdSummary) <- c("Solution", "Std. Error", "z value")

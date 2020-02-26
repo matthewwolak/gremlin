@@ -208,10 +208,10 @@ vech2matlist <- function(vech, skeleton){
 #'       of the coefficient matrix of the Mixed Model Equations.}
 #'     \item{sln }{A one column \code{matrix} of solutions in the mixed model
 #'       equations.}
-#'     \item{Cinv_ii }{A one column \code{matrix} of variances (or prediction 
-#'       error variances in the case of random effects) for the solutions to
-#'       the mixed model equations. These are obtained from the diagonal of the
-#'       inverse Coefficient matrix in the mixed model equations.}
+#'     \item{Cinv_ii }{A one column \code{matrix} of variances for the solutions
+#'       to the mixed model equations. These are obtained from the diagonal of #'       the inverse Coefficient matrix in the mixed model equations. If lambda
+#'       is \code{TRUE} then these are on the lambda scale and must be
+#'       multiplied by \code{sigma2e} to be converted to the original data scale.}
 #'     \item{r }{A one column \code{matrix} of residual deviations, response minus
 #'       the values expected based on the solutions, corresponding to the order
 #'       in \code{modMats$y}.} 
@@ -368,17 +368,6 @@ gremlin <- function(formula, random = NULL, rcov = ~ units,
   grMod$thetav[] <- itMat[i, paste0(names(nuv), "_theta")]
 
 
-
-#TODO calculate AI/AIinv for last set of parameters (sampling covariances for final varcomps
-###TODO make sure final varcomps returned are ones for which AI was evaluated (if using AI from above)
-
-#TODO fix return values:
-## are sln same as on theta scale?
-## are Cinv_ii (var of sln) same as on theta scale
-## Calculate Cinv_ii for fixed effects BEFORE returning from c++
-
-
-
   endTime <- Sys.time()
   if(v > 0) cat("gremlin ended:\t\t", format(endTime, "%H:%M:%S"), "\n")
 
@@ -387,141 +376,7 @@ gremlin <- function(formula, random = NULL, rcov = ~ units,
 	class = c("gremlin"), #TODO consider making "gremlinCpp" class
 	startTime = attr(grMod, "startTime"), endTime = endTime))
 }  #<-- end `gremlin()`
-
-
-
-
-#' @rdname gremlin
-#' @export
-gremlin2 <- function(formula, random = NULL, rcov = ~ units,
-		data = NULL, ginverse = NULL,
-		Gstart = NULL, Rstart = NULL, Bp = NULL,
-		maxit = 20, algit = NULL,
-		vit = 10, v = 1, ...){
-
-  mc <- as.list(match.call())
-  mGmc <- as.call(c(quote(gremlinSetup), mc[-1]))
-  grMod <- eval(mGmc, parent.frame())
-
-  gnu <- lapply(grMod$nu, FUN = as, "dgCMatrix") #FIXME do this directly to begin with or just use dense matrices (class="matrix")
-  nuv <- sapply(grMod$nu, FUN = slot, name = "x")
-
-  Cout <- .C("ugremlin_cinv", PACKAGE = "gremlin",
-	as.double(grMod$modMats$y),
-	as.integer(grMod$modMats$ny),
-	as.integer(grMod$nminffx),		# No. observations - No. Fxd Fx
-	as.integer(grMod$ndgeninv),		# non-diagonal ginverses
-	as.integer(c(grMod$dimsZg)),
-	as.integer(with(grMod, c(rowSums(dimsZg),		# Z Dims
-	  W@Dim,						# W Dims
-	  unlist(lapply(modMats$listGeninv, FUN = function(g){g@Dim[[1L]]}))))), # geninv Dims
-	as.integer(with(grMod, c(length(W@x),		# No. nonzero W
-	  sapply(seq(length(thetaG)), FUN = function(g){length(modMats$listGeninv[[g]]@x)})))), # No. nnz geninvs
-	as.integer(grMod$W@i), 					     #W
-	as.integer(grMod$W@p),
-	as.double(grMod$W@x),
-	as.integer(unlist(lapply(grMod$modMats$listGeninv[grMod$ndgeninv], FUN = function(g){g@i}))), #geninv (generalized inverses)
-
-	as.integer(unlist(lapply(grMod$modMats$listGeninv[grMod$ndgeninv], FUN = function(g){g@p}))),
-	as.double(unlist(lapply(grMod$modMats$listGeninv[grMod$ndgeninv], FUN = function(g){g@x}))),
-	as.double(grMod$rfxIncContrib2loglik),		# Random Fx contribution to log-Likelihood
-        as.integer(grMod$lambda),		# TRUE/FALSE lambda (variance ratio?)
-	as.integer(grMod$p),				#p=No. nu params
-	as.integer(c(length(grMod$thetaG), length(grMod$thetaR))), #No. G and R nus
-	as.integer(unlist(lapply(gnu, FUN = function(g) g@Dim[[1L]]))),#dim GRs
-	as.integer(unlist(lapply(gnu, FUN = function(g) g@i))),	      #i GRs
-	as.integer(unlist(lapply(gnu, FUN = function(g) g@p))),	      #p GRs
-	as.integer(unlist(lapply(gnu, FUN = function(g) length(g@x)))), #no. non-zero GRs
-	as.double(unlist(lapply(gnu, FUN = function(g) g@x))),	#nu vector
-	as.integer(length(grMod$Bpinv@x)),		#Bpinv (fixed fx prior inverse)
-	as.integer(grMod$Bpinv@i),
-	as.integer(grMod$Bpinv@p),
-	as.double(grMod$Bpinv@x),
-	as.double(rep(0, grMod$p)),			#empty dLdnu
-	as.double(rep(0, grMod$p^2)),	#empty column-wise vector of AI matrix
-	as.double(c(grMod$sln)), 			#empty sln
-        as.double(c(grMod$Cinv_ii)),			#empty diag(Cinv)
-	as.double(c(grMod$r)),				#empty resdiuals
-	as.double(rep(0, grMod$maxit*(grMod$p+5))),	#itMat
-	as.integer(as.integer(factor(grMod$algit[1:grMod$maxit], levels = c("EM", "AI"), ordered = TRUE))-1), #algorithm for each iteration
-	as.integer(grMod$maxit),			#max it./n algit
-	as.double(grMod$cctol),				#convergence tol.
-	as.double(grMod$ezero),				#effective 0
-#uni?
-	as.integer(grMod$v),				#verbosity
-	as.integer(grMod$vit),				#when to output status
-	as.integer(rep(0, length(grMod$sln))))		#empty sLc->pinv
-
-  i <- Cout[[34]] + 1  #<-- `+1` because index from c++ is 0-based
-
-  grMod$nu[] <- vech2matlist(Cout[[22]], grMod$skel)
-  grMod$dLdnu[] <- Cout[[27]]
-  if(all(Cout[[28]] == 0)) grMod$AI <- NULL else{
-    grMod$AI <- matrix(Cout[[28]], nrow = grMod$p, ncol = grMod$p, byrow = FALSE)
-      dimnames(grMod$AI) <- list(rownames(grMod$dLdnu), rownames(grMod$dLdnu))
-  }
-  grMod$sln[] <- Cout[[29]]
-  grMod$Cinv_ii <- Cout[[30]] 
-  grMod$r[] <- Cout[[31]]
-  #TODO Will definitely need R vs. c++ methods for `update.gremlin()`
-  #### can directly use R's `grMod$sLc`, but will need to figure out how to give c++'s `cs_schol()` a pinv (need to reconstruct `sLc` in c++ around pinv (see old code on how I may have done this when I made sLc from sLm)
-  grMod$sLcPinv <- Cout[[39]]
-
-  itMat <- matrix(Cout[[32]][1:(i*(grMod$p+5))], nrow = i, ncol = grMod$p+5,
-           byrow = TRUE)
-    dimnames(itMat) <- list(paste(seq(i), c("EM", "AI")[Cout[[33]][1:i] + 1],
-                sep = "-"),
-	    c(paste0(names(nuv), "_nu"), "sigma2e",
-               "tyPy", "logDetC", "loglik", "itTime"))
-
-  if(grMod$lambda){
-    itMat <- cbind(itMat,
-      t(apply(itMat[, c(paste0(names(nuv), "_nu"), "sigma2e")], MARGIN = 1,
-	FUN = function(itvec){ sapply(grMod$nu2theta(itvec[1:grMod$p],
-        		sigma2e = itvec[grMod$p+1], grMod$thetaG, grMod$thetaR),
-		FUN = slot, name = "x")})))[, c(seq(grMod$p),
-      seq(grMod$p+6, 2*grMod$p+5), seq(grMod$p+1, grMod$p+5))] #<-- thetas named 'nu' in colnames for now, use numeric indices to rearrange
-
-  } else{
-      itMat <- cbind(itMat,
-        t(apply(itMat[, c(paste0(names(nuv), "_nu"), "sigma2e")], MARGIN = 1,
-	  FUN = function(itvec){ sapply(grMod$nu2theta(itvec[1:grMod$p]),
-		FUN = slot, name = "x")})))[, c(seq(grMod$p),
-        seq(grMod$p+6, 2*grMod$p+5), seq(grMod$p+1, grMod$p+5))] #<-- thetas named 'nu' in colnames for now, use numeric indices to rearrange
-
-    }  #<-- end if/else lambda
-  # Now sort out the column names
-  colnames(itMat) <- c(paste0(names(nuv), "_nu"),
-			paste0(names(nuv), "_theta"),
-			"sigma2e", "tyPy", "logDetC", "loglik", "itTime")
-
-  grMod$sigma2e[] <- itMat[i, "sigma2e"]
-  grMod$thetav[] <- itMat[i, paste0(names(nuv), "_theta")]
-
-
-
-#TODO calculate AI/AIinv for last set of parameters (sampling covariances for final varcomps
-###TODO make sure final varcomps returned are ones for which AI was evaluated (if using AI from above)
-
-#TODO fix return values:
-## are sln same as on theta scale?
-## are Cinv_ii (var of sln) same as on theta scale
-## Calculate Cinv_ii for fixed effects BEFORE returning from c++
-
-
-
-  endTime <- Sys.time()
-  if(v > 0) cat("gremlin ended:\t\t", format(endTime, "%H:%M:%S"), "\n")
-
- return(structure(list(grMod = grMod,
-		itMat = itMat),
-	class = c("gremlin"), #TODO consider making "gremlinCpp" class
-	startTime = attr(grMod, "startTime"), endTime = endTime))
-}  #<-- end `gremlin2()`
-
-
-
-
+################################################################################
 
 
 
@@ -1188,9 +1043,6 @@ stop("Not allowing `minqa::bobyqa()` right now")
   grMod$AI <- AI
   grMod$dLdnu <- dLdnu
 
-#TODO fix return values:
-## are sln same as on theta scale?
-## are Cinv_ii (var of sln) same as on theta scale
  return(structure(list(grMod = grMod,
 		itMat = itMat),
 	class = "gremlin"))
