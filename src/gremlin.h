@@ -31,6 +31,9 @@ csi cs_gradFun(double *nu, double *dLdnu, double *Cinv_ii,
         double sigma2e,    // 1.0 if lambda=FALSE
 	csi thetaR, double *r);      // 0 if lambda=TRUE
 
+// replaces elements in Cinv_ii inverse diagonals as double
+//// Returns 1=success else 0
+csi cs_chol2inv_ii(const cs *L, const csi *Pinv, double *Cinv_ii, int r);  
 
 /* Expectation Maximization Algorithm:
      replaces elements in theta. Returns 1=success else 0 */
