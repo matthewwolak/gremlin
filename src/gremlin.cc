@@ -754,6 +754,12 @@ if(v[0] > 3){
 	      y, W, tW, ny[0], p[0], nG, rfxlvls, nffx, Lc->L, sLc->pinv,
 	      0, sigma2e);
           if(AI == NULL) error("Unusccessful AI algorithm in iteration %i\n", i);
+
+if(v[0] > 3){
+  took = toc(t);
+  Rprintf("\n\t    %6.4f sec.: calculate AI\n", took);
+  t = tic();
+}
        
           if(!cs_gradFun(nu, dLdnu, Cinv_ii,
 	      ny[0], p[0], nG, rfxlvls, nffx, ndgeninv,
@@ -762,6 +768,12 @@ if(v[0] > 3){
 	      0, res)){      // 0 if lambda=TRUE
 	      
             error("Unusccessful gradient calculation in iteration %i\n", i);
+
+if(v[0] > 3){
+  took = toc(t);
+  Rprintf("\t    %6.4f sec.: calculate gradient\n", took);
+  t = tic();
+}
           }  // end if cs_gradFun
 
         }else{
@@ -769,6 +781,12 @@ if(v[0] > 3){
 	      res, W, tW, ny[0], p[0], nG, rfxlvls, nffx, Lc->L, sLc->pinv,
 	      nG, 1.0);
           if(AI == NULL) error("Unusccessful AI algorithm in iteration %i\n", i);
+
+ if(v[0] > 3){
+  took = toc(t);
+  Rprintf("\n\t    %6.4f sec.: calculate AI\n", took);
+  t = tic();
+}
           
           if(!cs_gradFun(nu, dLdnu, Cinv_ii,
 	      ny[0], p[0], nG, rfxlvls, nffx, ndgeninv,
@@ -777,6 +795,13 @@ if(v[0] > 3){
 	      nG, res)){      // 0 if lambda=TRUE
 
             error("Unusccessful gradient calculation in iteration %i\n", i);
+
+if(v[0] > 3){
+  took = toc(t);
+  Rprintf("\t    %6.4f sec.: calculate gradient\n", took);
+  t = tic();
+}
+
           }  // end if cs_gradFun
         }  // end if/else lambda
 
@@ -971,6 +996,66 @@ if(v[0] > 3){
 
 
 
+  // Calculate Cinv_ii, AI, and gradient for last set of parameters
+  cs_chol2inv_ii(Lc->L, sLc->pinv, Cinv_ii, nffx);
+  //// Average Information
+  if(algit[i] == 1){
+    if(aiformed == 1) cs_spfree(AI);
+    if(lambda[0] == 1){
+      AI = cs_ai(BLUXs, Ginv, R, 0, 0,
+	  y, W, tW, ny[0], p[0], nG, rfxlvls, nffx, Lc->L, sLc->pinv,
+	  0, sigma2e);
+      if(AI == NULL) error("Unusccessful AI algorithm at convergence %i\n", i);
+
+if(v[0] > 3){
+  took = toc(t);
+  Rprintf("\n\t    %6.4f sec.: calculate AI\n", took);
+  t = tic();
+}
+       
+      if(!cs_gradFun(nu, dLdnu, Cinv_ii,
+   	    ny[0], p[0], nG, rfxlvls, nffx, ndgeninv,
+	    geninv, BLUXs, Lc->L, sLc->pinv, 
+            sigma2e,    // 1.0 if lambda=FALSE
+	    0, res)){      // 0 if lambda=TRUE
+	      
+        error("Unusccessful gradient calculation  at convergence %i\n", i);
+
+if(v[0] > 3){
+  took = toc(t);
+  Rprintf("\t    %6.4f sec.: calculate gradient\n", took);
+  t = tic();
+}
+      }  // end if cs_gradFun
+
+  }else{
+      AI = cs_ai(BLUXs, Ginv, R, KRinv, tWKRinv,
+          res, W, tW, ny[0], p[0], nG, rfxlvls, nffx, Lc->L, sLc->pinv,
+	  nG, 1.0);
+      if(AI == NULL) error("Unusccessful AI algorithm  at convergence %i\n", i);
+
+ if(v[0] > 3){
+  took = toc(t);
+  Rprintf("\n\t    %6.4f sec.: calculate AI\n", took);
+  t = tic();
+}
+          
+      if(!cs_gradFun(nu, dLdnu, Cinv_ii,
+          ny[0], p[0], nG, rfxlvls, nffx, ndgeninv,
+	  geninv, BLUXs, Lc->L, sLc->pinv, 
+          1.0,    // 1.0 if lambda=FALSE
+	  nG, res)){      // 0 if lambda=TRUE
+
+        error("Unusccessful gradient calculation  at convergence %i\n", i);
+
+if(v[0] > 3){
+  took = toc(t);
+  Rprintf("\t    %6.4f sec.: calculate gradient\n", took);
+  t = tic();
+}
+
+      }  // end if cs_gradFun
+    }  // end if/else lambda
 
 
 
