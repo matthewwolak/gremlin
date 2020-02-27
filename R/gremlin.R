@@ -473,25 +473,15 @@ gremlinSetup <- function(formula, random = NULL, rcov = ~ units,
   if(length(algit) == 1 && algit %in% c("EM", "AI", "bobyqa")) algit <- rep(algit, maxit)
   if(is.null(mc$ezero)) ezero <- 1e-8 else ezero <- eval(mc$ezero)
 
-#TODO change `R.` to `R1` that way will match G1, G2, etc. for >1 G sections
-##XXX then change how find thetaGorR by grep or something like it versus strsplit on `.`
+
   theta <- c(G = sapply(Gstart, FUN = stTrans), R. = stTrans(Rstart))
   thetaGorR <- sapply(strsplit(names(theta), ".", fixed = TRUE), FUN = "[[", i = 1)
-
-#XXX Do above TODO sooner rather than later!
-
-
-
-
-
-
-
-
-
-
 #FIXME ensure grep() is best way and won't mess up when multiple Gs and **Rs**
   thetaG <- grep("G", thetaGorR, ignore.case = FALSE)
   thetaR <- grep("R", thetaGorR, ignore.case = FALSE)
+    names(theta) <- c(paste0("G.", names(modMats$Zg)),
+                      paste0("ResVar", seq(length(thetaR))))
+
   thetav <- sapply(theta, FUN = slot, name = "x")
   skel <- lapply(seq(length(theta)), FUN = function(i){mapply(slot, theta[i], c("i", "p", "Dim"))})
     names(skel) <- names(theta)
