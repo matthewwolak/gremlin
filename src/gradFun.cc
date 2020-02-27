@@ -39,7 +39,8 @@ csi cs_gradFun(double *nu, double *dLdnu, double *Cinv_ii,
   //// `geninv` is the generalized inverse
   ////// (not the inverse of the G-matrix/(co)variance components)
   double  *trace = new double[nG];
-  double  *tugug = new double[nG];  // includes crossprod(residual) when !lambda
+  if(lambda == 0) g = nG + 1; else g = nG;
+  double  *tugug = new double[g];  // includes crossprod(residual) when !lambda
   double  *tmp_sln = new double[nsln];
   double  *w = new double[nsln];
     for(k = 0; k < nsln; k++){
