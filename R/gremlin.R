@@ -1016,7 +1016,7 @@ stop("Not allowing `minqa::bobyqa()` right now")
   thetav <- sapply(theta, FUN = slot, name = "x") 
 
 
-  # Calculate Cinv_ii, AI, and gradient for last set of parameters
+  # Calculate Cinv_ii and AI for last set of parameters
   grMod$Cinv_ii <- diag(solve(a = sLc, b = Ic, system = "A"))
   ## AI
   if(lambda){
@@ -1025,15 +1025,15 @@ stop("Not allowing `minqa::bobyqa()` right now")
 	     thetaR = NULL,
 	     sigma2e)  #<-- NULL if lambda==FALSE
 
-    dLdnu <- gradFun(nuv, thetaG, grMod$modMats, Cinv, grMod$sln,
-	    	      sigma2e = sigma2e, r = NULL, nminfrfx = NULL)
+#    dLdnu <- gradFun(nuv, thetaG, grMod$modMats, Cinv, grMod$sln,
+#	    	      sigma2e = sigma2e, r = NULL, nminfrfx = NULL)
   } else{
       AI <- ai(nuv, skel, thetaG,
        		grMod$modMats, grMod$W, sLc, grMod$sln, grMod$r,
                 thetaR,   #<-- NULL if lambda==TRUE
 	        sigma2e = NULL)
-      dLdnu <- gradFun(nuv, thetaG, grMod$modMats, Cinv, grMod$sln,
-  	      sigma2e = NULL, grMod$r, grMod$nminfrfx)
+#      dLdnu <- gradFun(nuv, thetaG, grMod$modMats, Cinv, grMod$sln,
+#  	      sigma2e = NULL, grMod$r, grMod$nminfrfx)
       }
   
 

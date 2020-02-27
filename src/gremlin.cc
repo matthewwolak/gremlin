@@ -995,7 +995,7 @@ if(v[0] > 3){
 
 
 
-  // Calculate Cinv_ii, AI, and gradient for last set of parameters
+  // Calculate Cinv_ii and AI
   cs_chol2inv_ii(Lc->L, sLc->pinv, Cinv_ii, 0);
   //// Average Information
   if(aiformed == 1) cs_spfree(AI);
@@ -1011,6 +1011,7 @@ if(v[0] > 3){
   t = tic();
 }
        
+/*
     if(!cs_gradFun(nu, dLdnu, Cinv_ii,
    	    ny[0], p[0], nG, rfxlvls, nffx, ndgeninv,
 	    geninv, BLUXs, Lc->L, sLc->pinv, 
@@ -1025,6 +1026,7 @@ if(v[0] > 3){
   t = tic();
 }
     }  // end if cs_gradFun
+*/
 
   }else{
     AI = cs_ai(BLUXs, Ginv, R, KRinv, tWKRinv,
@@ -1037,7 +1039,8 @@ if(v[0] > 3){
   Rprintf("\n\t    %6.4f sec.: calculate AI", took);
   t = tic();
 }
-          
+
+/*          
     if(!cs_gradFun(nu, dLdnu, Cinv_ii,
           ny[0], p[0], nG, rfxlvls, nffx, ndgeninv,
 	  geninv, BLUXs, Lc->L, sLc->pinv, 
@@ -1053,6 +1056,7 @@ if(v[0] > 3){
 }
 
     }  // end if cs_gradFun
+*/
   }  // end if/else lambda
 
 
