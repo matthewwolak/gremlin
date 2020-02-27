@@ -1110,7 +1110,7 @@ if(v[0] > 3) t = tic();
   //////////////////////////////////////////////////////////////////////////////
   cs_spfree(Bpinv);
   cs_spfree(W); cs_spfree(tW);
-  cs_spfree(R); cs_spfree(Rinv); 
+  cs_spfree(R); cs_spfree(Rinv); cs_spfree(tyRinv);
   if(lambda[0] == 0){
     cs_spfree(KRinv); cs_spfree(tWKRinv); 
   }
