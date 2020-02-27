@@ -354,7 +354,8 @@ gremlin <- function(formula, random = NULL, rcov = ~ units,
   } else{
       itMat <- cbind(itMat,
         t(apply(itMat[, c(paste0(names(nuv), "_nu"), "sigma2e")], MARGIN = 1,
-	  FUN = function(itvec){ sapply(grMod$nu2theta(itvec[1:grMod$p]),
+	  FUN = function(itvec){ sapply(grMod$nu2theta(itvec[1:grMod$p],
+			grMod$thetaG, grMod$thetaR),
 		FUN = slot, name = "x")})))[, c(seq(grMod$p),
         seq(grMod$p+6, 2*grMod$p+5), seq(grMod$p+1, grMod$p+5))] #<-- thetas named 'nu' in colnames for now, use numeric indices to rearrange
 
@@ -560,10 +561,16 @@ lambda <- FALSE  #<-- XXX FIXME DELETEME turned OFF permanently, for now
           theta[thetaG] <- lapply(thetaG, FUN = function(x){as(crossprod(cR, nu[[x]]) %*% cR, "symmetricMatrix")})
           theta[[thetaR]] <- as(crossprod(cR, nu[[thetaR]]) %*% cR, "symmetricMatrix")
          return(theta)
-        }  #<-- end `if lambda`
-
+        }  
+        # end `if lambda`
       } else{
-          nu2theta <- function(nu) nu #TODO FIXME
+          nu2theta <- function(nu, thetaG, thetaR){  #TODO FIXME
+            theta <- nu
+	    theta[thetaG] <- lapply(thetaG,
+		      FUN = function(x){as(matrix(nu[[x]],1,1), "symmetricMatrix")})
+	    theta[[thetaR]] <- as(matrix(nu[[thetaR]], 1, 1), "symmetricMatrix")
+           return(theta)
+          }
         }  #<-- end `if NOT lambda`
     }
 
@@ -803,7 +810,7 @@ remlIt.default <- function(grMod, ...){
       sLc <- remlOut$sLc #TODO to use `update()` need to return `C` in `remlOut`
 
     itMat[i, -ncol(itMat)] <- c(nuv,
-      sapply(if(lambda) grMod$nu2theta(nu, sigma2e, thetaG, thetaR) else grMod$nu2theta(nu),
+      sapply(if(lambda) grMod$nu2theta(nu, sigma2e, thetaG, thetaR) else grMod$nu2theta(nu, thetaG, thetaR),
             FUN = slot, name = "x"),
       sigma2e, remlOut$tyPy, remlOut$logDetC, remlOut$loglik) 
     # 5c check convergence criteria
@@ -1011,8 +1018,12 @@ stop("Not allowing `minqa::bobyqa()` right now")
   itMat <- itMat[1:i, , drop = FALSE]
     rownames(itMat) <- paste(seq(i), grMod$algit[1:i], sep = "-")
   dimnames(AI) <- list(rownames(dLdnu), rownames(dLdnu))
-  theta <- if(lambda) grMod$nu2theta(nu, sigma2e, thetaG, thetaR) else grMod$nu2theta(nu)
-    thetav <- sapply(theta, FUN = slot, name = "x") 
+  if(lambda){
+    theta <- grMod$nu2theta(nu, sigma2e, thetaG, thetaR)
+  } else{
+      theta <- grMod$nu2theta(nu, thetaG, thetaR)
+    }
+  thetav <- sapply(theta, FUN = slot, name = "x") 
 
 
   # Calculate Cinv_ii, AI, and gradient for last set of parameters
