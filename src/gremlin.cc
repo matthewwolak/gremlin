@@ -422,7 +422,6 @@ could do a check to make sure R was inverted correctly:
       //// only do this part for NOT lambda: straight (co)variances
       ////// same terms under lambda model don't contain Rinv so don't change
       if(lambda[0] == 0){
-        cs_spfree(KRinv);
         cs_spfree(tWKRinv);
         cs_spfree(tWKRinvW);
 
