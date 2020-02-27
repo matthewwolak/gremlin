@@ -322,8 +322,8 @@ ai <- function(nuvin, skel, thetaG,
   } else{
       # could pass KRinv and tWKRinv (if lambda=FALSE) from reml() into ai() 
       KRinv <- kronecker(Rinv, Diagonal(x = 1, n = modMats$Zr@Dim[[2L]]))
-      BRHS <- Matrix(tWKRinv %*% B, sparse = TRUE)
       tWKRinv <- crossprod(W, KRinv)
+      BRHS <- Matrix(tWKRinv %*% B, sparse = TRUE)
       tBRinvB <- crossprod(B, KRinv) %*% B
     }
   ## tBPB

@@ -509,7 +509,8 @@ gremlinSetup <- function(formula, random = NULL, rcov = ~ units,
 #XXX Figure out how to identify `lambda` model from model call
 
 #FIXME quick fix for now
-lambda <- length(thetaR) == 1
+#lambda <- length(thetaR) == 1
+lambda <- FALSE  #<-- XXX FIXME DELETEME turned OFF permanently, for now
 #TODO quick fix to turn this off from the call if I don't want to do lambda model
 #TODO make `lambda == FALSE` if EM is part of algit (not sure if EM works for lambda or not) #<-- FIXME figure out how to do EM on lambda
 
