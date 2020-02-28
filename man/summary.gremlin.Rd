@@ -30,7 +30,7 @@ A \code{list} of class \code{summary.gremlin} or a printed value
       matrix).}
     \item{fxdSummary }{Table of fixed effects and standard errors (calculated
       from the corresponding diagonal elements of the inverse of the
-      coefficient matrix).}
+      coefficient matrixm, transformed where necessary).}
   }
 }
 \description{
