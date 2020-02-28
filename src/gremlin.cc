@@ -1,20 +1,12 @@
 #include "gremlincc.h"
 /*******************************************************************/
 /* 2 clock functions from SuiteSparse 5.1.0 by Tim Davis           */
-//static double tic (void) { return ((clock_t) clock () / (double) CLOCKS_PER_SEC) ; }
-//static double toc (double t) { double s = tic () ; return (CS_MAX (0, s-t)) ; }
-
 /* -------------------------------------------------------------------------- */
 /* GraphBLAS/Demo/simple_timer.c: a timer for performance measurements        */
 /* -------------------------------------------------------------------------- */
-
 /* SuiteSparse:GraphBLAS, Timothy A. Davis, (c) 2017, All Rights Reserved.    */
 /* http://suitesparse.com   See GraphBLAS/Doc/License.txt for license.        */
-
 /* -------------------------------------------------------------------------- */
-
-/* simple_timer:  a portable timer for accurate performance measurements */
-
 
 /* -------------------------------------------------------------------------- */
 /* simple_tic: return the current wallclock time in high resolution           */
@@ -23,26 +15,7 @@
 void simple_tic         /* returns current time in seconds and nanoseconds */
 (
     double tic [2]      /* tic [0]: seconds, tic [1]: nanoseconds */
-)
-{
-
-//    #if defined ( _OPENMP )
-
-        /* OpenMP is available; use the OpenMP timer function */
-//        tic [0] = omp_get_wtime ( ) ;
-//        tic [1] = 0 ;
-
-//    #elif defined ( __linux__ )
-
-        /* Linux has a very low resolution clock() function, so use the high
-           resolution clock_gettime instead.  May require -lrt */
-//        struct timespec t ;
-//        clock_gettime (CLOCK_MONOTONIC, &t) ;
-//        tic [0] = (double) t.tv_sec ;
-//        tic [1] = (double) t.tv_nsec ;
-
-//    #else
-
+){
         /* The ANSI C11 clock() function is used instead.  This gives the
            processor time, not the wallclock time, and it might have low
            resolution.  It returns the time since some unspecified fixed time
@@ -52,13 +25,7 @@ void simple_tic         /* returns current time in seconds and nanoseconds */
         clock_t t = clock ( ) ;
         tic [0] = ((double) t) / ((double) CLOCKS_PER_SEC) ;
         tic [1] = 0 ;
-
-//    #endif
-
 }
-
-
-
 /* -------------------------------------------------------------------------- */
 /* simple_toc: return the time since the last simple_tic                      */
 /* -------------------------------------------------------------------------- */
@@ -66,13 +33,11 @@ void simple_tic         /* returns current time in seconds and nanoseconds */
 double simple_toc           /* returns time since last simple_tic */
 (
     const double tic [2]    /* tic from last call to simple_tic */
-)
-{
+){
     double toc [2] ;
     simple_tic (toc) ;
     return ((toc [0] - tic [0]) + 1e-9 * (toc [1] - tic [1])) ;
 }
-
 
 /*******************************************************************/
 
@@ -158,7 +123,7 @@ void ugremlin(
 
 
 
-if(v[0] > 3) simple_tic(t); // t = tic();
+if(v[0] > 3) simple_tic(t);
 
 
   d = 0.0;    // temporary for calculating change in nu (cc2) and EM residual
@@ -359,9 +324,9 @@ could do a check to make sure R was inverted correctly:
 
 
 if(v[0] > 3){
-  took = simple_toc(t);  //  took = toc(t); 
+  took = simple_toc(t); 
   Rprintf("%6.4f sec.: initial cpp setup (to get C)\n", took);
-  simple_tic(t);  //  t = tic();
+  simple_tic(t);
 }
 
 
@@ -385,9 +350,9 @@ if(v[0] > 3){
 
 
 if(v[0] > 3){
-  took = simple_toc(t);  // toc(t);
+  took = simple_toc(t);
   Rprintf("  %6.4f sec.: initial cpp cs_schol(C)\n", took);
-  simple_tic(t);  // t = tic();
+  simple_tic(t); 
 }
 
 
@@ -410,7 +375,7 @@ if(v[0] > 3){
 
 
 if(v[0] > 3){
-  took = simple_toc(t);  // toc(t);
+  took = simple_toc(t);
   Rprintf("  %6.4f sec.: rest of initial cpp setup\n", took);
 }
 
@@ -429,7 +394,7 @@ if(v[0] > 3){
   //////////////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
   for(i = 0; i < maxit[0]; i++){
-    simple_tic(T);  // T = tic();
+    simple_tic(T);
     if(i == 0){vitout = 0;}else{vitout = (i+1)%vit[0];}  // always do first iteration
     if(v[0] > 0 && vitout == 0){
       Rprintf("  %i of max %i\n", i+1, maxit[0]);//TODO TIME of DAY format as remlIt
@@ -556,9 +521,9 @@ could do a check to make sure R was inverted correctly:
 
 
 if(v[0] > 3){
-  took = simple_toc(t);  // toc(t);
+  took = simple_toc(t); 
   Rprintf("  %6.4f sec.: cpp REML i=%i setup\n", took, i);
-  simple_tic(t);  // t = tic();
+  simple_tic(t);
 }
 
 
@@ -577,9 +542,9 @@ if(v[0] > 3){
 
 
 if(v[0] > 3){
-  took = simple_toc(t);  // toc(t);
+  took = simple_toc(t);
   Rprintf("    %6.4f sec.: cpp REML i=%i cs_chol(C)\n", took, i);
-  simple_tic(t);  // t = tic();
+  simple_tic(t);
 }
 
 
@@ -600,9 +565,9 @@ if(v[0] > 3){
 
 
 if(v[0] > 3){
-  took = simple_toc(t);  // toc(t);
+  took = simple_toc(t); 
   Rprintf("\t    %6.4f sec.: cpp REML i=%i sln forward/back solve with chol(C)\n", took, i);
-  simple_tic(t);  // t = tic();
+  simple_tic(t);
 }
 
 
@@ -622,9 +587,9 @@ if(v[0] > 3){
 
 
 if(v[0] > 3){
-  took = simple_toc(t);  // toc(t);
+  took = simple_toc(t);
   Rprintf("    %6.4f sec.: cpp REML i=%i sln/r calc.\n", took, i);
-  simple_tic(t);  // t = tic();
+  simple_tic(t);
 }
 
 
@@ -703,9 +668,9 @@ if(v[0] > 3){
 
 
 if(v[0] > 3){
-  took = simple_toc(t);  //  toc(t);
+  took = simple_toc(t);
   Rprintf("    %6.4f sec.: cpp REML i=%i log-likelihood calc.\n", took, i);
-  simple_tic(t);  // t = tic();
+  simple_tic(t);
 }
 
 
@@ -738,9 +703,9 @@ if(v[0] > 3){
 
 
 if(v[0] > 3){
-  took = simple_toc(t);  // toc(t);
+  took = simple_toc(t);
   Rprintf("    %6.4f sec.: cpp REML i=%i itMat recording took\n", took, i);
-  simple_tic(t);  // t = tic();
+  simple_tic(t);
 }
 
 
@@ -782,9 +747,9 @@ if(v[0] > 3){
 
 
 if(v[0] > 3){
-  took = simple_toc(t);  // toc(t);
+  took = simple_toc(t);
   Rprintf("    %6.4f sec.: cpp REML i=%i convergence crit. calc.\n", took, i);
-  simple_tic(t);  // t = tic();
+  simple_tic(t);
 }
 
 
@@ -826,9 +791,9 @@ if(v[0] > 3){
           if(AI == NULL) error("Unsuccessful AI algorithm in iteration %i\n", i);
 
 if(v[0] > 3){
-  took = simple_toc(t);  // toc(t);
+  took = simple_toc(t);
   Rprintf("\n\t    %6.4f sec.: calculate AI", took);
-  simple_tic(t);  // t = tic();
+  simple_tic(t);
 }
        
           if(!cs_gradFun(nu, dLdnu, Cinv_ii,
@@ -840,9 +805,9 @@ if(v[0] > 3){
             error("Unsuccessful gradient calculation in iteration %i\n", i);
 
 if(v[0] > 3){
-  took = simple_toc(t);  // toc(t);
+  took = simple_toc(t);
   Rprintf("\n\t    %6.4f sec.: calculate gradient", took);
-  simple_tic(t);  // t = tic();
+  simple_tic(t);
 }
           }  // end if cs_gradFun
 
@@ -853,9 +818,9 @@ if(v[0] > 3){
           if(AI == NULL) error("Unsuccessful AI algorithm in iteration %i\n", i);
 
  if(v[0] > 3){
-  took = simple_toc(t);  // toc(t);
+  took = simple_toc(t);
   Rprintf("\n\t    %6.4f sec.: calculate AI", took);
-  simple_tic(t);  // t = tic();
+  simple_tic(t);
 }
           
           if(!cs_gradFun(nu, dLdnu, Cinv_ii,
@@ -867,9 +832,9 @@ if(v[0] > 3){
             error("Unsuccessful gradient calculation in iteration %i\n", i);
 
 if(v[0] > 3){
-  took = simple_toc(t);  // toc(t);
+  took = simple_toc(t);
   Rprintf("\n\t    %6.4f sec.: calculate gradient", took);
-  simple_tic(t);  // t = tic();
+  simple_tic(t);
 }
 
           }  // end if cs_gradFun
@@ -963,9 +928,9 @@ if(v[0] > 3){
 
 
 if(v[0] > 3){
-  took = simple_toc(t);  // toc(t);
+  took = simple_toc(t);
   Rprintf(": %6.4f sec.\n", took, i);
-  simple_tic(t);  // t = tic();
+  simple_tic(t);
 }
 
 
@@ -988,7 +953,7 @@ if(v[0] > 3){
     if(lambda[0] == 1) nu[nG] = 1.0;  // keep R=1 (R factored out)
                                       // TODO FIXME if >1 residual (co)variance
 
-    took = simple_toc(T);  // toc(T);                 // Capture cpu clock time for i REML iteration
+    took = simple_toc(T);        // Capture cpu clock time for i REML iteration
     // V=1 LEVEL of OUTPUT
     if(v[0] > 0 && vitout == 0){ 
       Rprintf("\n\tlL:%6.6f", loglik);
@@ -1077,9 +1042,9 @@ if(v[0] > 3){
     if(AI == NULL) error("Unsuccessful AI algorithm at convergence %i\n", i);
 
 if(v[0] > 3){
-  took = simple_toc(t);  // toc(t);
+  took = simple_toc(t);
   Rprintf("\n\t    %6.4f sec.: calculate AI", took);
-  simple_tic(t);  // t = tic();
+  simple_tic(t);
 }
        
 /*
@@ -1092,9 +1057,9 @@ if(v[0] > 3){
     error("Unsuccessful gradient calculation  at convergence %i\n", i);
 
 if(v[0] > 3){
-  took = simple_toc(t);  // toc(t);
+  took = simple_toc(t); 
   Rprintf("\n\t    %6.4f sec.: calculate gradient", took);
-  simple_tic(t);  // t = tic();
+  simple_tic(t);
 }
     }  // end if cs_gradFun
 */
@@ -1106,9 +1071,9 @@ if(v[0] > 3){
     if(AI == NULL) error("Unsuccessful AI algorithm  at convergence %i\n", i);
 
  if(v[0] > 3){
-  took = simple_toc(t);  // toc(t);
+  took = simple_toc(t); 
   Rprintf("\n\t    %6.4f sec.: calculate AI", took);
-  simple_tic(t);  // t = tic();
+  simple_tic(t); 
 }
 
 /*          
@@ -1121,9 +1086,9 @@ if(v[0] > 3){
     error("Unsuccessful gradient calculation  at convergence %i\n", i);
 
 if(v[0] > 3){
-  took = simple_toc(t);  // toc(t);
+  took = simple_toc(t);
   Rprintf("\n\t    %6.4f sec.: calculate gradient", took);
-  simple_tic(t);  // t = tic();
+  simple_tic(t);
 }
 
     }  // end if cs_gradFun
@@ -1132,7 +1097,7 @@ if(v[0] > 3){
 
 
 
-if(v[0] > 3) simple_tic(t);  // t = tic();
+if(v[0] > 3) simple_tic(t);
 
   // Pass information to R
   //// Solution vector
@@ -1217,7 +1182,7 @@ if(v[0] > 3) simple_tic(t);  // t = tic();
 
 
 if(v[0] > 3){
-  took = simple_toc(t);  // toc(t);
+  took = simple_toc(t);
   Rprintf("%6.4f sec.: cpp post-REML freeing-up\n", took);
 }
 
