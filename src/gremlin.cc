@@ -1150,9 +1150,9 @@ if(v[0] > 3) simple_tic(t);
   //////////////////////////////////////////////////////////////////////////////
   cs_spfree(Bpinv);
   cs_spfree(W); cs_spfree(tW);
-  cs_spfree(R); cs_spfree(Rinv); cs_spfree(tyRinv);
+  cs_spfree(R); cs_spfree(Rinv); 
   if(lambda[0] == 0){
-    cs_spfree(KRinv); cs_spfree(tWKRinv); 
+    cs_spfree(KRinv); cs_spfree(tWKRinv); cs_spfree(tyRinv);
   }
   cs_spfree(tWKRinvW);
   cs_spfree(Ctmp); cs_spfree(C);
