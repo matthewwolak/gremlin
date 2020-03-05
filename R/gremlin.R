@@ -271,6 +271,7 @@ gremlin <- function(formula, random = NULL, rcov = ~ units,
   mc <- as.list(match.call())
   mGmc <- as.call(c(quote(gremlinSetup), mc[-1]))
   grMod <- eval(mGmc, parent.frame())
+    grMod$call[[1L]] <- quote(gremlin)
 
   gnu <- lapply(grMod$nu, FUN = as, "dgCMatrix") #FIXME do this directly to begin with or just use dense matrices (class="matrix")
   nuv <- sapply(grMod$nu, FUN = slot, name = "x")
@@ -405,6 +406,7 @@ gremlinR <- function(formula, random = NULL, rcov = ~ units,
   mc <- as.list(match.call())
   mGmc <- as.call(c(quote(gremlinSetup), mc[-1]))
   grMod <- eval(mGmc, parent.frame())
+    grMod$call[[1L]] <- quote(gremlinR)
   class(grMod) <- c(class(grMod)[1], "gremlinR", class(grMod)[2])
 
   grModOut <- remlIt(grMod)
