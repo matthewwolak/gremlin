@@ -775,8 +775,8 @@ remlIt.default <- function(grMod, ...){
   for(i in 1:nrow(itMat)){
     vitout <- ifelse(i == 1, 0, i%%grMod$vit)
     if(grMod$v > 0 && vitout == 0){
-      cat(i, "of max", grMod$maxit, "\t\t\t",
-	format(Sys.time(), "%H:%M:%S"), "\n")
+      cat(i, "of max", grMod$maxit, "\t",
+	format(Sys.time(), "%H:%M:%S"))
     }
     stItTime <- Sys.time()
 
@@ -833,7 +833,7 @@ remlIt.default <- function(grMod, ...){
       #    EM
       ############################
       if(grMod$algit[i] == "EM"){
-        if(grMod$v > 1 && vitout == 0) cat("\tEM to find next theta\n")
+        if(grMod$v > 1 && vitout == 0) cat("\n\tEM to find next theta")
         emOut <- em(nuv, thetaG, thetaR,
             grMod$modMats, grMod$nminffx, sLc, grMod$ndgeninv, grMod$sln, grMod$r)
           nuvout <- emOut$nuv
@@ -845,10 +845,10 @@ remlIt.default <- function(grMod, ...){
       #    AI
       ############################
       if(grMod$algit[i] == "AI"){
-        if(grMod$v > 1 && vitout == 0) cat("\tAI to find next theta\n")
+        if(grMod$v > 1 && vitout == 0) cat("\n\tAI to find next theta")
 #FIXME Currently, only allow when not: 
 if(nrow(theta[[thetaR]]) != 1){
-  stop("AI algorithm currently only works for a single residual variance")
+  stop(cat("\nAI algorithm currently only works for a single residual variance"))
 }
         Cinv <- solve(a = sLc, b = Ic, system = "A")
         grMod$Cinv_ii <- diag(Cinv)
@@ -901,9 +901,9 @@ if(nrow(theta[[thetaR]]) != 1){
         ## if AI cannot be inverted do EM
         if(rcondH < grMod$ezero){
           if(grMod$v > 1){
-            cat("Reciprocal condition number of AI matrix is", signif(rcondH , 2), "\n\tAI matrix may be singular - switching to an iteration of the EM algorithm\n")
+            cat("\nReciprocal condition number of AI matrix is", signif(rcondH , 2), "\n\tAI matrix may be singular - switching to an iteration of the EM algorithm")
           }  #<-- end `if v>1`
-          if(grMod$v > 1 && vitout == 0) cat("\tEM to find next theta\n")
+          if(grMod$v > 1 && vitout == 0) cat("\n\tEM to find next theta")
             emOut <- em(nuv, thetaG, thetaR,
               grMod$modMats, grMod$nminffx, sLc, grMod$ndgeninv, grMod$sln, grMod$r)
             nuvout <- emOut$nuv
@@ -917,14 +917,14 @@ if(nrow(theta[[thetaR]]) != 1){
             nuvout <- matrix(nuv, ncol = 1) + Hinv %*% dLdnu
             zeroV <- which(nuvout < grMod$ezero) #FIXME check variances & cov/corr separately
             if(length(zeroV) > 0L){
-              if(grMod$v > 1) cat("Variance component(s)", zeroV, "fixed to zero\n")
+              if(grMod$v > 1) cat("\nVariance component(s)", zeroV, "fixed to zero")
               nuvout[zeroV] <- grMod$ezero #FIXME TODO!!!??
             }
           }  #<-- end else AI can be inverted
       }  #<-- end if algorithm is "AI"
 
       if(grMod$algit[i] == "bobyqa"){
-stop("Not allowing `minqa::bobyqa()` right now")
+stop(cat("\nNot allowing `minqa::bobyqa()` right now"))
 #        if(v > 1 && vitout == 0) cat("Switching to `minqa::bobyqa()`\n")
 #FIXME lower bounds if not transformed!
 #        bobyout <- bobyqa(par = nuv, fn = function(x) -1*reml(x, skel), lower = ezero,
@@ -941,7 +941,7 @@ stop("Not allowing `minqa::bobyqa()` right now")
 ##think requires obtaining gradient and hessian for both `nu` and `theta`
 ## See Meyer 1996 eqns ~ 45-55ish
       if(grMod$algit[i] == "NR"){
-        if(grMod$v > 1 && vitout == 0) cat("\tNR to find next theta\n")
+        if(grMod$v > 1 && vitout == 0) cat("\n\tNR to find next theta")
 #        gr <- gradFun(nuv, thetaG, thetaR, modMats, Cinv, nminfrfx, sln, r)
 #        H <- hessian(func = reml, x = nuv, skel = skel) 
 #tmp <- numDeriv::genD(func = reml, x = nuv, skel = skel)

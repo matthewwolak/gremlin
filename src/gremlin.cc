@@ -397,7 +397,7 @@ if(v[0] > 3){
     simple_tic(T);
     if(i == 0){vitout = 0;}else{vitout = (i+1)%vit[0];}  // always do first iteration
     if(v[0] > 0 && vitout == 0){
-      Rprintf("  %i of max %i\n", i+1, maxit[0]);//TODO TIME of DAY format as remlIt
+      Rprintf("  %i of max %i", i+1, maxit[0]);//TODO TIME of DAY format as remlIt
     }
 
 
@@ -522,7 +522,7 @@ could do a check to make sure R was inverted correctly:
 
 if(v[0] > 3){
   took = simple_toc(t); 
-  Rprintf("  %6.4f sec.: cpp REML i=%i setup\n", took, i);
+  Rprintf("\n  %6.4f sec.: cpp REML i=%i setup", took, i);
   simple_tic(t);
 }
 
@@ -534,7 +534,7 @@ if(v[0] > 3){
     // Update Cholesky factorization of C
     Lc = cs_chol(C, sLc);  //TODO update when i>0? (cs_updown)
     if(Lc == NULL){
-      error("Mixed Model Coefficient matrix (C) singular: possibly caused by a bad combination of G and R (co)variance parameters\n");
+      error("\nMixed Model Coefficient matrix (C) singular: possibly caused by a bad combination of G and R (co)variance parameters");
     }
 
 
@@ -543,7 +543,7 @@ if(v[0] > 3){
 
 if(v[0] > 3){
   took = simple_toc(t);
-  Rprintf("    %6.4f sec.: cpp REML i=%i cs_chol(C)\n", took, i);
+  Rprintf("\n    %6.4f sec.: cpp REML i=%i cs_chol(C)", took, i);
   simple_tic(t);
 }
 
@@ -566,7 +566,7 @@ if(v[0] > 3){
 
 if(v[0] > 3){
   took = simple_toc(t); 
-  Rprintf("\t    %6.4f sec.: cpp REML i=%i sln forward/back solve with chol(C)\n", took, i);
+  Rprintf("\n\t    %6.4f sec.: cpp REML i=%i sln forward/back solve with chol(C)", took, i);
   simple_tic(t);
 }
 
@@ -588,7 +588,7 @@ if(v[0] > 3){
 
 if(v[0] > 3){
   took = simple_toc(t);
-  Rprintf("    %6.4f sec.: cpp REML i=%i sln/r calc.\n", took, i);
+  Rprintf("\n    %6.4f sec.: cpp REML i=%i sln/r calc.", took, i);
   simple_tic(t);
 }
 
@@ -632,7 +632,7 @@ if(v[0] > 3){
     }else{
       loglik += ny[0] * log(nu[p[0]-1]);  //FIXME won't work when R (co)variances
     }
-    if(v[0] > 3) Rprintf("\t log|R|=%6.4f\n", loglik);
+    if(v[0] > 3) Rprintf("\n\t log|R|=%6.4f", loglik);
 
     // `log(|G|)`
     //// Meyer 1997 eqn. 9 for lambda=FALSE equation
@@ -644,9 +644,9 @@ if(v[0] > 3){
         loglik += rfxlvls[g] * log(G[g]->x[0] * sigma2e);
       }
     }
-      if(v[0] > 3) Rprintf("\t log|G| added=%6.4f\n", loglik);
+      if(v[0] > 3) Rprintf("\n\t log|G| added=%6.4f", loglik);
     loglik += rfxlL[0];    // rfxIncContrib2loglik
-      if(v[0] > 3) Rprintf("\t\t log|G| rfxlL(%6.4f) added=%6.4f\n", rfxlL[0], loglik);
+      if(v[0] > 3) Rprintf("\n\t\t log|G| rfxlL(%6.4f) added=%6.4f", rfxlL[0], loglik);
 
     // log(|C|) + tyPy
     //// if lambda=TRUE then nminffx=tyPy/sigma2e simplified below
@@ -656,11 +656,11 @@ if(v[0] > 3){
     }else{
       loglik += logDetC + tyPy;
     }
-      if(v[0] > 3) Rprintf("\t log|C|+tyPy added=%6.4f\n", loglik);
+      if(v[0] > 3) Rprintf("\n\t log|C|+tyPy added=%6.4f", loglik);
     
     // Multiply by -0.5 to calculate `loglik` from `-2loglik`
     loglik *= -0.5;
-      if(v[0] > 3) Rprintf("\t multiplied by -0.5=%6.4f\n", loglik);
+      if(v[0] > 3) Rprintf("\n\t multiplied by -0.5=%6.4f", loglik);
 
 
 
@@ -669,7 +669,7 @@ if(v[0] > 3){
 
 if(v[0] > 3){
   took = simple_toc(t);
-  Rprintf("    %6.4f sec.: cpp REML i=%i log-likelihood calc.\n", took, i);
+  Rprintf("\n    %6.4f sec.: cpp REML i=%i log-likelihood calc.", took, i);
   simple_tic(t);
 }
 
@@ -704,7 +704,7 @@ if(v[0] > 3){
 
 if(v[0] > 3){
   took = simple_toc(t);
-  Rprintf("    %6.4f sec.: cpp REML i=%i itMat recording took\n", took, i);
+  Rprintf("\n    %6.4f sec.: cpp REML i=%i itMat recording took", took, i);
   simple_tic(t);
 }
 
@@ -748,7 +748,7 @@ if(v[0] > 3){
 
 if(v[0] > 3){
   took = simple_toc(t);
-  Rprintf("    %6.4f sec.: cpp REML i=%i convergence crit. calc.\n", took, i);
+  Rprintf("\n    %6.4f sec.: cpp REML i=%i convergence crit. calc.", took, i);
   simple_tic(t);
 }
 
@@ -762,10 +762,10 @@ if(v[0] > 3){
       // Expectation Maximization
       /////////////////////////////
       if(algit[i] == 0){
-        if(v[0] > 1 && vitout == 0) Rprintf("\tEM to find next theta");
+        if(v[0] > 1 && vitout == 0) Rprintf("\n\tEM to find next theta");
         if(!cs_em(BLUXs, nu, Cinv_ii,
 	    nG, rfxlvls, nffx, ndgeninv, geninv, Lc->L, sLc->pinv)){
-          error("Unsuccessful EM algorithm in iteration %i\n", i);
+          error("\nUnsuccessful EM algorithm in iteration %i", i);
         }
         // Calculate EM for residual:
         //// crossprod(y, r) / nminffx
@@ -782,13 +782,13 @@ if(v[0] > 3){
       // Average Information
       /////////////////////////////
       if(algit[i] == 1){
-        if(v[0] > 1 && vitout == 0) Rprintf("\tAI to find next theta");
+        if(v[0] > 1 && vitout == 0) Rprintf("\n\tAI to find next theta");
         if(aiformed == 1) cs_spfree(AI);
         if(lambda[0] == 1){
           AI = cs_ai(BLUXs, Ginv, R, 0, 0,
 	      y, W, tW, ny[0], p[0], nG, rfxlvls, nffx, Lc->L, sLc->pinv,
 	      0, sigma2e);
-          if(AI == NULL) error("Unsuccessful AI algorithm in iteration %i\n", i);
+          if(AI == NULL) error("\nUnsuccessful AI algorithm in iteration %i", i);
 
 if(v[0] > 3){
   took = simple_toc(t);
@@ -802,7 +802,7 @@ if(v[0] > 3){
               sigma2e,    // 1.0 if lambda=FALSE
 	      0, res)){      // 0 if lambda=TRUE
 	      
-            error("Unsuccessful gradient calculation in iteration %i\n", i);
+            error("\nUnsuccessful gradient calculation in iteration %i", i);
 
 if(v[0] > 3){
   took = simple_toc(t);
@@ -815,7 +815,7 @@ if(v[0] > 3){
           AI = cs_ai(BLUXs, Ginv, R, KRinv, tWKRinv,
 	      res, W, tW, ny[0], p[0], nG, rfxlvls, nffx, Lc->L, sLc->pinv,
 	      nG, 1.0);
-          if(AI == NULL) error("Unsuccessful AI algorithm in iteration %i\n", i);
+          if(AI == NULL) error("\nUnsuccessful AI algorithm in iteration %i", i);
 
  if(v[0] > 3){
   took = simple_toc(t);
@@ -829,7 +829,7 @@ if(v[0] > 3){
               1.0,    // 1.0 if lambda=FALSE
 	      nG, res)){      // 0 if lambda=TRUE
 
-            error("Unsuccessful gradient calculation in iteration %i\n", i);
+            error("\nUnsuccessful gradient calculation in iteration %i", i);
 
 if(v[0] > 3){
   took = simple_toc(t);
@@ -874,15 +874,15 @@ if(v[0] > 3){
         aiformed = 1;
         if(Lai == NULL){
           if(v[0] > 1){
-            Rprintf("AI cholesky decomposition failed:\n\t AI matrix may be singular - switching to an iteration of the EM algorithm\n");
+            Rprintf("\nAI cholesky decomposition failed:\n\t AI matrix may be singular - switching to an iteration of the EM algorithm");
           } // end if v>1
 
           //// if AI cannot be inverted do EM
           //////////////  TEMPORARY EM    /////////
-          if(v[0] > 1 && vitout == 0) Rprintf("\t\tEM to find next theta");
+          if(v[0] > 1 && vitout == 0) Rprintf("\n\t\tEM to find next theta");
           if(!cs_em(BLUXs, nu, Cinv_ii,
 	      nG, rfxlvls, nffx, ndgeninv, geninv, Lc->L, sLc->pinv)){
-            error("Unsuccessful EM algorithm in iteration %i\n", i);
+            error("\nUnsuccessful EM algorithm in iteration %i", i);
           }
           // Calculate EM for residual:
           //// crossprod(y, r) / nminffx
@@ -906,7 +906,7 @@ if(v[0] > 3){
             //FIXME check variances and cov/corr separately
             if(nu[g] < ezero[0]){
               if(v[0] > 1){
-                Rprintf("Variance component %i fixed to zero\n", g+1);
+                Rprintf("\nVariance component %i fixed to zero", g+1);
               }
               nu[g] = ezero[0];  //FIXME TODO!!!
             }  // end if nu < ezero
@@ -929,7 +929,7 @@ if(v[0] > 3){
 
 if(v[0] > 3){
   took = simple_toc(t);
-  Rprintf(": %6.4f sec.\n", took, i);
+  Rprintf(": %6.4f sec.", took, i);
   simple_tic(t);
 }
 
@@ -956,7 +956,7 @@ if(v[0] > 3){
     took = simple_toc(T);        // Capture cpu clock time for i REML iteration
     // V=1 LEVEL of OUTPUT
     if(v[0] > 0 && vitout == 0){ 
-      Rprintf("\n\tlL:%6.6f", loglik);
+      Rprintf("\tlL:%6.6f", loglik);
       Rprintf("\t\ttook %6.4f sec.\n", took); //TODO format units if >60 (and do for all Rprintf(took))
       // To format units see const *char in: http://www.cplusplus.com/reference/cmath/round/
 
