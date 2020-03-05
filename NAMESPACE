@@ -2,6 +2,7 @@
 
 S3method(AIC,gremlin)
 S3method(anova,gremlin)
+S3method(getCall,gremlin)
 S3method(is,grMod)
 S3method(is,gremlin)
 S3method(logLik,gremlin)

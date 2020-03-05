@@ -109,6 +109,7 @@ void ugremlin(
          d, cc2, cc2d;
 
   int 	 g, i, k, rw, si, si2, vitout,
+         mxit = 0,
 	 itc = 0,
          aiformed = 0,
          dimM,      // GENERIC dimension of a matrix variable to be REUSED
@@ -1016,11 +1017,12 @@ if(v[0] > 3){
     // Determine if model has converged
     //FIXME: change number of parameters that must be true as add criteria
     if(cc[4] > 2){ // FIXME: change number of parameters that must be true
-      Rprintf("\n\nREML converged\n\n");      
+      Rprintf("\n\nREML converged\n\n"); 
+      i++;     
       break;
     }
 
-  }  // end i for loop 
+  }  // end i for loop
   maxit[0] = i;    // record number of iterations
 
   //////////////////////////////////////////////////////////////////////////////

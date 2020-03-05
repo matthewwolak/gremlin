@@ -7,6 +7,7 @@
 \alias{mkModMats}
 \alias{is.gremlin}
 \alias{is.grMod}
+\alias{getCall.gremlin}
 \title{Mixed-effect modeling functions.}
 \usage{
 gremlin(formula, random = NULL, rcov = ~units, data = NULL,
@@ -24,6 +25,8 @@ gremlinSetup(formula, random = NULL, rcov = ~units, data = NULL,
 \method{is}{gremlin}(x)
 
 \method{is}{grMod}(x)
+
+\method{getCall}{gremlin}(x, ...)
 
 mkModMats(formula, random = NULL, rcov = ~units, data = NULL,
   subset = NULL, ginverse = NULL, na.action = na.pass,

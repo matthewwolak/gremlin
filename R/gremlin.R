@@ -322,7 +322,7 @@ gremlin <- function(formula, random = NULL, rcov = ~ units,
 	as.integer(grMod$vit),				#when to output status
 	as.integer(rep(0, length(grMod$sln))))		#empty sLc->pinv
 
-  i <- Cout[[34]] + 1  #<-- `+1` because index from c++ is 0-based
+  i <- Cout[[34]]  #<-- index from c++ always increments +1 at end of for `i`
 
   grMod$nu[] <- vech2matlist(Cout[[22]], grMod$skel)
   grMod$dLdnu[] <- Cout[[27]]
@@ -680,7 +680,11 @@ is.gremlin <- function(x) inherits(x, "gremlin")
 #' @export
 is.grMod <- function(x) inherits(x, "grMod")
 
-
+#' @method getCall gremlin
+#' @rdname gremlin
+#' @export
+getCall.gremlin <- function(x, ...) x$grMod$call
+ 
 
 
 
