@@ -273,108 +273,13 @@ gremlin <- function(formula, random = NULL, rcov = ~ units,
   grMod <- eval(mGmc, parent.frame())
     grMod$call[[1L]] <- quote(gremlin)
 
-  gnu <- lapply(grMod$nu, FUN = as, "dgCMatrix") #FIXME do this directly to begin with or just use dense matrices (class="matrix")
-  nuv <- sapply(grMod$nu, FUN = slot, name = "x")
-
-  Cout <- .C("ugremlin", PACKAGE = "gremlin",
-	as.double(grMod$modMats$y),
-	as.integer(grMod$modMats$ny),
-	as.integer(grMod$nminffx),		# No. observations - No. Fxd Fx
-	as.integer(grMod$ndgeninv),		# non-diagonal ginverses
-	as.integer(c(grMod$dimsZg)),
-	as.integer(with(grMod, c(rowSums(dimsZg),		# Z Dims
-	  W@Dim,						# W Dims
-	  unlist(lapply(modMats$listGeninv, FUN = function(g){g@Dim[[1L]]}))))), # geninv Dims
-	as.integer(with(grMod, c(length(W@x),		# No. nonzero W
-	  sapply(seq(length(thetaG)), FUN = function(g){length(modMats$listGeninv[[g]]@x)})))), # No. nnz geninvs
-	as.integer(grMod$W@i), 					     #W
-	as.integer(grMod$W@p),
-	as.double(grMod$W@x),
-	as.integer(unlist(lapply(grMod$modMats$listGeninv[grMod$ndgeninv], FUN = function(g){g@i}))), #geninv (generalized inverses)
-
-	as.integer(unlist(lapply(grMod$modMats$listGeninv[grMod$ndgeninv], FUN = function(g){g@p}))),
-	as.double(unlist(lapply(grMod$modMats$listGeninv[grMod$ndgeninv], FUN = function(g){g@x}))),
-	as.double(grMod$rfxIncContrib2loglik),		# Random Fx contribution to log-Likelihood
-        as.integer(grMod$lambda),		# TRUE/FALSE lambda (variance ratio?)
-	as.integer(grMod$p),				#p=No. nu params
-	as.integer(c(length(grMod$thetaG), length(grMod$thetaR))), #No. G and R nus
-	as.integer(unlist(lapply(gnu, FUN = function(g) g@Dim[[1L]]))),#dim GRs
-	as.integer(unlist(lapply(gnu, FUN = function(g) g@i))),	      #i GRs
-	as.integer(unlist(lapply(gnu, FUN = function(g) g@p))),	      #p GRs
-	as.integer(unlist(lapply(gnu, FUN = function(g) length(g@x)))), #no. non-zero GRs
-	as.double(unlist(lapply(gnu, FUN = function(g) g@x))),	#nu vector
-	as.integer(length(grMod$Bpinv@x)),		#Bpinv (fixed fx prior inverse)
-	as.integer(grMod$Bpinv@i),
-	as.integer(grMod$Bpinv@p),
-	as.double(grMod$Bpinv@x),
-	as.double(rep(0, grMod$p)),			#empty dLdnu
-	as.double(rep(0, grMod$p^2)),	#empty column-wise vector of AI matrix
-	as.double(c(grMod$sln)), 			#empty sln
-        as.double(c(grMod$Cinv_ii)),			#empty diag(Cinv)
-	as.double(c(grMod$r)),				#empty resdiuals
-	as.double(rep(0, grMod$maxit*(grMod$p+5))),	#itMat
-	as.integer(as.integer(factor(grMod$algit[1:grMod$maxit], levels = c("EM", "AI"), ordered = TRUE))-1), #algorithm for each iteration
-	as.integer(grMod$maxit),			#max it./n algit
-	as.double(grMod$cctol),				#convergence tol.
-	as.double(grMod$ezero),				#effective 0
-#uni?
-	as.integer(grMod$v),				#verbosity
-	as.integer(grMod$vit),				#when to output status
-	as.integer(rep(0, length(grMod$sln))))		#empty sLc->pinv
-
-  i <- Cout[[34]]  #<-- index from c++ always increments +1 at end of for `i`
-
-  grMod$nu[] <- vech2matlist(Cout[[22]], grMod$skel)
-  grMod$dLdnu[] <- Cout[[27]]
-  if(all(Cout[[28]] == 0)) grMod$AI <- NULL else{
-    grMod$AI <- matrix(Cout[[28]], nrow = grMod$p, ncol = grMod$p, byrow = FALSE)
-      dimnames(grMod$AI) <- list(rownames(grMod$dLdnu), rownames(grMod$dLdnu))
-  }
-  grMod$sln[] <- Cout[[29]]
-  grMod$Cinv_ii <- Cout[[30]] 
-  grMod$r[] <- Cout[[31]]
-  #TODO Will definitely need R vs. c++ methods for `update.gremlin()`
-  #### can directly use R's `grMod$sLc`, but will need to figure out how to give c++'s `cs_schol()` a pinv (need to reconstruct `sLc` in c++ around pinv (see old code on how I may have done this when I made sLc from sLm)
-  grMod$sLcPinv <- Cout[[39]]
-
-  itMat <- matrix(Cout[[32]][1:(i*(grMod$p+5))], nrow = i, ncol = grMod$p+5,
-           byrow = TRUE)
-    dimnames(itMat) <- list(paste(seq(i), c("EM", "AI")[Cout[[33]][1:i] + 1],
-                sep = "-"),
-	    c(paste0(names(nuv), "_nu"), "sigma2e",
-               "tyPy", "logDetC", "loglik", "itTime"))
-
-  if(grMod$lambda){
-    itMat <- cbind(itMat,
-      t(apply(itMat[, c(paste0(names(nuv), "_nu"), "sigma2e")], MARGIN = 1,
-	FUN = function(itvec){ sapply(grMod$nu2theta(itvec[1:grMod$p],
-        		sigma2e = itvec[grMod$p+1], grMod$thetaG, grMod$thetaR),
-		FUN = slot, name = "x")})))[, c(seq(grMod$p),
-      seq(grMod$p+6, 2*grMod$p+5), seq(grMod$p+1, grMod$p+5))] #<-- thetas named 'nu' in colnames for now, use numeric indices to rearrange
-
-  } else{
-      itMat <- cbind(itMat,
-        t(apply(itMat[, c(paste0(names(nuv), "_nu"), "sigma2e")], MARGIN = 1,
-	  FUN = function(itvec){ sapply(grMod$nu2theta(itvec[1:grMod$p],
-			grMod$thetaG, grMod$thetaR),
-		FUN = slot, name = "x")})))[, c(seq(grMod$p),
-        seq(grMod$p+6, 2*grMod$p+5), seq(grMod$p+1, grMod$p+5))] #<-- thetas named 'nu' in colnames for now, use numeric indices to rearrange
-
-    }  #<-- end if/else lambda
-  # Now sort out the column names
-  colnames(itMat) <- c(paste0(names(nuv), "_nu"),
-			paste0(names(nuv), "_theta"),
-			"sigma2e", "tyPy", "logDetC", "loglik", "itTime")
-
-  grMod$sigma2e[] <- itMat[i, "sigma2e"]
-  grMod$thetav[] <- itMat[i, paste0(names(nuv), "_theta")]
-
+  grModOut <- remlIt(grMod)
 
   endTime <- Sys.time()
   if(v > 0) cat("gremlin ended:\t\t", format(endTime, "%H:%M:%S"), "\n")
 
- return(structure(list(grMod = grMod,
-		itMat = itMat),
+ return(structure(list(grMod = grModOut$grMod,
+		itMat = grModOut$itMat),
 	class = c("gremlin"), #TODO consider making "gremlinCpp" class
 	startTime = attr(grMod, "startTime"), endTime = endTime))
 }  #<-- end `gremlin()`
@@ -712,7 +617,7 @@ getCall.gremlin <- function(x, ...) x$grMod$call
 #' Conduct REML iterations to estimate (co)variance parameters of a linear
 #'   mixed-effect model (Gaussian responses).
 #'
-#' @aliases remlIt remlIt.default
+#' @aliases remlIt remlIt.default remlIt.gremlinR
 #' @param grMod A gremlin model of class \code{grMod}. See \code{\link{gremlin}}
 #'   or \code{\link{gremlinSetup}} for the functions constructing an object
 #'   of class \code{grMod}.
@@ -749,6 +654,123 @@ remlIt <- function(grMod, ...){
 #' @import Matrix
 remlIt.default <- function(grMod, ...){
 
+  gnu <- lapply(grMod$nu, FUN = as, "dgCMatrix") #FIXME do this directly to begin with or just use dense matrices (class="matrix")
+  nuv <- sapply(grMod$nu, FUN = slot, name = "x")
+
+  Cout <- .C("ugremlin", PACKAGE = "gremlin",
+	as.double(grMod$modMats$y),
+	as.integer(grMod$modMats$ny),
+	as.integer(grMod$nminffx),		# No. observations - No. Fxd Fx
+	as.integer(grMod$ndgeninv),		# non-diagonal ginverses
+	as.integer(c(grMod$dimsZg)),
+	as.integer(with(grMod, c(rowSums(dimsZg),		# Z Dims
+	  W@Dim,						# W Dims
+	  unlist(lapply(modMats$listGeninv, FUN = function(g){g@Dim[[1L]]}))))), # geninv Dims
+	as.integer(with(grMod, c(length(W@x),		# No. nonzero W
+	  sapply(seq(length(thetaG)), FUN = function(g){length(modMats$listGeninv[[g]]@x)})))), # No. nnz geninvs
+	as.integer(grMod$W@i), 					     #W
+	as.integer(grMod$W@p),
+	as.double(grMod$W@x),
+	as.integer(unlist(lapply(grMod$modMats$listGeninv[grMod$ndgeninv], FUN = function(g){g@i}))), #geninv (generalized inverses)
+
+	as.integer(unlist(lapply(grMod$modMats$listGeninv[grMod$ndgeninv], FUN = function(g){g@p}))),
+	as.double(unlist(lapply(grMod$modMats$listGeninv[grMod$ndgeninv], FUN = function(g){g@x}))),
+	as.double(grMod$rfxIncContrib2loglik),		# Random Fx contribution to log-Likelihood
+        as.integer(grMod$lambda),		# TRUE/FALSE lambda (variance ratio?)
+	as.integer(grMod$p),				#p=No. nu params
+	as.integer(c(length(grMod$thetaG), length(grMod$thetaR))), #No. G and R nus
+	as.integer(unlist(lapply(gnu, FUN = function(g) g@Dim[[1L]]))),#dim GRs
+	as.integer(unlist(lapply(gnu, FUN = function(g) g@i))),	      #i GRs
+	as.integer(unlist(lapply(gnu, FUN = function(g) g@p))),	      #p GRs
+	as.integer(unlist(lapply(gnu, FUN = function(g) length(g@x)))), #no. non-zero GRs
+	as.double(unlist(lapply(gnu, FUN = function(g) g@x))),	#nu vector
+	as.integer(length(grMod$Bpinv@x)),		#Bpinv (fixed fx prior inverse)
+	as.integer(grMod$Bpinv@i),
+	as.integer(grMod$Bpinv@p),
+	as.double(grMod$Bpinv@x),
+	as.double(rep(0, grMod$p)),			#empty dLdnu
+	as.double(rep(0, grMod$p^2)),	#empty column-wise vector of AI matrix
+	as.double(c(grMod$sln)), 			#empty sln
+        as.double(c(grMod$Cinv_ii)),			#empty diag(Cinv)
+	as.double(c(grMod$r)),				#empty resdiuals
+	as.double(rep(0, grMod$maxit*(grMod$p+5))),	#itMat
+	as.integer(as.integer(factor(grMod$algit[1:grMod$maxit], levels = c("EM", "AI"), ordered = TRUE))-1), #algorithm for each iteration
+	as.integer(grMod$maxit),			#max it./n algit
+	as.double(grMod$cctol),				#convergence tol.
+	as.double(grMod$ezero),				#effective 0
+#uni?
+	as.integer(grMod$v),				#verbosity
+	as.integer(grMod$vit),				#when to output status
+	as.integer(rep(0, length(grMod$sln))))		#empty sLc->pinv
+
+  i <- Cout[[34]]  #<-- index from c++ always increments +1 at end of for `i`
+
+  grMod$nu[] <- vech2matlist(Cout[[22]], grMod$skel)
+  grMod$dLdnu[] <- Cout[[27]]
+  if(all(Cout[[28]] == 0)) grMod$AI <- NULL else{
+    grMod$AI <- matrix(Cout[[28]], nrow = grMod$p, ncol = grMod$p, byrow = FALSE)
+      dimnames(grMod$AI) <- list(rownames(grMod$dLdnu), rownames(grMod$dLdnu))
+  }
+  grMod$sln[] <- Cout[[29]]
+  grMod$Cinv_ii <- Cout[[30]] 
+  grMod$r[] <- Cout[[31]]
+  #TODO Will definitely need R vs. c++ methods for `update.gremlin()`
+  #### can directly use R's `grMod$sLc`, but will need to figure out how to give c++'s `cs_schol()` a pinv (need to reconstruct `sLc` in c++ around pinv (see old code on how I may have done this when I made sLc from sLm)
+  grMod$sLcPinv <- Cout[[39]]
+
+  itMat <- matrix(Cout[[32]][1:(i*(grMod$p+5))], nrow = i, ncol = grMod$p+5,
+           byrow = TRUE)
+    dimnames(itMat) <- list(paste(seq(i), c("EM", "AI")[Cout[[33]][1:i] + 1],
+                sep = "-"),
+	    c(paste0(names(nuv), "_nu"), "sigma2e",
+               "tyPy", "logDetC", "loglik", "itTime"))
+
+  if(grMod$lambda){
+    itMat <- cbind(itMat,
+      t(apply(itMat[, c(paste0(names(nuv), "_nu"), "sigma2e")], MARGIN = 1,
+	FUN = function(itvec){ sapply(grMod$nu2theta(itvec[1:grMod$p],
+        		sigma2e = itvec[grMod$p+1], grMod$thetaG, grMod$thetaR),
+		FUN = slot, name = "x")})))[, c(seq(grMod$p),
+      seq(grMod$p+6, 2*grMod$p+5), seq(grMod$p+1, grMod$p+5))] #<-- thetas named 'nu' in colnames for now, use numeric indices to rearrange
+
+  } else{
+      itMat <- cbind(itMat,
+        t(apply(itMat[, c(paste0(names(nuv), "_nu"), "sigma2e")], MARGIN = 1,
+	  FUN = function(itvec){ sapply(grMod$nu2theta(itvec[1:grMod$p],
+			grMod$thetaG, grMod$thetaR),
+		FUN = slot, name = "x")})))[, c(seq(grMod$p),
+        seq(grMod$p+6, 2*grMod$p+5), seq(grMod$p+1, grMod$p+5))] #<-- thetas named 'nu' in colnames for now, use numeric indices to rearrange
+
+    }  #<-- end if/else lambda
+  # Now sort out the column names
+  colnames(itMat) <- c(paste0(names(nuv), "_nu"),
+			paste0(names(nuv), "_theta"),
+			"sigma2e", "tyPy", "logDetC", "loglik", "itTime")
+
+  grMod$sigma2e[] <- itMat[i, "sigma2e"]
+  grMod$thetav[] <- itMat[i, paste0(names(nuv), "_theta")]
+
+ return(structure(list(grMod = grMod,
+		itMat = itMat),
+	class = "gremlin"))
+}  #<-- end `remlIt.default()`
+
+
+
+
+
+
+
+
+
+
+#################
+# R-based method
+#################
+#' @describeIn remlIt gremlinR method
+#' @export
+#' @import Matrix
+remlIt.gremlinR <- function(grMod, ...){
   # pull a few objects out that will be used repeatedly
   ## favor "small" objects. keep large objects in grMod unless they change often
   thetav <- grMod$thetav
@@ -1053,8 +1075,8 @@ stop(cat("\nNot allowing `minqa::bobyqa()` right now"))
 
  return(structure(list(grMod = grMod,
 		itMat = itMat),
-	class = "gremlin"))
-}  #<-- end `remlIt.default()`
+	class = "gremlinR"))
+}  #<-- end `remlIt.gremlinR()`
 
 
 

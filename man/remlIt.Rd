@@ -3,11 +3,14 @@
 \name{remlIt}
 \alias{remlIt}
 \alias{remlIt.default}
+\alias{remlIt.gremlinR}
 \title{Mixed-effect model Restricted Maximul Likelihood (REML) iterations.}
 \usage{
 remlIt(grMod, ...)
 
 \method{remlIt}{default}(grMod, ...)
+
+\method{remlIt}{gremlinR}(grMod, ...)
 }
 \arguments{
 \item{grMod}{A gremlin model of class \code{grMod}. See \code{\link{gremlin}}
@@ -29,6 +32,8 @@ Conduct REML iterations to estimate (co)variance parameters of a linear
 \section{Methods (by class)}{
 \itemize{
 \item \code{default}: Default method
+
+\item \code{gremlinR}: gremlinR method
 }}
 
 \examples{

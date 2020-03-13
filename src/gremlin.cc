@@ -109,7 +109,6 @@ void ugremlin(
          d, cc2, cc2d;
 
   int 	 g, i, k, rw, si, si2, vitout,
-         mxit = 0,
 	 itc = 0,
          aiformed = 0,
          dimM,      // GENERIC dimension of a matrix variable to be REUSED
