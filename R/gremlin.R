@@ -293,13 +293,6 @@ gremlin <- function(formula, random = NULL, rcov = ~ units,
 
 
 
-
-
-
-
-
-
-
 #' @rdname gremlin
 #' @export
 gremlinR <- function(formula, random = NULL, rcov = ~ units,
@@ -325,6 +318,14 @@ gremlinR <- function(formula, random = NULL, rcov = ~ units,
 	startTime = attr(grMod, "startTime"), endTime = endTime))
 }  #<-- end `gremlinR()`
 ################################################################################ 
+
+
+
+
+
+
+
+
 
 
 
@@ -612,7 +613,7 @@ getCall.gremlin <- function(x, ...) x$grMod$call
 # Generic
 ###########
 ################################################################################
-#' Mixed-effect model Restricted Maximul Likelihood (REML) iterations.
+#' Mixed-effect model Restricted Maximum Likelihood (REML) iterations.
 #'
 #' Conduct REML iterations to estimate (co)variance parameters of a linear
 #'   mixed-effect model (Gaussian responses).
@@ -754,6 +755,12 @@ remlIt.default <- function(grMod, ...){
 		itMat = itMat),
 	class = "gremlin"))
 }  #<-- end `remlIt.default()`
+
+
+
+
+
+
 
 
 
