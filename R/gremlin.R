@@ -109,7 +109,7 @@ vech2matlist <- function(vech, skeleton){
 #'
 #' Fit and setup functions for linear mixed-effect model (Gaussian responses).
 #'
-#' @aliases gremlin gremlinR gremlinSetup mkModMats
+#' @aliases gremlin gremlinR gremlinSetup mkModMats update
 #' @param formula A \code{formula} for the response variable(s) and fixed effects.
 #' @param random A \code{formula} for the random effects.
 #' @param rcov A \code{formula} for the residual covariance structure.
@@ -324,6 +324,29 @@ gremlinR <- function(formula, random = NULL, rcov = ~ units,
 
 
 
+
+
+
+
+
+################################################################################
+
+# UPDATE methods
+
+################################################################################
+
+###########
+# gremlin
+###########
+#' @rdname gremlin
+#' @export
+update.gremlin <- function(formula, random = NULL, rcov = ~ units,
+		data = NULL, ginverse = NULL,
+		Gstart = NULL, Rstart = NULL, Bp = NULL,
+		maxit = 20, algit = NULL,
+		vit = 10, v = 1, ...){
+
+}  #<-- end `update.gremlin`
 
 
 
