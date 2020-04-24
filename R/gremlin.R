@@ -916,19 +916,21 @@ remlIt.default <- function(grMod, ...){
 
   if(grMod$lambda){
     itMat <- cbind(itMat,
-      t(apply(itMat[, c(paste0(names(nuv), "_nu"), "sigma2e")], MARGIN = 1,
+      t(apply(itMat[, c(paste0(names(nuv), "_nu"), "sigma2e"), drop = FALSE],
+	MARGIN = 1,
 	FUN = function(itvec){ sapply(grMod$nu2theta(itvec[1:grMod$p],
         		sigma2e = itvec[grMod$p+1], grMod$thetaG, grMod$thetaR),
 		FUN = slot, name = "x")})))[, c(seq(grMod$p),
-      seq(grMod$p+6, 2*grMod$p+5), seq(grMod$p+1, grMod$p+5))] #<-- thetas named 'nu' in colnames for now, use numeric indices to rearrange
+      seq(grMod$p+6, 2*grMod$p+5), seq(grMod$p+1, grMod$p+5)), drop = FALSE] #<-- thetas named 'nu' in colnames for now, use numeric indices to rearrange
 
   } else{
       itMat <- cbind(itMat,
-        t(apply(itMat[, c(paste0(names(nuv), "_nu"), "sigma2e")], MARGIN = 1,
+        t(apply(itMat[, c(paste0(names(nuv), "_nu"), "sigma2e"), drop = FALSE],
+	  MARGIN = 1,
 	  FUN = function(itvec){ sapply(grMod$nu2theta(itvec[1:grMod$p],
 			grMod$thetaG, grMod$thetaR),
 		FUN = slot, name = "x")})))[, c(seq(grMod$p),
-        seq(grMod$p+6, 2*grMod$p+5), seq(grMod$p+1, grMod$p+5))] #<-- thetas named 'nu' in colnames for now, use numeric indices to rearrange
+        seq(grMod$p+6, 2*grMod$p+5), seq(grMod$p+1, grMod$p+5)), drop = FALSE] #<-- thetas named 'nu' in colnames for now, use numeric indices to rearrange
 
     }  #<-- end if/else lambda
   # Now sort out the column names
