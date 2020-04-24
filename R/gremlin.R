@@ -568,7 +568,7 @@ gremlinSetup <- function(formula, random = NULL, rcov = ~ units,
 #FIXME ensure grep() is best way and won't mess up when multiple Gs and **Rs**
   thetaG <- grep("G", thetaGorR, ignore.case = FALSE)
   thetaR <- grep("R", thetaGorR, ignore.case = FALSE)
-    names(theta) <- c(paste0("G.", names(modMats$Zg)),
+    names(theta) <- c(paste0(rep("G.", length(thetaG)), names(modMats$Zg)),
                       paste0("ResVar", seq(length(thetaR))))
 
   thetav <- sapply(theta, FUN = slot, name = "x")
@@ -668,7 +668,7 @@ lambda <- length(thetaR) == 1
     # Rand Fx incidence matrix part of 'log(|G|)'
     #FIXME: Only works for independent random effects right now!
     rfxIncContrib2loglik <- sum(unlist(modMats$logDetG))
-    if(is.null(mc$Bp)){
+    if(is.null(Bp)){
       Bp <- as(diag(x = 0, nrow = modMats$nb, ncol = modMats$nb), "dgCMatrix")
     } else{
        #TODO check and maybe create prior from Bp specified in call
@@ -688,10 +688,14 @@ lambda <- length(thetaR) == 1
       ## Can allow for prior on fixed effects
       ## (see Schaeffer 1991 summary of Henderson's result)
     # Find Non-diagonal ginverses
-    ndgeninv <- sapply(seq(modMats$nG),
-	FUN = function(g){class(modMats$listGeninv[[g]]) != "ddiMatrix"})  #0=I; 1=A 
-    dimsZg <- sapply(seq(modMats$nG),
+    ## FALSE/0=I; TRUE/1=geninv 
+    ndgeninv <- sapply(seq_len(modMats$nG),
+	FUN = function(g){class(modMats$listGeninv[[g]]) != "ddiMatrix"}) 
+    dimsZg <- sapply(seq_len(modMats$nG),
 	FUN = function(g){slot(modMats$Zg[[g]], "Dim")})
+    # if no random effects in model:
+      if(length(ndgeninv) == 0) ndgeninv <- c(0)
+      if(length(dimsZg) == 0) dimsZg <- matrix(0, nrow = 2, ncol = 1)
     sln <- Cinv_ii <- matrix(0, nrow = modMats$nb + sum(dimsZg[2, ]), ncol = 1)
     r <- matrix(0, nrow = modMats$ny, ncol = 1)
     if(lambda){
@@ -705,7 +709,7 @@ lambda <- length(thetaR) == 1
     # Only have to do these once per model
 #FIXME make sure `nminffx` == `ncol(X)` even when reduced rank
     nminffx <- modMats$ny - modMats$nb
-    rfxlvls <- sapply(modMats$Zg, FUN = ncol)
+    rfxlvls <- sapply(modMats$Zg, FUN = ncol)  #<-- =`dimsZg[2,]` but this gives names
     nr <- if(length(rfxlvls) == 0) 0 else sum(rfxlvls)
     nminfrfx <- nminffx - nr
 
