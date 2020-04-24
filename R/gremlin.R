@@ -142,6 +142,9 @@ vech2matlist <- function(vech, skeleton){
 #' @param contrasts Specify the type of contrasts for the fixed effects.
 #' @param Xsparse Should sparse matrices be used for the fixed effects design
 #'   matrix.
+#' @param cctol Convergence criteria tolerances. TODO
+#' @param ezero Effective zero to be used, values less than this number are
+#'   treated as zero and fixed to this value.
 #' @param \dots Additional arguments to be passed to control the model fitting.
 #'
 #' @return A \code{list} containing an object of class \code{grMod} and, if a 
@@ -266,7 +269,8 @@ gremlin <- function(formula, random = NULL, rcov = ~ units,
 		data = NULL, ginverse = NULL,
 		Gstart = NULL, Rstart = NULL, Bp = NULL,
 		maxit = 20, algit = NULL,
-		vit = 10, v = 1, ...){
+		vit = 10, v = 1,
+		cctol = c(5e-4, 1e-8, 1e-3, NULL), ezero = 1e-8, ...){
 
   mc <- as.list(match.call())
   mGmc <- as.call(c(quote(gremlinSetup), mc[-1]))
@@ -299,7 +303,8 @@ gremlinR <- function(formula, random = NULL, rcov = ~ units,
 		data = NULL, ginverse = NULL,
 		Gstart = NULL, Rstart = NULL, Bp = NULL,
 		maxit = 20, algit = NULL,
-		vit = 10, v = 1, ...){
+		vit = 10, v = 1,
+		cctol = c(5e-4, 1e-8, 1e-3, NULL), ezero = 1e-8, ...){
 
   mc <- as.list(match.call())
   mGmc <- as.call(c(quote(gremlinSetup), mc[-1]))
@@ -329,23 +334,182 @@ gremlinR <- function(formula, random = NULL, rcov = ~ units,
 
 
 
-################################################################################
 
+
+
+
+################################################################################
 # UPDATE methods
+#################
 
-################################################################################
+#' @method getCall gremlin
+#' @rdname gremlin
+#' @export
+getCall.gremlin <- function(x, ...) x$grMod$call
+ 
+
 
 ###########
 # gremlin
 ###########
 #' @rdname gremlin
 #' @export
-update.gremlin <- function(formula, random = NULL, rcov = ~ units,
-		data = NULL, ginverse = NULL,
-		Gstart = NULL, Rstart = NULL, Bp = NULL,
-		maxit = 20, algit = NULL,
-		vit = 10, v = 1, ...){
+update.gremlin <- function(object, ...){
 
+  call <- getCall(object)
+  new_args <- list(...)
+  # original `object` class
+  oocl <- class(object)
+
+  # First ensure all requested updates to the model are named to prevent chaos
+  if(any(names(new_args) == "")){
+    stop("All arguments to be updated in the model must be named")
+  } 
+  # Get names of all defined arguments to `gremlin()` or `gremlinR()`
+  defaultCall <- as.list(formals(eval(call[[1L]])))
+    # Remove the dots
+    dotInd <- match("...", names(defaultCall))
+    defaultCall <- defaultCall[-dotInd]   
+    grArgNames <- names(defaultCall)
+  # Now check all requested updates are named with a valid argument name
+  ## first, return index in formal arguments to the function that match
+  argNameInd <- pmatch(names(new_args), grArgNames)
+  ## make sure all matches worked
+  if(any(is.na(argNameInd))){
+    noarg <- which(is.na(argNameInd))
+    stop(cat("Argument(s)", names(new_args)[noarg], "not valid formal gremlin argument(s)\n"))
+  }
+  ## replace partial names with full/correct name
+  names(new_args) <- grArgNames[argNameInd]
+  
+
+
+
+
+  # Go through new_args and determine if a different model is requested
+  diffMod <- FALSE
+  for(arg in c("formula", "random", "rcov")){
+    if((arg %in% names(new_args)) && !is.null(call[[arg]])){
+      oldForm <- as.formula(call[[arg]])
+      oldFormEnv <- environment(oldForm)
+      newForm <- update.formula(oldForm, new_args[[arg]])
+      environment(newForm) <- oldFormEnv
+  
+      if(!identical(oldForm, newForm)){
+        diffMod <- TRUE
+        if((arg %in% c("random", "rcov")) && (newForm == formula(~1))){
+          call[[arg]] <- defaultCall[[arg]]
+        } else call[[arg]] <- newForm
+      }
+    } else{
+        if(arg %in% names(new_args) && is.null(call[[arg]])){
+          diffMod <- TRUE
+          oldForm <- as.formula(defaultCall[[arg]])
+          newForm <- update.formula(oldForm, new_args[[arg]])
+
+          if((arg %in% c("random", "rcov")) && (newForm == formula(~1))){
+            call[[arg]] <- defaultCall[[arg]]
+          } else call[[arg]] <- newForm
+        }
+      }  #<-- end `else`
+
+  }  #<-- end `for` loop through formulas
+
+
+  for(arg in c("data", "ginverse", "Bp")){
+    if((arg %in% names(new_args)) && !is.null(call[[arg]])){
+      if(!identical(eval(call[[arg]]), new_args[[arg]])){
+        diffMod <- TRUE
+        call[[arg]] <- new_args[[arg]]
+      }
+    } else{
+        if((arg %in% names(new_args)) && is.null(call[[arg]])){
+          diffMod <- TRUE
+          call[[arg]] <- new_args[[arg]]
+        }
+      }  #<-- end `else`
+  }  #<-- end `for` loop through data/misc objects
+
+
+
+  # below don't change the model, just require a re-run with the new values
+  for(arg in c("Gstart", "Rstart")){
+    if(arg %in% names(new_args)){
+      if(diffMod) call[[arg]] <- new_args[[arg]]
+        else{
+          # First check and see if `arg` in new_args[[arg]] and is not NULL
+          ## fill in G/Rstart if arg in new_args or if not in new_args then fill object starts/thetav/nu with last parameter values to start from there? (Find out what remlIt needs)
+          #TODO G/Rstarts need to be transformed to replace thetav/nu, maybe sigma2e, etc. in `object$grMod`
+
+        }  #<-- end `else`
+    }  #<-- end if arg %in% names
+  }  #<-- end `for` loop through G/Rstart
+
+
+  # MUST do `maxit` before `algit` to handle `algit` length correctly
+  for(arg in c("maxit", "vit", "v")){
+    if(arg %in% names(new_args)){
+      if(diffMod) call[[arg]] <- new_args[[arg]]
+        else object$grMod[[arg]] <- new_args[[arg]]
+    }
+  }  #<-- end `for` loop through iteration control arguments
+
+  # Handle `algit` separately (must be done after `maxit` and treated special)
+  maxitTmp <- c(new_args[["maxit"]], object$grMod$maxit)[which(!sapply(c(new_args[["maxit"]], object$grMod$maxit), FUN = is.null))[1]]
+  ## Check validity of `algit`
+  ## Fill-in `algit` default if necessary
+  if(is.null(new_args[["algit"]])){
+    if(is.null(call[["algit"]])) algit <- defaultCall[["algit"]]
+      else algit <- call[["algit"]]
+    if(is.null(algit)) algit <- c(rep("EM", min(maxitTmp, 2)),
+                                  rep("AI", max(0, maxitTmp-2)))
+  } else{
+      algChoices <- c("EM", "AI", "bobyqa", "NR") #TODO Update if add/subtract any
+      algMatch <- pmatch(new_args[["algit"]], algChoices,
+        nomatch = 0, duplicates.ok = TRUE)
+      if(any(algMatch == 0)){  
+        stop(cat("Algorithms:", new_args[["algit"]][which(algMatch == 0)],
+        "not valid. Please check values given to the `algit` argument\n"))
+      }
+      algit <- algChoices[algMatch]
+    }  #<-- end if/else new_args null for algit
+  if(length(algit) == 1) algit <- rep(algit, maxitTmp)
+  if(length(algit) > maxitTmp) algit <- algit[1:maxitTmp]
+  if(length(algit) < maxitTmp) algit <- rep(tail(algit, 1), maxitTmp)
+  if(diffMod) call[["algit"]] <- algit
+    else object$grMod[["algit"]] <- algit
+
+
+
+
+  if(diffMod){
+    mGmc <- as.call(c(quote(gremlinSetup), as.list(call)[-1]))
+    grMod <- eval(mGmc, parent.frame())
+      if(is(oocl, "gremlinR")){
+        grMod$call[[1L]] <- quote(gremlinR)
+        class(grMod) <- c(class(grMod)[1], "gremlinR", class(grMod)[2])
+      } else grMod$call[[1L]] <- quote(gremlin)
+
+    grModOut <- remlIt(grMod)
+
+  } else{
+      grModOut <- remlIt(object$grMod)
+        # If model has not changed PREpend previous itMat to latest
+        grModOut$itMat <- rbind(object$itMat, grModOut$itMat)
+        #TODO not sure what to do about attr(*, "startTime"): 
+        ##Which to use? Or include both somehow? Now defaults to start of update
+
+    }  #<-- end if/else diffMod
+
+
+
+  endTime <- Sys.time()
+  if(grModOut$grMod$v > 0) cat("gremlin ended:\t\t", format(endTime, "%H:%M:%S"), "\n")
+
+ return(structure(list(grMod = grModOut$grMod,
+		itMat = grModOut$itMat),
+	class = oocl,
+	startTime = attr(grModOut$grMod, "startTime"), endTime = endTime))
 }  #<-- end `update.gremlin`
 
 
@@ -366,7 +530,8 @@ gremlinSetup <- function(formula, random = NULL, rcov = ~ units,
 		data = NULL, ginverse = NULL,
 		Gstart = NULL, Rstart = NULL, Bp = NULL,
 		maxit = 20, algit = NULL,
-		vit = 10, v = 1, ...){
+		vit = 10, v = 1,
+		cctol = c(5e-4, 1e-8, 1e-3, NULL), ezero = 1e-8, ...){
 #FIXME USE?		control = gremlinControl(), ...){
 
   stopifnot(inherits(formula, "formula"), length(formula) == 3L)
@@ -377,33 +542,26 @@ gremlinSetup <- function(formula, random = NULL, rcov = ~ units,
   mMmc <- as.call(c(quote(mkModMats), mc[m]))
   modMats <- eval(mMmc, parent.frame())
 
-  # add actual values to NULL argument values in `mc` that need non-NULL values
-  ## passed along to other funcntions (e.g., when gremlin does have a default)
-  ## Don't bother with arguments with non-NULL defaults
+  algChoices <- c("EM", "AI", "bobyqa", "NR") #TODO Update if add/subtract any
+  algMatch <- pmatch(algit, algChoices, nomatch = 0, duplicates.ok = TRUE)
+  if(any(algMatch == 0)){  
+    stop(cat("Algorithms:", algit[which(algMatch == 0)],
+      "not valid. Please check values given to the `algit` argument\n"))
+  }
+  if(is.null(mc$algit)){
+    algit <- c(rep("EM", min(maxit, 2)), rep("AI", max(0, maxit-2)))
+  } else algit <- algChoices[algMatch]
+  if(length(algit) == 1) algit <- rep(algit, maxit)
+
+
+
   #TODO check dimensions G/Rstart
 #FIXME assumes univariate
-  if(is.null(mc$Gstart)) mc$Gstart <- Gstart <- as.list(rep(0.1*var(modMats$y), modMats$nG)) else Gstart <- eval(mc$Gstart)
+  if(is.null(mc$Gstart)) Gstart <- as.list(rep(0.1*var(modMats$y), modMats$nG))
+    else Gstart <- eval(mc$Gstart)
 #FIXME assumes univariate
-  if(is.null(mc$Rstart)) mc$Rstart <- Rstart <- matrix(0.5*var(modMats$y)) else Rstart <- eval(mc$Rstart)
-
-  # Use WOMBAT's default values for convergence criteria
-#TODO FIXME XXX XXX XXX Add cctol to argument list (and document it)
-## Might be able to/want to remove from list of output to `gremlin()` if replaced inside call regardless of whether user specified it
-  if(is.null(mc$cctol)){
-    cctol <- c(5*10^-4, 10^-8, 10^-3, NULL) # [1] for AI, alternatively 10^-5 (for EM)
-  } else cctol <- eval(mc$cctol)
-#TODO check on validity of inputted algorithms (format and matching to actual ones)
-## Otherwise, get obscure warning about not finding `thetaout`/`nuout`
-## Something like the following line, but implement partial matching
-  if(!all(unique(algit) %in% c("EM", "AI", "bobyqa", "NR"))){  #TODO Update choices of algorithm if add/subtract any
-    stop(cat("Algorithms:", unique(algit)[which(!unique(algit) %in% c("EM", "AI", "bobyqa", "NR"))],
-      "not a valid choice. Please check values given to the `algit` argument\n"))
-  }
-#TODO make default algit like below, in function definition
-  if(is.null(mc$algit)) algit <- c(rep("EM", 2), rep("AI", max(0, maxit-2))) else algit <- eval(mc$algit)
-  if(length(algit) == 1 && algit %in% c("EM", "AI", "bobyqa")) algit <- rep(algit, maxit)
-  if(is.null(mc$ezero)) ezero <- 1e-8 else ezero <- eval(mc$ezero)
-
+  if(is.null(mc$Rstart)) Rstart <- matrix(0.5*var(modMats$y))
+    else Rstart <- eval(mc$Rstart)
 
   theta <- c(G = sapply(Gstart, FUN = stTrans), R. = stTrans(Rstart))
   thetaGorR <- sapply(strsplit(names(theta), ".", fixed = TRUE), FUN = "[[", i = 1)
@@ -609,11 +767,6 @@ is.gremlin <- function(x) inherits(x, "gremlin")
 #' @export
 is.grMod <- function(x) inherits(x, "grMod")
 
-#' @method getCall gremlin
-#' @rdname gremlin
-#' @export
-getCall.gremlin <- function(x, ...) x$grMod$call
- 
 
 
 
@@ -680,6 +833,14 @@ remlIt.default <- function(grMod, ...){
 
   gnu <- lapply(grMod$nu, FUN = as, "dgCMatrix") #FIXME do this directly to begin with or just use dense matrices (class="matrix")
   nuv <- sapply(grMod$nu, FUN = slot, name = "x")
+  # convert algorithms for each iteration into integers
+  intfacalgit <- as.integer(factor(grMod$algit[1:grMod$maxit],
+    levels = c("EM", "AI"), ordered = TRUE))
+    ## Check that all are implemented in cpp (currently only AI or EM)
+    if(any(is.na(intfacalgit))){
+      stop(cat("Algorithm", grMod$algit[which(is.na(intfacalgit))],
+	"not implemented in c++, try `gremlinR()`\n"))
+    }
 
   Cout <- .C("ugremlin", PACKAGE = "gremlin",
 	as.double(grMod$modMats$y),
@@ -718,7 +879,7 @@ remlIt.default <- function(grMod, ...){
         as.double(c(grMod$Cinv_ii)),			#empty diag(Cinv)
 	as.double(c(grMod$r)),				#empty resdiuals
 	as.double(rep(0, grMod$maxit*(grMod$p+5))),	#itMat
-	as.integer(as.integer(factor(grMod$algit[1:grMod$maxit], levels = c("EM", "AI"), ordered = TRUE))-1), #algorithm for each iteration
+	as.integer(intfacalgit -1), 			#algorithm for each iteration
 	as.integer(grMod$maxit),			#max it./n algit
 	as.double(grMod$cctol),				#convergence tol.
 	as.double(grMod$ezero),				#effective 0
@@ -999,7 +1160,8 @@ stop(cat("\nNot allowing `minqa::bobyqa()` right now"))
 ##think requires obtaining gradient and hessian for both `nu` and `theta`
 ## See Meyer 1996 eqns ~ 45-55ish
       if(grMod$algit[i] == "NR"){
-        if(grMod$v > 1 && vitout == 0) cat("\n\tNR to find next theta")
+stop(cat("\nNot allowing `NR` right now"))
+#        if(grMod$v > 1 && vitout == 0) cat("\n\tNR to find next theta")
 #        gr <- gradFun(nuv, thetaG, thetaR, modMats, Cinv, nminfrfx, sln, r)
 #        H <- hessian(func = reml, x = nuv, skel = skel) 
 #tmp <- numDeriv::genD(func = reml, x = nuv, skel = skel)

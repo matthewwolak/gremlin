@@ -5,28 +5,35 @@
 \alias{gremlinR}
 \alias{gremlinSetup}
 \alias{mkModMats}
+\alias{update}
+\alias{getCall.gremlin}
+\alias{update.gremlin}
 \alias{is.gremlin}
 \alias{is.grMod}
-\alias{getCall.gremlin}
 \title{Mixed-effect modeling functions.}
 \usage{
 gremlin(formula, random = NULL, rcov = ~units, data = NULL,
   ginverse = NULL, Gstart = NULL, Rstart = NULL, Bp = NULL,
-  maxit = 20, algit = NULL, vit = 10, v = 1, ...)
+  maxit = 20, algit = NULL, vit = 10, v = 1, cctol = c(5e-04,
+  1e-08, 0.001, NULL), ezero = 1e-08, ...)
 
 gremlinR(formula, random = NULL, rcov = ~units, data = NULL,
   ginverse = NULL, Gstart = NULL, Rstart = NULL, Bp = NULL,
-  maxit = 20, algit = NULL, vit = 10, v = 1, ...)
+  maxit = 20, algit = NULL, vit = 10, v = 1, cctol = c(5e-04,
+  1e-08, 0.001, NULL), ezero = 1e-08, ...)
+
+\method{getCall}{gremlin}(x, ...)
+
+update.gremlin(object, ...)
 
 gremlinSetup(formula, random = NULL, rcov = ~units, data = NULL,
   ginverse = NULL, Gstart = NULL, Rstart = NULL, Bp = NULL,
-  maxit = 20, algit = NULL, vit = 10, v = 1, ...)
+  maxit = 20, algit = NULL, vit = 10, v = 1, cctol = c(5e-04,
+  1e-08, 0.001, NULL), ezero = 1e-08, ...)
 
 \method{is}{gremlin}(x)
 
 \method{is}{grMod}(x)
-
-\method{getCall}{gremlin}(x, ...)
 
 mkModMats(formula, random = NULL, rcov = ~units, data = NULL,
   subset = NULL, ginverse = NULL, na.action = na.pass,
@@ -70,6 +77,11 @@ larger values increase the amount of information printed on the screen.}
 \item{v}{An \code{integer} value specifying the verbosity of screen output
 regarding the model fitting process. A value of zero gives no details and
 larger values increase the amount of information printed on the screen.}
+
+\item{cctol}{Convergence criteria tolerances. TODO}
+
+\item{ezero}{Effective zero to be used, values less than this number are
+treated as zero and fixed to this value.}
 
 \item{\dots}{Additional arguments to be passed to control the model fitting.}
 

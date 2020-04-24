@@ -4,7 +4,7 @@
 \alias{remlIt}
 \alias{remlIt.default}
 \alias{remlIt.gremlinR}
-\title{Mixed-effect model Restricted Maximul Likelihood (REML) iterations.}
+\title{Mixed-effect model Restricted Maximum Likelihood (REML) iterations.}
 \usage{
 remlIt(grMod, ...)
 
