@@ -199,6 +199,7 @@
 #'         \item{itTime }{Time elapsed for each REML iteration.}
 #'       }
 #'     }
+#'   }
 #'
 #' @references
 #' Meyer.
