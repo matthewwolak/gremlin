@@ -49,56 +49,6 @@
 
 
 
-################################################################################
-#' Transformation of starting parameters.
-#'
-#' Transform start parameters into format \code{gremlin} expects.
-#'
-#' @aliases stTrans
-#' @param x A \code{list} of starting parameters.
-#' @return A sparse \sQuote{dsCMatrix}
-#' @author \email{matthewwolak@@gmail.com}
-#' @import Matrix
-stTrans <- function(x){
-  if(is.numeric(x) && !is.matrix(x)) x <- as.matrix(x)
-  if(!isSymmetric(x)) stop(cat("Element", x, "must be a symmetric matrix or a number\n")) 
-  x <- as(x, "symmetricMatrix")
-  x@uplo <- "L"
-  x <- as(x, "dsCMatrix")
- x
-}
-
-
-
-
-################################################################################
-#' Vector to list of matrices.
-#'
-#' Converts a vector of (co)variance parameters to a list of covariance matrices.
-#'
-#' @aliases vech2matlist
-#' @param vech A \code{vector} of (co)variance parameters.
-#' @param skeleton An example structure to map \code{vech} onto.
-#' @return A list of matrices of the same structure as \code{skeleton}.
-#' @author \email{matthewwolak@@gmail.com}
-vech2matlist <- function(vech, skeleton){
-  newmatlist <- vector("list", length = length(skeleton))
-  si <- 1
-  for(s in 1:length(skeleton)){
-    lss <- length(skeleton[[s]][[1]])
-    newmatlist[[s]] <- sparseMatrix(i = skeleton[[s]][[1]],
-	p = skeleton[[s]][[2]],
-	x = vech[seq(from = si, by = 1, length.out = lss)],
-	dims = skeleton[[s]][[3]], symmetric = TRUE, index1 = FALSE)
-    si <- si + lss
-  }
-  if(!is.null(names(skeleton))) names(newmatlist) <- names(skeleton)
- newmatlist
-}
-
-
-
-
 
  
 
@@ -121,8 +71,8 @@ vech2matlist <- function(vech, skeleton){
 #'   The name of each element in the list should match a column in \code{data}
 #'   that is associated with a random term. All levels of the random term should
 #'   appear as \code{rownames} for the matrices.
-#' @param Gstart A \code{list} of starting (co)variance values for the the
-#'   G-structure or random terms.
+#' @param Gstart A \code{list} of starting (co)variance values for the
+#'   G-structure or random effects terms.
 #' @param Rstart A \code{list} of starting (co)variance values for the
 #'   R-structure or residual terms.
 #' @param Bp A prior specification for fixed effects.
@@ -249,7 +199,6 @@ vech2matlist <- function(vech, skeleton){
 #'         \item{itTime }{Time elapsed for each REML iteration.}
 #'       }
 #'     }
-#   }
 #'
 #' @references
 #' Meyer.
@@ -563,18 +512,7 @@ gremlinSetup <- function(formula, random = NULL, rcov = ~ units,
   if(is.null(mc$Rstart)) Rstart <- matrix(0.5*var(modMats$y))
     else Rstart <- eval(mc$Rstart)
 
-  theta <- c(G = sapply(Gstart, FUN = stTrans), R. = stTrans(Rstart))
-  thetaGorR <- sapply(strsplit(names(theta), ".", fixed = TRUE), FUN = "[[", i = 1)
-#FIXME ensure grep() is best way and won't mess up when multiple Gs and **Rs**
-  thetaG <- grep("G", thetaGorR, ignore.case = FALSE)
-  thetaR <- grep("R", thetaGorR, ignore.case = FALSE)
-    names(theta) <- c(paste0(rep("G.", length(thetaG)), names(modMats$Zg)),
-                      paste0("ResVar", seq(length(thetaR))))
-
-  thetav <- sapply(theta, FUN = slot, name = "x")
-  skel <- lapply(seq(length(theta)), FUN = function(i){mapply(slot, theta[i], c("i", "p", "Dim"))})
-    names(skel) <- names(theta)
-  p <- length(thetav)
+  thetaSt <- start2theta(Gstart, Rstart)
 
 
 
@@ -589,7 +527,7 @@ gremlinSetup <- function(formula, random = NULL, rcov = ~ units,
 #XXX Figure out how to identify `lambda` model from model call
 
 #FIXME quick fix for now
-lambda <- length(thetaR) == 1
+lambda <- length(thetaSt$thetaR) == 1
 #lambda <- FALSE  #<-- XXX FIXME DELETEME turned OFF permanently, for now
 #TODO quick fix to turn this off from the call if I don't want to do lambda model
 #TODO make `lambda == FALSE` if EM is part of algit (not sure if EM works for lambda or not) #<-- FIXME figure out how to do EM on lambda
@@ -713,8 +651,9 @@ lambda <- length(thetaR) == 1
     nr <- if(length(rfxlvls) == 0) 0 else sum(rfxlvls)
     nminfrfx <- nminffx - nr
 
-    AI <- matrix(NA, nrow = p, ncol = p)
-    dLdnu <- matrix(NA, nrow = p, ncol = 1, dimnames = list(names(thetav), NULL))
+    AI <- matrix(NA, nrow = thetaSt$p, ncol = thetaSt$p)
+    dLdnu <- matrix(NA, nrow = nrow(AI), ncol = 1,
+      dimnames = list(names(thetaSt$thetav), NULL))
     sigma2e <- if(lambda) numeric(1) else NA #<-- only needed for `lambda` model
 
  return(structure(list(call = as.call(mc),
@@ -722,10 +661,11 @@ lambda <- length(thetaR) == 1
 		rfxIncContrib2loglik = rfxIncContrib2loglik,
 		ndgeninv = ndgeninv, dimsZg = dimsZg, nminffx = nminffx,
 		rfxlvls = rfxlvls, nminfrfx = nminfrfx,
-		thetav = thetav, skel = skel, thetaG = thetaG, thetaR = thetaR,
+		thetav = thetaSt$thetav, skel = thetaSt$skel,
+		thetaG = thetaSt$thetaG, thetaR = thetaSt$thetaR,
 		nu = nu, nu2theta = nu2theta,
 		sigma2e = sigma2e,
-		p = p, lambda = lambda, uni = uni,
+		p = thetaSt$p, lambda = lambda, uni = uni,
 		W = W, tWW = tWW, RHS = RHS, Bpinv = Bpinv,
 		sLc = sLc,
 		sln = sln, Cinv_ii = Cinv_ii, r = r,
