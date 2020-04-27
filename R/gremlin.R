@@ -135,22 +135,22 @@
 #'        \code{theta}).}
 #'     \item{nu, nu2theta }{A \code{list} of transformed (co)variance matrices
 #'       to be fit by REML and a \code{function} to back-transform from the
-#'       \sQuotes{nu} scale to the \sQuotes{theta} scale. If a residual variance
+#'       \sQuote{nu} scale to the \sQuote{theta} scale. If a residual variance
 #'       has been factored out of the mixed model equations, \code{nu} will also
-#'       contain the \sQuotes{lambda} parameterization with contains ratios of
-#'       variance parameters with the residual variance. The \sQuotes{nu} scale
+#'       contain the \sQuote{lambda} parameterization with contains ratios of
+#'       variance parameters with the residual variance. The \sQuote{nu} scale
 #'       (co)variances are the ones actually fit by REML.}
 #'     \item{sigma2e }{The estimate of the factored out residual variance from
-#'       the mixed model equations (i.e., the \sQuotes{lambda} scale)
+#'       the mixed model equations (i.e., the \sQuote{lambda} scale)
 #'       \eqn{\sigma^{2}_{e}}.}
 #'     \item{p }{An \code{integer} for the total number of (co)variances to be
 #'       estimated.}
-#'     \item{lambda }{A \code{logical} indicating whether the \sQuotes{lambda}
+#'     \item{lambda }{A \code{logical} indicating whether the \sQuote{lambda}
 #'       scale parameterization has been used.}
 #'     \item{uni }{A \code{logical} to indicate if the model is univariate or not.}
 #'     \item{W, tWW, RHS, Bpinv }{Sparse matrices of class \code{Matrix} that 
 #'       form the mixed model equations and do not change between iterations of
-#'       REML. These are the column binded \sQuotes{X} and \sQuotes{Z} design
+#'       REML. These are the column binded \sQuote{X} and \sQuote{Z} design
 #'       matrices for fixed and random effects, the cross-product of \code{W},
 #'       the Right-Hand Side of the mixed model equations, and the inverse of
 #'       the fixed effect prior matrix (zeroes on the diagonal if no priors have
@@ -170,11 +170,11 @@
 #'       in \code{modMats$y}.} 
 #'     \item{AI }{A \code{matrix} of values containing the Average Information
 #'       matrix, or second partial derivatives of the likelihood with respect to
-#'       the transformed (co)variance components (\sQuotes{nu}). The inverse of
+#'       the transformed (co)variance components (\sQuote{nu}). The inverse of
 #'       this matrix gives the sampling (co)variances of these transformed
 #'       (co)variance components.}
 #'     \item{dLdnu }{A single column \code{matrix} of first derivatives of
-#'       the transformed (co)variance parameters (\sQuotes{nu}) with respect to
+#'       the transformed (co)variance parameters (\sQuote{nu}) with respect to
 #'       the log-Likelihood.}
 #'     \item{maxit }{See the parameter described above.}
 #'     \item{algit }{A \code{character} vector of REML algorithms to use in each
@@ -183,7 +183,7 @@
 #'     \item{v }{See the parameter described above.}
 #'     \item{cctol }{A \code{numeric} vector of convergence criteria thresholds.}
 #'     \item{ezero }{A \code{numeric} value for the effective number to use as
-#'       \dQuotes{zero}. VAlues less than this number are treated as zero and
+#'       \dQuote{zero}. VAlues less than this number are treated as zero and
 #'       fixed to this value.}
 #'
 #'     \item{itMat }{A \code{matrix} of details about each iteration. Rows
@@ -191,7 +191,7 @@
 #'       and columns contain:
 #'       \describe{
 #'         \item{nu, theta}{(Co)variance parameters.}
-#'         \item{sigma2e }{See \sQuotes{sigma2e} described above.}
+#'         \item{sigma2e }{See \sQuote{sigma2e} described above.}
 #'         \item{tyPy, logDetC }{Estimates for two these two components of the
 #'           log of the REML likelihoods. These are obtained from Cholesky
 #'           factorization of the coefficient matrix of the mixed model equations.}
