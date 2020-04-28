@@ -133,12 +133,11 @@
 #'     \item{thetaG, thetaR }{\code{Vectors} indexing the random and residual
 #'        (co)variances, respectively, in a list of (co)variance matrices (i.e.,
 #'        \code{theta}).}
-#'     \item{nu, nu2theta }{A \code{list} of transformed (co)variance matrices
-#'       to be fit by REML and a \code{function} to back-transform from the
-#'       \sQuote{nu} scale to the \sQuote{theta} scale. If a residual variance
-#'       has been factored out of the mixed model equations, \code{nu} will also
-#'       contain the \sQuote{lambda} parameterization with contains ratios of
-#'       variance parameters with the residual variance. The \sQuote{nu} scale
+#'     \item{nu }{A \code{list} of transformed (co)variance matrices
+#'       to be fit by REML. If a residual variance has been factored out of the
+#'       mixed model equations, \code{nu} contains the \sQuote{lambda}
+#'       parameterization with expresses the (co)variance components as ratios
+#'       of variance parameters with the residual variance. The \sQuote{nu} scale
 #'       (co)variances are the ones actually fit by REML.}
 #'     \item{sigma2e }{The estimate of the factored out residual variance from
 #'       the mixed model equations (i.e., the \sQuote{lambda} scale)
@@ -557,40 +556,11 @@ lambda <- length(thetaSt$thetaR) == 1
 #XXX Don't need for EM algorithm
   transform <- FALSE
   if(transform){ 
-    #TODO FIXME need to take log of just diagonals
-    #TODO also convert to lambda scale
-    nu <- list(G = lapply(theta$G, FUN = function(x){log(chol(x))}),
-        	R = log(chol(theta$R)))
-    #TODO FIXME when converting back, do exp() of just diagonals
-    #TODO also back-convert from lambda scale
-    nu2theta <- function(nu){
-	list(G = lapply(nu[[1L]], FUN = function(x){exp(crossprod(x))}),
-	     R = exp(crossprod(nu[[2L]])))
-    }
+    nu <- theta2nu_trans(thetaSt$theta)
   } else{
-      nu <- theta
-      if(lambda){
-        cRinv <- solve(chol(theta[[thetaR]]))
-        nu[thetaG] <- lapply(thetaG, FUN = function(x){as(crossprod(cRinv, nu[[x]]) %*% cRinv, "symmetricMatrix")}) # Meyer 1991, p.77 (<-- ?p70/eqn4?)
-        #TODO what to do if R is a matrix
-        nu[[thetaR]] <- as(crossprod(cRinv, nu[[thetaR]]) %*% cRinv, "symmetricMatrix")
-        nu2theta <- function(nu, sigma2e, thetaG, thetaR){ #TODO FIXME
-          cR <- chol(matrix(sigma2e))
-          theta <- nu
-          theta[thetaG] <- lapply(thetaG, FUN = function(x){as(crossprod(cR, nu[[x]]) %*% cR, "symmetricMatrix")})
-          theta[[thetaR]] <- as(crossprod(cR, nu[[thetaR]]) %*% cR, "symmetricMatrix")
-         return(theta)
-        }  
-        # end `if lambda`
-      } else{
-          nu2theta <- function(nu, thetaG, thetaR){  #TODO FIXME
-            theta <- nu
-	    theta[thetaG] <- lapply(thetaG,
-		      FUN = function(x){as(matrix(nu[[x]],1,1), "symmetricMatrix")})
-	    theta[[thetaR]] <- as(matrix(nu[[thetaR]], 1, 1), "symmetricMatrix")
-           return(theta)
-          }
-        }  #<-- end `if NOT lambda`
+      if(lambda)
+        nu <- theta2nu_lambda(thetaSt$theta, thetaSt$thetaG, thetaSt$thetaR)
+          else nu <- thetaSt$theta
     }
 
 
@@ -665,7 +635,7 @@ lambda <- length(thetaSt$thetaR) == 1
 		rfxlvls = rfxlvls, nminfrfx = nminfrfx,
 		thetav = thetav, skel = attr(thetav, "skel"),
 		thetaG = thetaSt$thetaG, thetaR = thetaSt$thetaR,
-		nu = nu, nu2theta = nu2theta,
+		nu = nu,
 		sigma2e = sigma2e,
 		p = p, lambda = lambda, uni = uni,
 		W = W, tWW = tWW, RHS = RHS, Bpinv = Bpinv,
@@ -860,7 +830,7 @@ remlIt.default <- function(grMod, ...){
     itMat <- cbind(itMat,
       t(apply(itMat[, c(paste0(names(nuv), "_nu"), "sigma2e"), drop = FALSE],
 	MARGIN = 1,
-	FUN = function(itvec){ sapply(grMod$nu2theta(itvec[1:grMod$p],
+	FUN = function(itvec){ sapply(nu2theta_lambda(itvec[1:grMod$p],
         		sigma2e = itvec[grMod$p+1], grMod$thetaG, grMod$thetaR),
 		FUN = slot, name = "x")})))[, c(seq(grMod$p),
       seq(grMod$p+6, 2*grMod$p+5), seq(grMod$p+1, grMod$p+5)), drop = FALSE] #<-- thetas named 'nu' in colnames for now, use numeric indices to rearrange
@@ -869,7 +839,7 @@ remlIt.default <- function(grMod, ...){
       itMat <- cbind(itMat,
         t(apply(itMat[, c(paste0(names(nuv), "_nu"), "sigma2e"), drop = FALSE],
 	  MARGIN = 1,
-	  FUN = function(itvec){ sapply(grMod$nu2theta(itvec[1:grMod$p],
+	  FUN = function(itvec){ sapply(nu2theta_noTrans(itvec[1:grMod$p],
 			grMod$thetaG, grMod$thetaR),
 		FUN = slot, name = "x")})))[, c(seq(grMod$p),
         seq(grMod$p+6, 2*grMod$p+5), seq(grMod$p+1, grMod$p+5)), drop = FALSE] #<-- thetas named 'nu' in colnames for now, use numeric indices to rearrange
@@ -967,7 +937,7 @@ remlIt.gremlinR <- function(grMod, ...){
       sLc <- remlOut$sLc #TODO to use `update()` need to return `C` in `remlOut`
 
     itMat[i, -ncol(itMat)] <- c(nuv,
-      sapply(if(lambda) grMod$nu2theta(nu, sigma2e, thetaG, thetaR) else grMod$nu2theta(nu, thetaG, thetaR),
+      sapply(if(lambda) nu2theta_lambda(nu, sigma2e, thetaG, thetaR) else nu2theta_noTrans(nu, thetaG, thetaR),
             FUN = slot, name = "x"),
       sigma2e, remlOut$tyPy, remlOut$logDetC, remlOut$loglik) 
     # 5c check convergence criteria
@@ -1177,9 +1147,9 @@ stop(cat("\nNot allowing `NR` right now"))
     rownames(itMat) <- paste(seq(i), grMod$algit[1:i], sep = "-")
   dimnames(AI) <- list(rownames(dLdnu), rownames(dLdnu))
   if(lambda){
-    theta <- grMod$nu2theta(nu, sigma2e, thetaG, thetaR)
+    theta <- nu2theta_lambda(nu, sigma2e, thetaG, thetaR)
   } else{
-      theta <- grMod$nu2theta(nu, thetaG, thetaR)
+      theta <- nu2theta_noTrans(nu, thetaG, thetaR)
     }
   thetav <- theta2vech(theta)
 

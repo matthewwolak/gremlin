@@ -133,12 +133,11 @@ A \code{list} containing an object of class \code{grMod} and, if a
     \item{thetaG, thetaR }{\code{Vectors} indexing the random and residual
        (co)variances, respectively, in a list of (co)variance matrices (i.e.,
        \code{theta}).}
-    \item{nu, nu2theta }{A \code{list} of transformed (co)variance matrices
-      to be fit by REML and a \code{function} to back-transform from the
-      \sQuote{nu} scale to the \sQuote{theta} scale. If a residual variance
-      has been factored out of the mixed model equations, \code{nu} will also
-      contain the \sQuote{lambda} parameterization with contains ratios of
-      variance parameters with the residual variance. The \sQuote{nu} scale
+    \item{nu }{A \code{list} of transformed (co)variance matrices
+      to be fit by REML. If a residual variance has been factored out of the
+      mixed model equations, \code{nu} contains the \sQuote{lambda}
+      parameterization with expresses the (co)variance components as ratios
+      of variance parameters with the residual variance. The \sQuote{nu} scale
       (co)variances are the ones actually fit by REML.}
     \item{sigma2e }{The estimate of the factored out residual variance from
       the mixed model equations (i.e., the \sQuote{lambda} scale)
