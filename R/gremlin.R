@@ -571,11 +571,8 @@ lambda <- length(thetaSt$thetaR) == 1
 
     # 1 Create coefficient matrix of MME (C)
     ##1a form W by `cbind()` X and each Z_i
-    if(modMats$nG < 1) W <- modMats$X
-     else{
-       W <- cbind(modMats$X, modMats$Zg[[1]]) 
-       for(g in 2:modMats$nG) W <- cbind(W, modMats$Zg[[g]])
-     }
+    W <- modMats$X
+    for(g in seq_len(modMats$nG)) W <- cbind(W, modMats$Zg[[g]])
 
     # Rand Fx incidence matrix part of 'log(|G|)'
     #FIXME: Only works for independent random effects right now!
