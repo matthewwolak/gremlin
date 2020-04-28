@@ -14,7 +14,7 @@
 \usage{
 stTrans(x)
 
-start2theta(Gstart, Rstart, names = NULL)
+start2theta(Gstart, Rstart, name = NULL)
 
 matlist2vech(theta)
 
@@ -36,6 +36,9 @@ parameters of the model.}
 
 \item{Gstart, Rstart}{A \code{list} of starting (co)variance values for the
 G-structure (random effects terms) or R-structure (residual).}
+
+\item{name}{An (optional) character \code{vector} containing the (co)variance
+component names.}
 
 \item{vech}{A \code{vector} of (co)variance parameters.}
 
