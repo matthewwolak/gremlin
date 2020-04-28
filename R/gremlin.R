@@ -760,7 +760,6 @@ remlIt.default <- function(grMod, ...){
 	"not implemented in c++, try `gremlinR()`\n"))
     }
 
-
   nnzWG <- with(grMod, c(length(W@x),		# No. nonzero W
     sapply(seq_len(length(thetaG)),
 	    FUN = function(g){length(modMats$listGeninv[[g]]@x)}))) # No. nz geninvs
@@ -779,6 +778,8 @@ remlIt.default <- function(grMod, ...){
   } else{
       dimZWG <- c(dimZWG, 0)
       geninv_i <- geninv_p <- geninv_x <- 0
+    stop(cat("gremlin's c++ code is far too sophisticated for such a simple model.\n",
+       "Use the", sQuote('gremlinR()'), "function instead\n"))
     }
 
   Cout <- .C("ugremlin", PACKAGE = "gremlin",
