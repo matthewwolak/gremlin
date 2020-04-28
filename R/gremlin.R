@@ -442,6 +442,8 @@ update.gremlin <- function(object, ...){
     grModOut <- remlIt(grMod)
 
   } else{
+      # need to re-set `sln` and `Cinv_ii` to zeroes so c++ calculations work
+      object$grMod$sln[] <- object$grMod$Cinv_ii[] <- rep(0, length(object$grMod$sln))
       grModOut <- remlIt(object$grMod)
         # If model has not changed PREpend previous itMat to latest
         grModOut$itMat <- rbind(object$itMat, grModOut$itMat)
