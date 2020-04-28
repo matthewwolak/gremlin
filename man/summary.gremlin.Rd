@@ -24,7 +24,7 @@ A \code{list} of class \code{summary.gremlin} or a printed value
   to the screen with no return values.
   \describe{
     \item{logLik }{Model log-likelihood.}
-    \item{formulae }{Model fixed, random, and residual formulae.}
+    \item{formulae }{Function call and model fixed, random, and residual formulae.}
     \item{varcompSummary }{Table of variance components and approximate
       standard errors (calculated from the inverse of the average information
       matrix).}

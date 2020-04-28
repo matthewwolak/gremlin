@@ -327,7 +327,7 @@ residuals.gremlin <- function(object,
 #'   to the screen with no return values.
 #'   \describe{
 #'     \item{logLik }{Model log-likelihood.}
-#'     \item{formulae }{Model fixed, random, and residual formulae.}
+#'     \item{formulae }{Function call and model fixed, random, and residual formulae.}
 #'     \item{varcompSummary }{Table of variance components and approximate
 #'       standard errors (calculated from the inverse of the average information
 #'       matrix).}
@@ -344,7 +344,8 @@ residuals.gremlin <- function(object,
 summary.gremlin <- function(object, ...){
   nit <- nrow(object$itMat)
   nvc <- object$grMod$p      # No. of (co)variance parameters
-  formulae <- list(fxd = object$grMod$call[["formula"]],
+  formulae <- list(fn = object$grMod$call[[1L]],
+	fxd = object$grMod$call[["formula"]],
 	random = object$grMod$call[["random"]]) #FIXME need to include R (or combine with G)
 
   ########
@@ -404,7 +405,7 @@ print.summary.gremlin <- function(x,
 	digits = max(3, getOption("digits") - 3), ...){
 #TODO calculate convergence criteria & print if REML converged
 ## also print if parameters changed by >XX%
-  cat("\n Linear mixed model fit by REML ['gremlin']")
+  cat("\n Linear mixed model fit by REML ['", x$formula$fn, "']")
   cat("\n REML log-likelihood:", round(x$logLik, digits), "\n")
   cat("\n elapsed time for model:", round(x$runtime, digits), "\n")
 
