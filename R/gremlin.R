@@ -212,12 +212,15 @@
 #`     ## compare models
 #'     anova(grSire, grLM)
 #'
-#'  TODO XXX XXX Make example of each modular component working with next
-#'   mod11 <- gremlinRmod(WWG11 ~ sex - 1,
-#'   	random = ~ calf,
-#'   	data = Mrode11,
-#'   	Gstart = matrix(0.2), Rstart = matrix(0.4),
-#'   	maxit = 10, v = 2)
+#'   # Modular functions
+#'   ## get model matrices for a mixed model
+#'   mM11 <- gremlin(WWG11 ~ sex - 1, random = ~ sire, data = Mrode11)
+#'
+#'   ## setup model, but do not evaluate the log-likelihood
+#'   grSetup <- gremlinSetup(WWG11 ~ sex - 1, random = ~ sire, data = Mrode11)
+#'   ## maximize the restricted maximum likelihood
+#'   grOut <- remlIt(grSetup)
+#'   summary(grOut)
 #'
 #' @export
 gremlin <- function(formula, random = NULL, rcov = ~ units,
