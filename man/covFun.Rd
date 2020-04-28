@@ -68,26 +68,29 @@ Converts lists of (co)variance parameters either between \code{list} and
 }
 \details{
 \itemize{
-  \item{stTrans }{Transform start parameters into lower triangle matrices of
-    class \code{dsCMatrix}.}
-  \item{start2theta }{Converts lists of starting values for (co)variance
+  \item{\code{stTrans} }{Transform start parameters into lower triangle
+    matrices of class \code{dsCMatrix}.}
+  \item{\code{start2theta} }{Converts lists of starting values for (co)variance
     parameters to a theta object used to structure the (co)variance components
     within gremlin.}
-  \item{matlist2vech }{Converts a \code{list} of (co)variance parameter
+  \item{\code{matlist2vech} }{Converts a \code{list} of (co)variance parameter
     matrices to a vector with a \dQuote{skel} attribute.}
-  \item{vech2matlist }{Converts a vector of (co)variance parameters to a list of
-    covariance matrices.}
-  \item{theta2nu_trans }{Transforms theta to nu scale by taking the Cholesky
-    factor of each covariance matrix and then replacing the diagonals with 
-    their (natural) logarithms. Done to ensure matrices are positive definite.}
-  \item{nu2theta_trans }{Back transformation from \code{theta2nu_trans}:
-    exponentiates the diagonal elements of each matrix then calculates the
-    cross-product.}
-  \item{theta2nu_lambda }{Transformation that factors out a residual variance
-    so that \code{nu} contains the \sQuote{lambda} parameterization: ratios
-    of variance parameters with the residual variance.}
-  \item{nu2theta_lambda }{Back transformation from \code{theta2nu_lambda}.}
-  \item{nu2theta_noTrans }{Structures \code{theta} when not transformed.}
+  \item{\code{vech2matlist} }{Converts a vector of (co)variance parameters to
+    a list of covariance matrices.}
+  \item{\code{theta2nu_trans} }{Transforms theta to nu scale by taking the
+    Cholesky factor of each covariance matrix and then replacing the diagonals
+    with  their (natural) logarithms. Done to ensure matrices are positive
+    definite.}
+  \item{\code{nu2theta_trans} }{Back transformation from
+    \code{theta2nu_trans}: exponentiates the diagonal elements of each matrix
+    then calculates the cross-product.}
+  \item{\code{theta2nu_lambda} }{Transformation that factors out a residual
+    variance so that \code{nu} contains the \sQuote{lambda} parameterization:
+    ratios of variance parameters with the residual variance.}
+  \item{\code{nu2theta_lambda} }{Back transformation from
+    \code{theta2nu_lambda}.}
+  \item{\code{nu2theta_noTrans} }{Structures \code{theta} when not
+    transformed.}
 }
 }
 \examples{
