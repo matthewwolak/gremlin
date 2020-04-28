@@ -513,8 +513,9 @@ gremlinSetup <- function(formula, random = NULL, rcov = ~ units,
   if(is.null(mc$Rstart)) Rstart <- matrix(0.5*var(modMats$y))
     else Rstart <- eval(mc$Rstart)
 
-  thetaSt <- start2theta(Gstart, Rstart)
-
+  thetaSt <- start2theta(Gstart, Rstart, names = names(modMats$Zg))
+  thetav <- theta2vech(thetaSt$theta)
+  p <- length(thetav)
 
 
 
@@ -652,9 +653,9 @@ lambda <- length(thetaSt$thetaR) == 1
     nr <- if(length(rfxlvls) == 0) 0 else sum(rfxlvls)
     nminfrfx <- nminffx - nr
 
-    AI <- matrix(NA, nrow = thetaSt$p, ncol = thetaSt$p)
+    AI <- matrix(NA, nrow = p, ncol = p)
     dLdnu <- matrix(NA, nrow = nrow(AI), ncol = 1,
-      dimnames = list(names(thetaSt$thetav), NULL))
+      dimnames = list(names(thetav), NULL))
     sigma2e <- if(lambda) numeric(1) else NA #<-- only needed for `lambda` model
 
  return(structure(list(call = as.call(mc),
@@ -662,11 +663,11 @@ lambda <- length(thetaSt$thetaR) == 1
 		rfxIncContrib2loglik = rfxIncContrib2loglik,
 		ndgeninv = ndgeninv, dimsZg = dimsZg, nminffx = nminffx,
 		rfxlvls = rfxlvls, nminfrfx = nminfrfx,
-		thetav = thetaSt$thetav, skel = thetaSt$skel,
+		thetav = thetav, skel = attr(thetav, "skel"),
 		thetaG = thetaSt$thetaG, thetaR = thetaSt$thetaR,
 		nu = nu, nu2theta = nu2theta,
 		sigma2e = sigma2e,
-		p = thetaSt$p, lambda = lambda, uni = uni,
+		p = p, lambda = lambda, uni = uni,
 		W = W, tWW = tWW, RHS = RHS, Bpinv = Bpinv,
 		sLc = sLc,
 		sln = sln, Cinv_ii = Cinv_ii, r = r,
@@ -777,7 +778,7 @@ remlIt <- function(grMod, ...){
 remlIt.default <- function(grMod, ...){
 
   gnu <- lapply(grMod$nu, FUN = as, "dgCMatrix") #FIXME do this directly to begin with or just use dense matrices (class="matrix")
-  nuv <- sapply(grMod$nu, FUN = slot, name = "x")
+  nuv <- sapply(grMod$nu, FUN = slot, name = "x") #TODO use `theta2vech()`?
   # convert algorithms for each iteration into integers
   intfacalgit <- as.integer(factor(grMod$algit[1:grMod$maxit],
     levels = c("EM", "AI"), ordered = TRUE))
@@ -959,7 +960,7 @@ remlIt.gremlinR <- function(grMod, ...){
 	  thetaR,
 	  tWW = NULL, RHS = NULL)
       }  #<-- end if/else lambda
-      nuv <- sapply(nu, FUN = slot, name = "x")
+      nuv <- sapply(nu, FUN = slot, name = "x")  #TODO use `theta2vech()`?
       sigma2e[] <- remlOut$sigma2e
       grMod$sln <- remlOut$sln
       grMod$r <- remlOut$r
@@ -1180,7 +1181,7 @@ stop(cat("\nNot allowing `NR` right now"))
   } else{
       theta <- grMod$nu2theta(nu, thetaG, thetaR)
     }
-  thetav <- sapply(theta, FUN = slot, name = "x") 
+  thetav <- theta2vech(theta)
 
 
   # Calculate Cinv_ii and AI for last set of parameters

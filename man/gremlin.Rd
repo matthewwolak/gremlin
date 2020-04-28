@@ -55,8 +55,8 @@ The name of each element in the list should match a column in \code{data}
 that is associated with a random term. All levels of the random term should
 appear as \code{rownames} for the matrices.}
 
-\item{Gstart}{A \code{list} of starting (co)variance values for the the
-G-structure or random terms.}
+\item{Gstart}{A \code{list} of starting (co)variance values for the
+G-structure or random effects terms.}
 
 \item{Rstart}{A \code{list} of starting (co)variance values for the
 R-structure or residual terms.}
@@ -95,6 +95,111 @@ treated as zero and fixed to this value.}
 
 \item{Xsparse}{Should sparse matrices be used for the fixed effects design
 matrix.}
+}
+\value{
+A \code{list} containing an object of class \code{grMod} and, if a 
+  model was fit (\code{gremlin} or \code{gremlinR}) then an object containing
+  details of the REML iterations (object \code{itMat}). An object of class
+  \code{grMod} contains:
+  \describe{
+    \item{call }{The model \code{call}.}
+    \item{modMats }{A \code{list} of the model matrices used to construct the
+      mixed model equations.}
+      \item{y }{The response vector.}
+      \item{ny }{The number of responses.}
+      \item{ncy }{The number of columns of the original response.}
+      \item{X }{ The fixed effects design matrix.}
+      \item{nb }{The number of columns in X.}
+      \item{Zr }{The residual design matrix.}
+      \item{Zg }{A list of the design matrices for each random term.}
+      \item{nG }{The number of parameters in the G structure.}
+      \item{listGeninv }{A list of generalized inverse matrices.}
+      \item{logDetG }{The log-determinants of the generalized inverse 
+      matrices - necessary to calculate the log-likelihood.}
+
+    \item{rfxIncContrib2loglik }{A \code{numeric} value containing the sum
+      of the log determinants of the random effects that do not change between
+      log-likelihood iterations (i.e., the part of the log determinants of 
+      (co)variance matrices to be estimated that have been factored out).}
+    \item{ndgeninv }{A \code{logical} indicating which terms in the random
+      formula have generalized inverses associated with them (non-diagonal 
+      matrices in the Kronecker product.}
+    \item{dimsZg, nminffx, rfxlvls, nminfrfx }{\code{Numeric} vectors or scalars
+      describing the numbers of random effects or some function of random and
+      fixed effects.}
+    \item{thetav, skel }{A \code{vector} of the (co)variance parameters to
+      be estimated by REML and the skeleton for recreating a list of
+      \code{matrices} from this vector.}
+    \item{thetaG, thetaR }{\code{Vectors} indexing the random and residual
+       (co)variances, respectively, in a list of (co)variance matrices (i.e.,
+       \code{theta}).}
+    \item{nu, nu2theta }{A \code{list} of transformed (co)variance matrices
+      to be fit by REML and a \code{function} to back-transform from the
+      \sQuote{nu} scale to the \sQuote{theta} scale. If a residual variance
+      has been factored out of the mixed model equations, \code{nu} will also
+      contain the \sQuote{lambda} parameterization with contains ratios of
+      variance parameters with the residual variance. The \sQuote{nu} scale
+      (co)variances are the ones actually fit by REML.}
+    \item{sigma2e }{The estimate of the factored out residual variance from
+      the mixed model equations (i.e., the \sQuote{lambda} scale)
+      \eqn{\sigma^{2}_{e}}.}
+    \item{p }{An \code{integer} for the total number of (co)variances to be
+      estimated.}
+    \item{lambda }{A \code{logical} indicating whether the \sQuote{lambda}
+      scale parameterization has been used.}
+    \item{uni }{A \code{logical} to indicate if the model is univariate or not.}
+    \item{W, tWW, RHS, Bpinv }{Sparse matrices of class \code{Matrix} that 
+      form the mixed model equations and do not change between iterations of
+      REML. These are the column binded \sQuote{X} and \sQuote{Z} design
+      matrices for fixed and random effects, the cross-product of \code{W},
+      the Right-Hand Side of the mixed model equations, and the inverse of
+      the fixed effect prior matrix (zeroes on the diagonal if no priors have
+      been specified). Note, these may be \code{NULL} if \code{lambda=FALSE},
+      because the \code{NULL} objects are not used or do change between
+      REML iterations.}
+    \item{sLc }{A \code{Matrix} containing the symbolic Cholesky factorization
+      of the coefficient matrix of the Mixed Model Equations.}
+    \item{sln }{A one column \code{matrix} of solutions in the mixed model
+      equations.}
+    \item{Cinv_ii }{A one column \code{matrix} of variances for the solutions
+      to the mixed model equations. These are obtained from the diagonal of #'       the inverse Coefficient matrix in the mixed model equations. If lambda
+      is \code{TRUE} then these are on the lambda scale and must be
+      multiplied by \code{sigma2e} to be converted to the original data scale.}
+    \item{r }{A one column \code{matrix} of residual deviations, response minus
+      the values expected based on the solutions, corresponding to the order
+      in \code{modMats$y}.} 
+    \item{AI }{A \code{matrix} of values containing the Average Information
+      matrix, or second partial derivatives of the likelihood with respect to
+      the transformed (co)variance components (\sQuote{nu}). The inverse of
+      this matrix gives the sampling (co)variances of these transformed
+      (co)variance components.}
+    \item{dLdnu }{A single column \code{matrix} of first derivatives of
+      the transformed (co)variance parameters (\sQuote{nu}) with respect to
+      the log-Likelihood.}
+    \item{maxit }{See the parameter described above.}
+    \item{algit }{A \code{character} vector of REML algorithms to use in each
+      iteration.}
+    \item{vit }{See the parameter described above.}
+    \item{v }{See the parameter described above.}
+    \item{cctol }{A \code{numeric} vector of convergence criteria thresholds.}
+    \item{ezero }{A \code{numeric} value for the effective number to use as
+      \dQuote{zero}. VAlues less than this number are treated as zero and
+      fixed to this value.}
+
+    \item{itMat }{A \code{matrix} of details about each iteration. Rows
+      indicate each REML iteration (rownames reflect the REML algorithm used)
+      and columns contain:
+      \describe{
+        \item{nu, theta}{(Co)variance parameters.}
+        \item{sigma2e }{See \sQuote{sigma2e} described above.}
+        \item{tyPy, logDetC }{Estimates for two these two components of the
+          log of the REML likelihoods. These are obtained from Cholesky
+          factorization of the coefficient matrix of the mixed model equations.}
+        \item{loglik }{The REML log-likelihood.}
+        \item{itTime }{Time elapsed for each REML iteration.}
+      }
+    }
+  }
 }
 \description{
 Fit and setup functions for linear mixed-effect model (Gaussian responses).
