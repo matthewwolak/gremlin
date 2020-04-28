@@ -170,11 +170,13 @@ anova.gremlin <- function(object, ..., model.names = NULL){
       r <- deparse(x, width)
       if(length(r) > 1) paste(r[1], "...") else r
     }
-  #TODO reconcile likelihoods with `lm()` where REML = TRUE so can compare
-  ##TODO add `|` below to allow lm
+
   grMods <- as.logical(vapply(dots, FUN = is, FUN.VALUE = NA, "gremlin"))
   if(sum(c(is(object, "gremlin"), grMods)) < 2){
     stop("At least 2 models must be of class 'gremlin' (`is(object, 'gremlin')`)")
+  }
+  if(any(!c(is(object, "gremlin"), grMods))){
+    stop("All models must be of class 'gremlin' (`is(object, 'gremlin')`)")
   }
 
   if(is(object, "gremlin")){
@@ -191,7 +193,7 @@ anova.gremlin <- function(object, ..., model.names = NULL){
 
   if(any(duplicated(mNms)) || max(nchar(mNms)) > 200){
     warning("Failed to find model names, assigning generic names")
-    nNms <- paste0("model", seq_along(mNms))
+    mNms <- paste0("model", seq_along(mNms))
   }
 
   if(length(mNms) != length(mods))
@@ -205,7 +207,7 @@ anova.gremlin <- function(object, ..., model.names = NULL){
   mods <- mods[llo]
   lls <- lls[llo]
   Df <- Df[llo]
-  calls <- lapply(mods, FUN = function(x) getCall(x$grMod))
+  calls <- lapply(mods, FUN = function(x) getCall(x))
   data <- lapply(calls, FUN = "[[", "data")
   if(!all(vapply(data, FUN = identical, FUN.VALUE = NA, data[[1]]))){
     stop("All models must be fit to the same data object")
@@ -238,7 +240,7 @@ anova.gremlin <- function(object, ..., model.names = NULL){
     deviance = -2*llk,
     Chisq = chisq,
     "Chi Df" = dfChisq,
-    "Pr(>Chisq)" = pchisq(chisq, dfChisq, lower.tail = FALSE),
+    "Pr(>Chisq)" = pchisq(chisq, dfChisq, lower.tail = FALSE), #TODO introduce mixtures
     row.names = names(mods), check.names = FALSE)
   class(tabout) <- c("anova", class(tabout))
   forms <- lapply(lapply(calls, FUN = "[[", "random"), FUN = deparse)

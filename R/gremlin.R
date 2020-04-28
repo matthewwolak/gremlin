@@ -242,7 +242,7 @@ gremlin <- function(formula, random = NULL, rcov = ~ units,
 
  return(structure(list(grMod = grModOut$grMod,
 		itMat = grModOut$itMat),
-	class = c("gremlin"), #TODO consider making "gremlinCpp" class
+	class = c("gremlin"),
 	startTime = attr(grMod, "startTime"), endTime = endTime))
 }  #<-- end `gremlin()`
 ################################################################################
