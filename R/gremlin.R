@@ -214,7 +214,7 @@
 #'
 #'   # Modular functions
 #'   ## get model matrices for a mixed model
-#'   mM11 <- gremlin(WWG11 ~ sex - 1, random = ~ sire, data = Mrode11)
+#'   mM11 <- mkModMats(WWG11 ~ sex - 1, random = ~ sire, data = Mrode11)
 #'
 #'   ## setup model, but do not evaluate the log-likelihood
 #'   grSetup <- gremlinSetup(WWG11 ~ sex - 1, random = ~ sire, data = Mrode11)
