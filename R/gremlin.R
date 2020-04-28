@@ -757,7 +757,7 @@ remlIt.default <- function(grMod, ...){
     ## Check that all are implemented in cpp (currently only AI or EM)
     if(any(is.na(intfacalgit))){
       stop(cat("Algorithm", grMod$algit[which(is.na(intfacalgit))],
-	"not implemented in c++, try `gremlinR()`\n"))
+	"not implemented in c++, try", sQuote(`gremlinR()`), "\n"))
     }
 
   nnzWG <- with(grMod, c(length(W@x),		# No. nonzero W
@@ -778,8 +778,9 @@ remlIt.default <- function(grMod, ...){
   } else{
       dimZWG <- c(dimZWG, 0)
       geninv_i <- geninv_p <- geninv_x <- 0
-    stop(cat("gremlin's c++ code is far too sophisticated for such a simple model.\n",
-       "Use the", sQuote('gremlinR()'), "function instead\n"))
+    warning(cat("\n\ngremlin's c++ code is far too sophisticated for such a simple model.\n",
+       "\tRe-fitting with the", sQuote('gremlinR()'), "function instead\n\n"))
+      return(remlIt.gremlinR(grMod))
     }
 
   Cout <- .C("ugremlin", PACKAGE = "gremlin",
