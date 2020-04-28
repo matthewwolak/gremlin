@@ -65,8 +65,15 @@
 #'   # back-transform from (lambda scale) nu to theta
 #'   ## For example, when the sigma2e estimate=0.5
 #'   theta2 <- nu2theta_lambda(nu, sigma2e = 0.5, thetaOut$thetaG, thetaOut$thetaR)
-#' @export
+#' @name covFun
+NULL
+
+
+
+
 # Transformation of starting parameters to correct matrix format.
+#' @rdname covFun
+#' @export
 stTrans <- function(x){
   if(is.numeric(x) && !is.matrix(x)) x <- as.matrix(x)
   if(!isSymmetric(x)) stop(cat("Element", x, "must be a symmetric matrix or a number\n")) 
@@ -79,7 +86,7 @@ stTrans <- function(x){
 
 
 # Starting Parameters to theta List.
-#' @rdname stTrans
+#' @rdname covFun
 #' @export
 start2theta <- function(Gstart, Rstart, name = NULL){
   theta <- c(G = sapply(Gstart, FUN = stTrans), R. = stTrans(Rstart))
@@ -99,7 +106,7 @@ start2theta <- function(Gstart, Rstart, name = NULL){
 
 
 # theta List to Vector
-#' @rdname stTrans
+#' @rdname covFun
 #' @export
 matlist2vech <- function(theta){
   thetav <- sapply(theta, FUN = slot, name = "x")
@@ -113,7 +120,7 @@ matlist2vech <- function(theta){
 
 
 # Vector to List of Matrices.
-#' @rdname stTrans
+#' @rdname covFun
 #' @export
 vech2matlist <- function(vech, skeleton){
   newmatlist <- vector("list", length = length(skeleton))
@@ -148,7 +155,7 @@ vech2matlist <- function(vech, skeleton){
 #TODO also convert to lambda scale
 
 # Transform theta to nu With log-Cholesky Parameterization
-#' @rdname stTrans
+#' @rdname covFun
 #' @export
 #' @import Matrix
 theta2nu_trans <- function(theta){
@@ -157,7 +164,7 @@ theta2nu_trans <- function(theta){
 }
 
 # Back-transform nu to theta, Reversing log-Cholesky Parameterization
-#' @rdname stTrans
+#' @rdname covFun
 #' @export
 #' @import Matrix
 #TODO FIXME when converting back, do exp() of just diagonals
@@ -174,7 +181,7 @@ nu2theta_trans <- function(nu){
 ######################
 
 # Transform theta to nu on the lambda Scale
-#' @rdname stTrans
+#' @rdname covFun
 #' @export
 #' @import Matrix
 theta2nu_lambda <- function(theta, thetaG, thetaR){
@@ -192,7 +199,7 @@ theta2nu_lambda <- function(theta, thetaG, thetaR){
 }
 
 # Back-transform lambda Scale nu to theta
-#' @rdname stTrans
+#' @rdname covFun
 #' @export
 #' @import Matrix
 nu2theta_lambda <- function(nu, sigma2e, thetaG, thetaR){ #TODO FIXME
@@ -215,7 +222,7 @@ nu2theta_lambda <- function(nu, sigma2e, thetaG, thetaR){ #TODO FIXME
 
 ## Mostly ensures correct formatting of theta
 ## TODO combine with above function (reconcile with `vech2matlist()`)
-#' @rdname stTrans
+#' @rdname covFun
 #' @export
 #' @import Matrix
 # theta2nu_noTrans <- function(theta) theta
