@@ -35,6 +35,8 @@
 #' @param skeleton An example structure to map \code{vech} onto.
 #' @param Gstart,Rstart A \code{list} of starting (co)variance values for the
 #'   G-structure (random effects terms) or R-structure (residual).
+#' @param name An (optional) character \code{vector} containing the (co)variance
+#'   component names.
 #' @param thetaG,thetaR A \code{vector} indexing the G-structure or R-structure
 #'   components, respectively.
 #' @param sigma2e A \code{numeric} estimate of the factored out residual
@@ -79,13 +81,13 @@ stTrans <- function(x){
 # Starting Parameters to theta List.
 #' @rdname stTrans
 #' @export
-start2theta <- function(Gstart, Rstart, names = NULL){
+start2theta <- function(Gstart, Rstart, name = NULL){
   theta <- c(G = sapply(Gstart, FUN = stTrans), R. = stTrans(Rstart))
   thetaGorR <- sapply(strsplit(names(theta), ".", fixed = TRUE), FUN = "[[", i = 1)
 #FIXME ensure grep() is best way and won't mess up when multiple Gs and **Rs**
   thetaG <- grep("G", thetaGorR, ignore.case = FALSE)
   thetaR <- grep("R", thetaGorR, ignore.case = FALSE)
-    thNames <- if(!is.null(names)) names else seq(length(thetaG))
+    thNames <- if(!is.null(name)) name else seq_len(length(thetaG))
     names(theta) <- c(paste0(rep("G.", length(thetaG)), thNames),
                       paste0("ResVar", seq(length(thetaR))))
 
