@@ -1,3 +1,11 @@
+# 1.0.0.1
+## NEW
+  - `update()` function
+    - can now continue a model where it left off or change the structure (e.g., drop a single variance component for likelihood ratio test)
+
+## Mnior Changes
+  - Implement more efficient algorithms in the c++ code, that were developed in the R code for version 1.0.0.0.
+
 # 1.0.0.0
 ## NEW
   - Completely revised way models are built and called
