@@ -514,7 +514,7 @@ gremlinSetup <- function(formula, random = NULL, rcov = ~ units,
   if(is.null(mc$Rstart)) Rstart <- matrix(0.5*var(modMats$y))
     else Rstart <- eval(mc$Rstart)
 
-  thetaSt <- start2theta(Gstart, Rstart, names = names(modMats$Zg))
+  thetaSt <- start2theta(Gstart, Rstart, name = names(modMats$Zg))
   thetav <- matlist2vech(thetaSt$theta)
   p <- length(thetav)
 
