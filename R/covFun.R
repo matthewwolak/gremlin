@@ -4,16 +4,16 @@
 #' Converts lists of (co)variance parameters either between \code{list} and 
 #'   \code{vector} format or between the theta and nu scales.
 #'
-#' \describe{
-#'   \item{stTrans }{Transform start parameters into format \code{gremlin}
-#'     expects.} 
-#'   \item{vech2matlist }{Converts a vector of (co)variance parameters to a list of
-#'     covariance matrices.}
+#' \itemize{
+#'   \item{stTrans }{Transform start parameters into lower triangle matrices of
+#'     class \code{dsCMatrix}.}
 #'   \item{start2theta }{Converts lists of starting values for (co)variance
 #'     parameters to a theta object used to structure the (co)variance components
 #'     within gremlin.}
-#'   \item{theta2vech }{Converts a theta (list) of (co)variance parameter
-#'     matrices to a vector.}
+#'   \item{matlist2vech }{Converts a \code{list} of (co)variance parameter
+#'     matrices to a vector with a \dQuote{skel} attribute.}
+#'   \item{vech2matlist }{Converts a vector of (co)variance parameters to a list of
+#'     covariance matrices.}
 #'   \item{theta2nu_trans }{Transforms theta to nu scale by taking the Cholesky
 #'     factor of each covariance matrix and then replacing the diagonals with 
 #'     their (natural) logarithms. Done to ensure matrices are positive definite.}
@@ -27,7 +27,7 @@
 #'   \item{nu2theta_noTrans }{Structures \code{theta} when not transformed.}
 #' }
 #'
-#' @aliases stTrans vech2matlist start2theta theta2vech theta2nu_trans
+#' @aliases stTrans vech2matlist start2theta matlist2vech theta2nu_trans
 #'   nu2theta_trans theta2nu_lambda nu2theta_lambda nu2theta_noTrans
 #' @param x,theta,nu A \code{list} of matrices containing the (co)variance
 #'       parameters of the model.
@@ -55,7 +55,7 @@
 #'   thetaOut <- start2theta(Gstart = list(matrix(1), matrix(2)),
 #'     Rstart = matrix(3))
 #'   ## convert to a vector and then back into a matrix list
-#'   thetav <- theta2vech(thetaOut$theta)
+#'   thetav <- matlist2vech(thetaOut$theta)
 #'   theta <- vech2matlist(thetav, attr(thetav, "skel"))
 #'     identical(thetaOut$theta, theta)  #<-- should be TRUE
 #'   # lambda parameterization transformation
@@ -64,7 +64,7 @@
 #'   ## For example, when the sigma2e estimate=0.5
 #'   theta2 <- nu2theta_lambda(nu, sigma2e = 0.5, thetaOut$thetaG, thetaOut$thetaR)
 #' @export
-# Transformation of starting parameters.
+# Transformation of starting parameters to correct matrix format.
 stTrans <- function(x){
   if(is.numeric(x) && !is.matrix(x)) x <- as.matrix(x)
   if(!isSymmetric(x)) stop(cat("Element", x, "must be a symmetric matrix or a number\n")) 
@@ -73,27 +73,6 @@ stTrans <- function(x){
   x <- as(x, "dsCMatrix")
  x
 }
-
-
-
-# Vector to List of Matrices.
-#' @rdname stTrans
-#' @export
-vech2matlist <- function(vech, skeleton){
-  newmatlist <- vector("list", length = length(skeleton))
-  si <- 1
-  for(s in 1:length(skeleton)){
-    lss <- length(skeleton[[s]][[1]])
-    newmatlist[[s]] <- sparseMatrix(i = skeleton[[s]][[1]],
-	p = skeleton[[s]][[2]],
-	x = vech[seq(from = si, by = 1, length.out = lss)],
-	dims = skeleton[[s]][[3]], symmetric = TRUE, index1 = FALSE)
-    si <- si + lss
-  }
-  if(!is.null(names(skeleton))) names(newmatlist) <- names(skeleton)
- newmatlist
-}
-
 
 
 
@@ -115,10 +94,12 @@ start2theta <- function(Gstart, Rstart, names = NULL){
 
 
 
+
+
 # theta List to Vector
 #' @rdname stTrans
 #' @export
-theta2vech <- function(theta){
+matlist2vech <- function(theta){
   thetav <- sapply(theta, FUN = slot, name = "x")
   skel <- lapply(seq(length(theta)),
 	FUN = function(i){mapply(slot, theta[i], c("i", "p", "Dim"))})
@@ -127,6 +108,27 @@ theta2vech <- function(theta){
 
  thetav
 }
+
+
+# Vector to List of Matrices.
+#' @rdname stTrans
+#' @export
+vech2matlist <- function(vech, skeleton){
+  newmatlist <- vector("list", length = length(skeleton))
+  si <- 1
+  for(s in 1:length(skeleton)){
+    lss <- length(skeleton[[s]][[1]])
+    newmatlist[[s]] <- sparseMatrix(i = skeleton[[s]][[1]],
+	p = skeleton[[s]][[2]],
+	x = vech[seq(from = si, by = 1, length.out = lss)],
+	dims = skeleton[[s]][[3]], symmetric = TRUE, index1 = FALSE)
+    si <- si + lss
+  }
+  if(!is.null(names(skeleton))) names(newmatlist) <- names(skeleton)
+ newmatlist
+}
+
+
 
 
 
@@ -178,9 +180,11 @@ theta2nu_lambda <- function(theta, thetaG, thetaR){
   cRinv <- solve(chol(theta[[thetaR]]))
   # Meyer 1991, p.77 (<-- ?p70/eqn4?)
   nu[thetaG] <- lapply(thetaG,
-    FUN = function(x){as(crossprod(cRinv, nu[[x]]) %*% cRinv, "symmetricMatrix")}) 
+    FUN = function(x){as(as(crossprod(cRinv, nu[[x]]) %*% cRinv, "symmetricMatrix"),
+      "dsCMatrix")}) 
   #TODO what to do if R is a matrix
-  nu[[thetaR]] <- as(crossprod(cRinv, nu[[thetaR]]) %*% cRinv, "symmetricMatrix")
+  nu[[thetaR]] <- as(as(crossprod(cRinv, nu[[thetaR]]) %*% cRinv, "symmetricMatrix"),
+    "dsCMatrix")
 
  nu
 }
@@ -193,8 +197,10 @@ nu2theta_lambda <- function(nu, sigma2e, thetaG, thetaR){ #TODO FIXME
   cR <- chol(matrix(sigma2e))
   theta <- nu
   theta[thetaG] <- lapply(thetaG,
-    FUN = function(x){as(crossprod(cR, nu[[x]]) %*% cR, "symmetricMatrix")})
-  theta[[thetaR]] <- as(crossprod(cR, nu[[thetaR]]) %*% cR, "symmetricMatrix")
+    FUN = function(x){as(as(crossprod(cR, nu[[x]]) %*% cR, "symmetricMatrix"),
+      "dsCMatrix")})
+  theta[[thetaR]] <- as(as(crossprod(cR, nu[[thetaR]]) %*% cR, "symmetricMatrix"),
+    "dsCMatrix")
 
  theta
 }  
@@ -216,8 +222,10 @@ nu2theta_lambda <- function(nu, sigma2e, thetaG, thetaR){ #TODO FIXME
 nu2theta_noTrans <- function(nu, thetaG, thetaR){
   theta <- nu
   theta[thetaG] <- lapply(thetaG,
-    FUN = function(x){as(matrix(nu[[x]],1,1), "symmetricMatrix")})
-  theta[[thetaR]] <- as(matrix(nu[[thetaR]], 1, 1), "symmetricMatrix")
+    FUN = function(x){as(as(matrix(nu[[x]],1,1), "symmetricMatrix"),
+      "dsCMatrix")})
+  theta[[thetaR]] <- as(as(matrix(nu[[thetaR]], 1, 1), "symmetricMatrix"),
+    "dsCMatrix")
 
  theta
 }

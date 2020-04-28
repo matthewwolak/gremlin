@@ -513,7 +513,7 @@ gremlinSetup <- function(formula, random = NULL, rcov = ~ units,
     else Rstart <- eval(mc$Rstart)
 
   thetaSt <- start2theta(Gstart, Rstart, names = names(modMats$Zg))
-  thetav <- theta2vech(thetaSt$theta)
+  thetav <- matlist2vech(thetaSt$theta)
   p <- length(thetav)
 
 
@@ -748,7 +748,7 @@ remlIt <- function(grMod, ...){
 remlIt.default <- function(grMod, ...){
 
   gnu <- lapply(grMod$nu, FUN = as, "dgCMatrix") #FIXME do this directly to begin with or just use dense matrices (class="matrix")
-  nuv <- sapply(grMod$nu, FUN = slot, name = "x") #TODO use `theta2vech()`?
+  nuv <- matlist2vech(grMod$nu)
   # convert algorithms for each iteration into integers
   intfacalgit <- as.integer(factor(grMod$algit[1:grMod$maxit],
     levels = c("EM", "AI"), ordered = TRUE))
@@ -830,18 +830,16 @@ remlIt.default <- function(grMod, ...){
     itMat <- cbind(itMat,
       t(apply(itMat[, c(paste0(names(nuv), "_nu"), "sigma2e"), drop = FALSE],
 	MARGIN = 1,
-	FUN = function(itvec){ sapply(nu2theta_lambda(itvec[1:grMod$p],
-        		sigma2e = itvec[grMod$p+1], grMod$thetaG, grMod$thetaR),
-		FUN = slot, name = "x")})))[, c(seq(grMod$p),
+	FUN = function(itvec){ matlist2vech(nu2theta_lambda(itvec[1:grMod$p],
+          sigma2e = itvec[grMod$p+1], grMod$thetaG, grMod$thetaR))})))[, c(seq(grMod$p),
       seq(grMod$p+6, 2*grMod$p+5), seq(grMod$p+1, grMod$p+5)), drop = FALSE] #<-- thetas named 'nu' in colnames for now, use numeric indices to rearrange
 
   } else{
       itMat <- cbind(itMat,
         t(apply(itMat[, c(paste0(names(nuv), "_nu"), "sigma2e"), drop = FALSE],
 	  MARGIN = 1,
-	  FUN = function(itvec){ sapply(nu2theta_noTrans(itvec[1:grMod$p],
-			grMod$thetaG, grMod$thetaR),
-		FUN = slot, name = "x")})))[, c(seq(grMod$p),
+	  FUN = function(itvec){ matlist2vech(nu2theta_noTrans(itvec[1:grMod$p],
+	    grMod$thetaG, grMod$thetaR))})))[, c(seq(grMod$p),
         seq(grMod$p+6, 2*grMod$p+5), seq(grMod$p+1, grMod$p+5)), drop = FALSE] #<-- thetas named 'nu' in colnames for now, use numeric indices to rearrange
 
     }  #<-- end if/else lambda
@@ -930,15 +928,14 @@ remlIt.gremlinR <- function(grMod, ...){
 	  thetaR,
 	  tWW = NULL, RHS = NULL)
       }  #<-- end if/else lambda
-      nuv <- sapply(nu, FUN = slot, name = "x")  #TODO use `theta2vech()`?
+      nuv <- matlist2vech(nu)
       sigma2e[] <- remlOut$sigma2e
       grMod$sln <- remlOut$sln
       grMod$r <- remlOut$r
       sLc <- remlOut$sLc #TODO to use `update()` need to return `C` in `remlOut`
 
     itMat[i, -ncol(itMat)] <- c(nuv,
-      sapply(if(lambda) nu2theta_lambda(nu, sigma2e, thetaG, thetaR) else nu2theta_noTrans(nu, thetaG, thetaR),
-            FUN = slot, name = "x"),
+      matlist2vech(if(lambda) nu2theta_lambda(nu, sigma2e, thetaG, thetaR) else nu2theta_noTrans(nu, thetaG, thetaR)),
       sigma2e, remlOut$tyPy, remlOut$logDetC, remlOut$loglik) 
     # 5c check convergence criteria
     ## Knight 2008 (ch. 6) says Searle et al. 1992 and Longford 1993 discuss diff types of converg. crit.
@@ -1151,7 +1148,7 @@ stop(cat("\nNot allowing `NR` right now"))
   } else{
       theta <- nu2theta_noTrans(nu, thetaG, thetaR)
     }
-  thetav <- theta2vech(theta)
+  thetav <- matlist2vech(theta)
 
 
   # Calculate Cinv_ii and AI for last set of parameters

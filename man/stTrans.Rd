@@ -4,7 +4,7 @@
 \alias{stTrans}
 \alias{vech2matlist}
 \alias{start2theta}
-\alias{theta2vech}
+\alias{matlist2vech}
 \alias{theta2nu_trans}
 \alias{nu2theta_trans}
 \alias{theta2nu_lambda}
@@ -14,11 +14,11 @@
 \usage{
 stTrans(x)
 
-vech2matlist(vech, skeleton)
-
 start2theta(Gstart, Rstart, names = NULL)
 
-theta2vech(theta)
+matlist2vech(theta)
+
+vech2matlist(vech, skeleton)
 
 theta2nu_trans(theta)
 
@@ -34,12 +34,12 @@ nu2theta_noTrans(nu, thetaG, thetaR)
 \item{x, theta, nu}{A \code{list} of matrices containing the (co)variance
 parameters of the model.}
 
+\item{Gstart, Rstart}{A \code{list} of starting (co)variance values for the
+G-structure (random effects terms) or R-structure (residual).}
+
 \item{vech}{A \code{vector} of (co)variance parameters.}
 
 \item{skeleton}{An example structure to map \code{vech} onto.}
-
-\item{Gstart, Rstart}{A \code{list} of starting (co)variance values for the
-G-structure (random effects terms) or R-structure (residual).}
 
 \item{thetaG, thetaR}{A \code{vector} indexing the G-structure or R-structure
 components, respectively.}
@@ -63,16 +63,16 @@ Converts lists of (co)variance parameters either between \code{list} and
   \code{vector} format or between the theta and nu scales.
 }
 \details{
-\describe{
-  \item{stTrans }{Transform start parameters into format \code{gremlin}
-    expects.} 
-  \item{vech2matlist }{Converts a vector of (co)variance parameters to a list of
-    covariance matrices.}
+\itemize{
+  \item{stTrans }{Transform start parameters into lower triangle matrices of
+    class \code{dsCMatrix}.}
   \item{start2theta }{Converts lists of starting values for (co)variance
     parameters to a theta object used to structure the (co)variance components
     within gremlin.}
-  \item{theta2vech }{Converts a theta (list) of (co)variance parameter
-    matrices to a vector.}
+  \item{matlist2vech }{Converts a \code{list} of (co)variance parameter
+    matrices to a vector with a \dQuote{skel} attribute.}
+  \item{vech2matlist }{Converts a vector of (co)variance parameters to a list of
+    covariance matrices.}
   \item{theta2nu_trans }{Transforms theta to nu scale by taking the Cholesky
     factor of each covariance matrix and then replacing the diagonals with 
     their (natural) logarithms. Done to ensure matrices are positive definite.}
@@ -91,7 +91,7 @@ Converts lists of (co)variance parameters either between \code{list} and
   thetaOut <- start2theta(Gstart = list(matrix(1), matrix(2)),
     Rstart = matrix(3))
   ## convert to a vector and then back into a matrix list
-  thetav <- theta2vech(thetaOut$theta)
+  thetav <- matlist2vech(thetaOut$theta)
   theta <- vech2matlist(thetav, attr(thetav, "skel"))
     identical(thetaOut$theta, theta)  #<-- should be TRUE
   # lambda parameterization transformation
