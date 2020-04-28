@@ -571,12 +571,12 @@ lambda <- length(thetaSt$thetaR) == 1
 
     # 1 Create coefficient matrix of MME (C)
     ##1a form W by `cbind()` X and each Z_i
-    if(modMats$nG < 1) W <- modMats$X else  W <- cbind(modMats$X, modMats$Zg[[1]]) 
-    if(modMats$nG > 1){
-      for(g in 2:modMats$nG){
-        W <- cbind(W, modMats$Zg[[g]])
-      }
-    }
+    if(modMats$nG < 1) W <- modMats$X
+     else{
+       W <- cbind(modMats$X, modMats$Zg[[1]]) 
+       for(g in 2:modMats$nG) W <- cbind(W, modMats$Zg[[g]])
+     }
+
     # Rand Fx incidence matrix part of 'log(|G|)'
     #FIXME: Only works for independent random effects right now!
     rfxIncContrib2loglik <- sum(unlist(modMats$logDetG))
@@ -599,15 +599,18 @@ lambda <- length(thetaSt$thetaR) == 1
       ## `Bpinv` replaces `zero` in earlier version of `gremlinR()`
       ## Can allow for prior on fixed effects
       ## (see Schaeffer 1991 summary of Henderson's result)
-    # Find Non-diagonal ginverses
-    ## FALSE/0=I; TRUE/1=geninv 
-    ndgeninv <- sapply(seq_len(modMats$nG),
-	FUN = function(g){class(modMats$listGeninv[[g]]) != "ddiMatrix"}) 
-    dimsZg <- sapply(seq_len(modMats$nG),
-	FUN = function(g){slot(modMats$Zg[[g]], "Dim")})
     # if no random effects in model:
-      if(length(ndgeninv) == 0) ndgeninv <- c(0)
-      if(length(dimsZg) == 0) dimsZg <- matrix(0, nrow = 2, ncol = 1)
+    if(modMats$nG < 1){
+      ndgeninv <- c(0)
+      dimsZg <- matrix(0, nrow = 2, ncol = 1)
+    } else{
+        # Find Non-diagonal ginverses
+        ## FALSE/0=I; TRUE/1=geninv 
+        ndgeninv <- sapply(seq_len(modMats$nG),
+	  FUN = function(g){class(modMats$listGeninv[[g]]) != "ddiMatrix"}) 
+        dimsZg <- sapply(seq_len(modMats$nG),
+	  FUN = function(g){slot(modMats$Zg[[g]], "Dim")})
+      }
     sln <- Cinv_ii <- matrix(0, nrow = modMats$nb + sum(dimsZg[2, ]), ncol = 1)
     r <- matrix(0, nrow = modMats$ny, ncol = 1)
     if(lambda){
@@ -760,24 +763,42 @@ remlIt.default <- function(grMod, ...){
 	"not implemented in c++, try `gremlinR()`\n"))
     }
 
+
+  nnzWG <- with(grMod, c(length(W@x),		# No. nonzero W
+    sapply(seq_len(length(thetaG)),
+	    FUN = function(g){length(modMats$listGeninv[[g]]@x)}))) # No. nz geninvs
+
+  dimZWG <- with(grMod, c(rowSums(dimsZg),		# Z Dims
+    W@Dim))						# W Dims
+  if(!is.null(grMod$modMats$listGeninv)){  		
+    dimZWG <- c(dimZWG, unlist(lapply(grMod$modMats$listGeninv,  # geninv Dims
+      FUN = function(g){g@Dim[[1L]]})))
+    geninv_i <- unlist(lapply(grMod$modMats$listGeninv[grMod$ndgeninv],
+	FUN = function(g){g@i}))
+    geninv_p <- unlist(lapply(grMod$modMats$listGeninv[grMod$ndgeninv],
+	FUN = function(g){g@p}))
+    geninv_x <- unlist(lapply(grMod$modMats$listGeninv[grMod$ndgeninv],
+	FUN = function(g){g@x}))
+  } else{
+      dimZWG <- c(dimZWG, 0)
+      geninv_i <- geninv_p <- geninv_x <- 0
+    }
+
   Cout <- .C("ugremlin", PACKAGE = "gremlin",
 	as.double(grMod$modMats$y),
 	as.integer(grMod$modMats$ny),
 	as.integer(grMod$nminffx),		# No. observations - No. Fxd Fx
 	as.integer(grMod$ndgeninv),		# non-diagonal ginverses
 	as.integer(c(grMod$dimsZg)),
-	as.integer(with(grMod, c(rowSums(dimsZg),		# Z Dims
-	  W@Dim,						# W Dims
-	  unlist(lapply(modMats$listGeninv, FUN = function(g){g@Dim[[1L]]}))))), # geninv Dims
-	as.integer(with(grMod, c(length(W@x),		# No. nonzero W
-	  sapply(seq(length(thetaG)), FUN = function(g){length(modMats$listGeninv[[g]]@x)})))), # No. nnz geninvs
+	as.integer(dimZWG), 			# Z, W, and geninv Dims
+	as.integer(nnzWG), 			# No. nnz in W and geninvs
 	as.integer(grMod$W@i), 					     #W
 	as.integer(grMod$W@p),
 	as.double(grMod$W@x),
-	as.integer(unlist(lapply(grMod$modMats$listGeninv[grMod$ndgeninv], FUN = function(g){g@i}))), #geninv (generalized inverses)
+	as.integer(geninv_i), #geninv (generalized inverses)
 
-	as.integer(unlist(lapply(grMod$modMats$listGeninv[grMod$ndgeninv], FUN = function(g){g@p}))),
-	as.double(unlist(lapply(grMod$modMats$listGeninv[grMod$ndgeninv], FUN = function(g){g@x}))),
+	as.integer(geninv_p),
+	as.double(geninv_x),
 	as.double(grMod$rfxIncContrib2loglik),		# Random Fx contribution to log-Likelihood
         as.integer(grMod$lambda),		# TRUE/FALSE lambda (variance ratio?)
 	as.integer(grMod$p),				#p=No. nu params
@@ -994,7 +1015,6 @@ if(nrow(theta[[thetaR]]) != 1){
 	              grMod$modMats, grMod$W, sLc, grMod$sln, grMod$r,
 	  	      thetaR = NULL,
 		      sigma2e)  #<-- NULL if lambda==FALSE
-
 	  dLdnu <- gradFun(nuv, thetaG, grMod$modMats, Cinv, grMod$sln,
 	    	      sigma2e = sigma2e, r = NULL, nminfrfx = NULL)
 #          dLdnu_TEST <- gradFun_TEST(nuv, thetaG,
