@@ -127,9 +127,9 @@
 #'     \item{dimsZg, nminffx, rfxlvls, nminfrfx }{\code{Numeric} vectors or scalars
 #'       describing the numbers of random effects or some function of random and
 #'       fixed effects.}
-#'     \item{thetav, skel }{A \code{vector} of the (co)variance parameters to
-#'       be estimated by REML and the skeleton for recreating a list of
-#'       \code{matrices} from this vector.}
+#'     \item{thetav }{A \code{vector} of the (co)variance parameters to
+#'       be estimated by REML withe the attribute \dQuote{skel} giving the
+#'       skeleton for recreating a list of \code{matrices} from this vector.}
 #'     \item{thetaG, thetaR }{\code{Vectors} indexing the random and residual
 #'        (co)variances, respectively, in a list of (co)variance matrices (i.e.,
 #'        \code{theta}).}
@@ -633,7 +633,7 @@ lambda <- length(thetaSt$thetaR) == 1
 		rfxIncContrib2loglik = rfxIncContrib2loglik,
 		ndgeninv = ndgeninv, dimsZg = dimsZg, nminffx = nminffx,
 		rfxlvls = rfxlvls, nminfrfx = nminfrfx,
-		thetav = thetav, skel = attr(thetav, "skel"),
+		thetav = thetav,
 		thetaG = thetaSt$thetaG, thetaR = thetaSt$thetaR,
 		nu = nu,
 		sigma2e = sigma2e,
@@ -806,7 +806,7 @@ remlIt.default <- function(grMod, ...){
 
   i <- Cout[[34]]  #<-- index from c++ always increments +1 at end of for `i`
 
-  grMod$nu[] <- vech2matlist(Cout[[22]], grMod$skel)
+  grMod$nu[] <- vech2matlist(Cout[[22]], attr(grMod$thetav, "skel"))
   grMod$dLdnu[] <- Cout[[27]]
   if(all(Cout[[28]] == 0)) grMod$AI <- NULL else{
     grMod$AI <- matrix(Cout[[28]], nrow = grMod$p, ncol = grMod$p, byrow = FALSE)
@@ -883,7 +883,7 @@ remlIt.gremlinR <- function(grMod, ...){
   # pull a few objects out that will be used repeatedly
   ## favor "small" objects. keep large objects in grMod unless they change often
   thetav <- grMod$thetav
-  skel <- grMod$skel
+  skel <- attr(grMod$thetav, "skel")
   thetaG <- grMod$thetaG
   thetaR <- grMod$thetaR
   nu <- grMod$nu

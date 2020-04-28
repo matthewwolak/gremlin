@@ -127,9 +127,9 @@ A \code{list} containing an object of class \code{grMod} and, if a
     \item{dimsZg, nminffx, rfxlvls, nminfrfx }{\code{Numeric} vectors or scalars
       describing the numbers of random effects or some function of random and
       fixed effects.}
-    \item{thetav, skel }{A \code{vector} of the (co)variance parameters to
-      be estimated by REML and the skeleton for recreating a list of
-      \code{matrices} from this vector.}
+    \item{thetav }{A \code{vector} of the (co)variance parameters to
+      be estimated by REML withe the attribute \dQuote{skel} giving the
+      skeleton for recreating a list of \code{matrices} from this vector.}
     \item{thetaG, thetaR }{\code{Vectors} indexing the random and residual
        (co)variances, respectively, in a list of (co)variance matrices (i.e.,
        \code{theta}).}
