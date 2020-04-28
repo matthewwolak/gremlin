@@ -206,6 +206,12 @@
 #' Mrode. 2005.
 #' @author \email{matthewwolak@@gmail.com}
 #' @examples
+#'   grSire <- gremlin(WWG11 ~ sex, random = ~ sire, data = Mrode11)
+#'   # Now drop sire random effects and use the `anova` method to compare models
+#'   grLM <- update(grSire, random = ~ 1)  #<-- use `~1` to specify no random effects
+#`     ## compare models
+#'     anova(grSire, grLM)
+#'
 #'  TODO XXX XXX Make example of each modular component working with next
 #'   mod11 <- gremlinRmod(WWG11 ~ sex - 1,
 #'   	random = ~ calf,
