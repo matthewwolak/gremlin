@@ -395,7 +395,6 @@ update.gremlin <- function(object, ...){
     if(arg %in% names(new_args)){
       if(diffMod) call[[arg]] <- new_args[[arg]]
         else{
-          # First check and see if `arg` in new_args[[arg]] and is not NULL
           ## fill in G/Rstart if arg in new_args or if not in new_args then fill object starts/thetav/nu with last parameter values to start from there? (Find out what remlIt needs)
           #TODO G/Rstarts need to be transformed to replace thetav/nu, maybe sigma2e, etc. in `object$grMod`
 
