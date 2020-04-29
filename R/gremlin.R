@@ -105,9 +105,6 @@
 #' @param contrasts Specify the type of contrasts for the fixed effects.
 #' @param Xsparse Should sparse matrices be used for the fixed effects design
 #'   matrix.
-#' @param cctol Convergence criteria tolerances. TODO
-#' @param ezero Effective zero to be used, values less than this number are
-#'   treated as zero and fixed to this value.
 #' @param \dots Additional arguments to be passed to control the model fitting.
 #'
 #' @return A \code{list} containing an object of class \code{grMod} and, if a 
@@ -221,7 +218,7 @@
 #' @examples
 #'   grSire <- gremlin(WWG11 ~ sex, random = ~ sire, data = Mrode11)
 #'   # Now drop sire random effects and use the `anova` method to compare models
-#'   grLM <- update(grSire, random = ~ 1)  #<-- use `~1` to specify no random effects
+#'   grLM <- update(grSire, random = ~ 1)  #<-- use `~1` to drop all random effects
 #`     ## compare models
 #'     anova(grSire, grLM)
 #'
@@ -241,7 +238,7 @@ gremlin <- function(formula, random = NULL, rcov = ~ units,
 		Gstart = NULL, Rstart = NULL, Bp = NULL,
 		maxit = 20, algit = NULL,
 		vit = 10, v = 1,
-		cctol = c(5e-4, 1e-8, 1e-3, NULL), ezero = 1e-8, ...){
+		control = gremlinControl(), ...){
 
   mc <- as.list(match.call())
   mGmc <- as.call(c(quote(gremlinSetup), mc[-1]))
@@ -275,7 +272,7 @@ gremlinR <- function(formula, random = NULL, rcov = ~ units,
 		Gstart = NULL, Rstart = NULL, Bp = NULL,
 		maxit = 20, algit = NULL,
 		vit = 10, v = 1,
-		cctol = c(5e-4, 1e-8, 1e-3, NULL), ezero = 1e-8, ...){
+		control = gremlinControl(), ...){
 
   mc <- as.list(match.call())
   mGmc <- as.call(c(quote(gremlinSetup), mc[-1]))
@@ -503,9 +500,13 @@ gremlinSetup <- function(formula, random = NULL, rcov = ~ units,
 		Gstart = NULL, Rstart = NULL, Bp = NULL,
 		maxit = 20, algit = NULL,
 		vit = 10, v = 1,
-		cctol = c(5e-4, 1e-8, 1e-3, NULL), ezero = 1e-8, ...){
-#FIXME USE?		control = gremlinControl(), ...){
+		control = gremlinControl(), ...){
 
+
+#TODO: Left off here April 28 2020. Need to go through gremlinSetup:
+## see what call looks like as passed into gremlinSetup with default control and one with a changed control
+## Check/change all code below and make sure cctol, ezero, and lambda work correctly
+## Add warning just below with algChoices to check for algorithm argument and stop with message that gremlin isn't old enough for that yet.
   stopifnot(inherits(formula, "formula"), length(formula) == 3L)
   mc <- as.list(match.call())
   startTime <- Sys.time()
