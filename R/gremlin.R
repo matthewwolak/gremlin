@@ -24,16 +24,29 @@
 #'   Thompson & Johnson. 1995.
 #' @seealso \code{\link[MCMCglmm:MCMCglmm-package]{MCMCglmm}}
 #' @examples
-#' #TODO: simple examples of the most important functions
 #' \dontrun{
-#'   library(nadiv)
-#'   Ainv <- makeAinv(Mrode3[-c(1:2), 1:3])$Ainv
-#'   mod11 <- gremlin(WWG11 ~ sex - 1,
+#'   # Following the example from Mrode 2005, chapter 11.
+#'   library(nadiv)  #<-- to construct inverse of the numerator relatedness matrix
+#'   Ainv <- makeAinv(Mrode11[, 1:3])$Ainv
+#'
+#'   grOut11 <- gremlin(WWG11 ~ sex - 1,
 #'	random = ~ calf,
 #'	data = Mrode11,
 #'	ginverse = list(calf = Ainv),
-#'	Gstart = matrix(0.2), Rstart = matrix(0.4),
-#'	maxit = 10, v = 2)
+#'	Gstart = matrix(0.2), Rstart = matrix(0.4),  #<-- specify starting values
+#'	maxit = 10,    #<-- maximum iterations
+#'      v = 2, vit = 1,  #<-- moderate screen output (`v`) every iteration (`vit`)
+#'      algit = "AI")  #<-- only use Average Information algorithm iterations
+#'   summary(grOut11)
+#'
+#'   # Compare the model to a Linear Model with no random effects
+#'   ## Use `update()` to update the model
+#'   grOutLM <- update(grOut11, random = ~ 1)  #<-- `~1`=drop all random effects
+#'   summary(grOutLM)
+#'
+#'   # Do analysis of variance between the two models
+#'   ## See AIC or evaluate likelihood ratio against a Chi-squared distribution
+#'   anova(grOutLM, grOut11)
 #' }
 "_PACKAGE"
 
