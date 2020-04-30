@@ -502,8 +502,6 @@ gremlinSetup <- function(formula, random = NULL, rcov = ~ units,
 		vit = 10, v = 1,
 		control = gremlinControl(), ...){
 
-#TODO FIXME		FIXME!!!!
-## Add warning just below with algChoices to check for algorithm argument and stop with message that gremlin isn't old enough for that yet.
   stopifnot({
     inherits(formula, "formula")
     length(formula) == 3L
@@ -516,15 +514,32 @@ gremlinSetup <- function(formula, random = NULL, rcov = ~ units,
   mMmc <- as.call(c(quote(mkModMats), mc[m]))
   modMats <- eval(mMmc, parent.frame())
 
-  algChoices <- c("EM", "AI", "bobyqa", "NR") #TODO Update if add/subtract any
+  #algChoices <- c("EM", "AI", "bobyqa", "NR", control$algorithm)
+  algChoices <- c("EM", "AI", "bobyqa", "NR")  #<-- ignore control$algorithm
+    if(!is.null(control$algorithm)){
+      #TODO check validity of `control$algorithm` and `control$algArgs`
+      ## need to pass algorithm to `gremlinR` or switch to it if `gremlin` called
+      ## temporarily IGNORE with warning
+      warning(cat("Ignored algorithm(s) supplied in control",
+        dQuote(control$algorithm),
+        ". gremlin is not old enough for user-specified algorithms\n"),
+          immediate. = TRUE)
+    }
   algMatch <- pmatch(algit, algChoices, nomatch = 0, duplicates.ok = TRUE)
+  if(all(algMatch == 0) & !all(algit %in% control$algorithm)){ 
+      stop(cat("Algorithms:", dQuote(algit[which(algMatch == 0)]),
+        "not valid. Please check values given to the `algit` argument\n"))
+  }
   if(any(algMatch == 0)){  
-    stop(cat("Algorithms:", algit[which(algMatch == 0)],
-      "not valid. Please check values given to the `algit` argument\n"))
+    warning(cat("Algorithms:", dQuote(algit[which(algMatch == 0)]),
+      "not valid - dropped from the list\n"))
+    algit <- algit[-which(algMatch == 0)]
   }
   if(is.null(mc$algit)){
     algit <- c(rep("EM", min(maxit, 2)), rep("AI", max(0, maxit-2)))
   } else algit <- algChoices[algMatch]
+  if(length(algit) == 0) algit <- c(rep("EM", min(maxit, 2)),
+                                    rep("AI", max(0, maxit-2)))
   if(length(algit) == 1) algit <- rep(algit, maxit)
 
 
@@ -549,7 +564,6 @@ gremlinSetup <- function(formula, random = NULL, rcov = ~ units,
   lambda <- control$lambda
 
 
-#FIXME make below uni=TRUE if R=I sigma2e
 #TODO put `uni` in `mkModMats()`
   if(modMats$ncy == 1) uni <- TRUE
     else stop("gremlin isn't old enough to play with multivariate models")
