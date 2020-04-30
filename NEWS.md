@@ -5,6 +5,7 @@
 
 ## Mnior Changes
   - Implement more efficient algorithms in the c++ code, that were developed in the R code for version 1.0.0.0.
+  - Add `gremlinControl()` function for _advanced_ changes to the way gremlin runs
 
 # 1.0.0.0
 ## NEW
