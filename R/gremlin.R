@@ -502,12 +502,13 @@ gremlinSetup <- function(formula, random = NULL, rcov = ~ units,
 		vit = 10, v = 1,
 		control = gremlinControl(), ...){
 
-
-#TODO: Left off here April 28 2020. Need to go through gremlinSetup:
-## see what call looks like as passed into gremlinSetup with default control and one with a changed control
-## Check/change all code below and make sure cctol, ezero, and lambda work correctly
+#TODO FIXME		FIXME!!!!
 ## Add warning just below with algChoices to check for algorithm argument and stop with message that gremlin isn't old enough for that yet.
-  stopifnot(inherits(formula, "formula"), length(formula) == 3L)
+  stopifnot({
+    inherits(formula, "formula")
+    length(formula) == 3L
+    inherits(control, "gremlinControl")
+  })
   mc <- as.list(match.call())
   startTime <- Sys.time()
   if(v > 0) cat("gremlin started:\t\t", format(startTime, "%H:%M:%S"), "\n")
@@ -542,32 +543,16 @@ gremlinSetup <- function(formula, random = NULL, rcov = ~ units,
 
 
 
-
-
-
-
-
-
 #TODO TODO TODO TODO TODO TODO TODO
-#XXX Figure out how to identify `lambda` model from model call
-
-#FIXME quick fix for now
-lambda <- length(thetaSt$thetaR) == 1
-#lambda <- FALSE  #<-- XXX FIXME DELETEME turned OFF permanently, for now
-#TODO quick fix to turn this off from the call if I don't want to do lambda model
+#XXX Determine from model how to make `lambda==FALSE` for models where appropriate
 #TODO make `lambda == FALSE` if EM is part of algit (not sure if EM works for lambda or not) #<-- FIXME figure out how to do EM on lambda
-
-
-
-
-
-#FIXME figure out environments so all in modMats environment is accessible outside of it
-
+  lambda <- control$lambda
 
 
 #FIXME make below uni=TRUE if R=I sigma2e
 #TODO put `uni` in `mkModMats()`
-    if(modMats$ncy == 1) uni <- TRUE else stop("gremlin isn't old enough to play with multivariate models")
+  if(modMats$ncy == 1) uni <- TRUE
+    else stop("gremlin isn't old enough to play with multivariate models")
 
 
 
@@ -578,17 +563,9 @@ lambda <- length(thetaSt$thetaR) == 1
 #### is it easier to do direct product of cholesky's than direct product then cholesky?
 #### If the latter then save the symbolic factorization and just do updates?
 #XXX Don't need for EM algorithm
-  transform <- FALSE
-  if(transform){ 
-    nu <- theta2nu_trans(thetaSt$theta)
-  } else{
-      if(lambda)
-        nu <- theta2nu_lambda(thetaSt$theta, thetaSt$thetaG, thetaSt$thetaR)
-          else nu <- thetaSt$theta
-    }
-
-
-
+  #nu <- theta2nu_trans(thetaSt$theta)
+  if(lambda) nu <- theta2nu_lambda(thetaSt$theta, thetaSt$thetaG, thetaSt$thetaR)
+    else nu <- thetaSt$theta
 
 
     # 1 Create coefficient matrix of MME (C)
@@ -667,7 +644,7 @@ lambda <- length(thetaSt$thetaR) == 1
 		sln = sln, Cinv_ii = Cinv_ii, r = r,
 		AI = AI, dLdnu = dLdnu,
 		maxit = maxit, algit = algit, vit = vit, v = v,
-		cctol = cctol, ezero = ezero),
+		cctol = control$cctol, ezero = control$ezero),
 	class = c("grMod", "gremlin"),
 	startTime = startTime))
 }  #<-- end `gremlinSetup()`

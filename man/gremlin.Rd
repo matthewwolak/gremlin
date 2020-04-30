@@ -14,13 +14,13 @@
 \usage{
 gremlin(formula, random = NULL, rcov = ~units, data = NULL,
   ginverse = NULL, Gstart = NULL, Rstart = NULL, Bp = NULL,
-  maxit = 20, algit = NULL, vit = 10, v = 1, cctol = c(5e-04,
-  1e-08, 0.001, NULL), ezero = 1e-08, ...)
+  maxit = 20, algit = NULL, vit = 10, v = 1,
+  control = gremlinControl(), ...)
 
 gremlinR(formula, random = NULL, rcov = ~units, data = NULL,
   ginverse = NULL, Gstart = NULL, Rstart = NULL, Bp = NULL,
-  maxit = 20, algit = NULL, vit = 10, v = 1, cctol = c(5e-04,
-  1e-08, 0.001, NULL), ezero = 1e-08, ...)
+  maxit = 20, algit = NULL, vit = 10, v = 1,
+  control = gremlinControl(), ...)
 
 \method{getCall}{gremlin}(x, ...)
 
@@ -28,8 +28,8 @@ update.gremlin(object, ...)
 
 gremlinSetup(formula, random = NULL, rcov = ~units, data = NULL,
   ginverse = NULL, Gstart = NULL, Rstart = NULL, Bp = NULL,
-  maxit = 20, algit = NULL, vit = 10, v = 1, cctol = c(5e-04,
-  1e-08, 0.001, NULL), ezero = 1e-08, ...)
+  maxit = 20, algit = NULL, vit = 10, v = 1,
+  control = gremlinControl(), ...)
 
 \method{is}{gremlin}(x)
 
@@ -77,11 +77,6 @@ larger values increase the amount of information printed on the screen.}
 \item{v}{An \code{integer} value specifying the verbosity of screen output
 regarding the model fitting process. A value of zero gives no details and
 larger values increase the amount of information printed on the screen.}
-
-\item{cctol}{Convergence criteria tolerances. TODO}
-
-\item{ezero}{Effective zero to be used, values less than this number are
-treated as zero and fixed to this value.}
 
 \item{\dots}{Additional arguments to be passed to control the model fitting.}
 
@@ -209,12 +204,20 @@ Fit and setup functions for linear mixed-effect model (Gaussian responses).
 }}
 
 \examples{
- TODO XXX XXX Make example of each modular component working with next
-  mod11 <- gremlinRmod(WWG11 ~ sex - 1,
-  	random = ~ calf,
-  	data = Mrode11,
-  	Gstart = matrix(0.2), Rstart = matrix(0.4),
-  	maxit = 10, v = 2)
+  grSire <- gremlin(WWG11 ~ sex, random = ~ sire, data = Mrode11)
+  # Now drop sire random effects and use the `anova` method to compare models
+  grLM <- update(grSire, random = ~ 1)  #<-- use `~1` to drop all random effects
+    anova(grSire, grLM)
+
+  # Modular functions
+  ## get model matrices for a mixed model
+  mM11 <- mkModMats(WWG11 ~ sex - 1, random = ~ sire, data = Mrode11)
+
+  ## setup model, but do not evaluate the log-likelihood
+  grSetup <- gremlinSetup(WWG11 ~ sex - 1, random = ~ sire, data = Mrode11)
+  ## maximize the restricted maximum likelihood
+  grOut <- remlIt(grSetup)
+  summary(grOut)
 
 }
 \references{
