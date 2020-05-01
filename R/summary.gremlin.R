@@ -363,7 +363,7 @@ summary.gremlin <- function(object, ...){
     if(!is.null(object$grMod$AI)){
       invAI <- solve(object$grMod$AI)
       if(object$grMod$lambda){
-        varcompSummary[, "Std. Error"] <-  nuVar2thetaVar_lambda(object)
+        varcompSummary[, "Std. Error"] <- sqrt(nuVar2thetaVar_lambda(object))
       } else sqrt(diag(invAI))
       varcompSampCor <- cov2cor(invAI)
     } else{
