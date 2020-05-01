@@ -362,8 +362,9 @@ summary.gremlin <- function(object, ...){
     dimnames(varcompSummary)[[1L]] <- vcItMatNames
     if(!is.null(object$grMod$AI)){
       invAI <- solve(object$grMod$AI)
-      varcompSummary[, "Std. Error"] <- if(lambda) nuVar2thetaVar_lambda(object)
-        else sqrt(diag(invAI))
+      if(object$grMod$lambda){
+        varcompSummary[, "Std. Error"] <-  nuVar2thetaVar_lambda(object)
+      } else sqrt(diag(invAI))
       varcompSampCor <- cov2cor(invAI)
     } else{
         varcompSampCor <- matrix(NA, nrow = nvc, ncol = nvc)
