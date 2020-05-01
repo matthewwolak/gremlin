@@ -26,14 +26,18 @@
 #'     ratios of variance parameters with the residual variance.}
 #'   \item{\code{nu2theta_lambda} }{Back transformation from
 #'     \code{theta2nu_lambda}.}
+#'   \item{\code{nuVar2thetaVar_lambda} }{Transformation of Sampling Variances
+#'     from \code{lambda} Scale for \code{theta}.}
 #'   \item{\code{nu2theta_noTrans} }{Structures \code{theta} when not
 #'     transformed.}
 #' }
 #'
 #' @aliases stTrans vech2matlist start2theta matlist2vech theta2nu_trans
-#'   nu2theta_trans theta2nu_lambda nu2theta_lambda nu2theta_noTrans
+#'   nu2theta_trans theta2nu_lambda nu2theta_lambda nuVar2thetaVar_lambda
+#'   nu2theta_noTrans
 #' @param x,theta,nu A \code{list} of matrices containing the (co)variance
 #'       parameters of the model.
+#' @param object An object of \code{class} \sQuote{gremlin}.
 #' @param vech A \code{vector} of (co)variance parameters.
 #' @param skeleton An example structure to map \code{vech} onto.
 #' @param Gstart,Rstart A \code{list} of starting (co)variance values for the
@@ -218,6 +222,27 @@ nu2theta_lambda <- function(nu, sigma2e, thetaG, thetaR){ #TODO FIXME
 }  
 
 
+#############################
+#XXX Works on AI matrix XXX
+# Back-transform Sampling Variances from lambda Scale for theta
+#' @rdname covFun
+#' @export
+nuVar2thetaVar_lambda <- function(object){
+  s2e <- object$grMod$sigma2e
+  se <- sqrt(s2e)
+  nuv <- c(matlist2vech(object$grMod$nu))
+  s2e_ind <- length(nuv) #FIXME assumes always at the end (find which ==1.0)
+  nuv[s2e_ind] <- s2e 
+  AIinv <- solve(object$grMod$AI)  #<-- TODO some check about invertibility?
+  s2e_var <- diag(AIinv)[s2e_ind]
+
+ c(nuv[-s2e_ind]^2 * s2e_var +
+    2 * s2e * nuv[-s2e_ind] * AIinv[s2e_ind, -s2e_ind] +
+    s2e^2 * diag(AIinv)[-s2e_ind],
+      s2e_var)
+}
+
+
 
 ######################
 # No transformations
@@ -241,5 +266,6 @@ nu2theta_noTrans <- function(nu, thetaG, thetaR){
 
  theta
 }
+
 
 

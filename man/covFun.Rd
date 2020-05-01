@@ -10,6 +10,7 @@
 \alias{nu2theta_trans}
 \alias{theta2nu_lambda}
 \alias{nu2theta_lambda}
+\alias{nuVar2thetaVar_lambda}
 \alias{nu2theta_noTrans}
 \title{(Co)variance parameter transformations.}
 \usage{
@@ -28,6 +29,8 @@ nu2theta_trans(nu)
 theta2nu_lambda(theta, thetaG, thetaR)
 
 nu2theta_lambda(nu, sigma2e, thetaG, thetaR)
+
+nuVar2thetaVar_lambda(object)
 
 nu2theta_noTrans(nu, thetaG, thetaR)
 }
@@ -51,6 +54,8 @@ components, respectively.}
 \item{sigma2e}{A \code{numeric} estimate of the factored out residual
 variance from the mixed model equations (i.e., the \sQuote{lambda} scale)
 \eqn{\sigma^{2}_{e}}.}
+
+\item{object}{An object of \code{class} \sQuote{gremlin}.}
 }
 \value{
 Functions are specified to mostly return either a \code{list} of
@@ -89,6 +94,8 @@ Converts lists of (co)variance parameters either between \code{list} and
     ratios of variance parameters with the residual variance.}
   \item{\code{nu2theta_lambda} }{Back transformation from
     \code{theta2nu_lambda}.}
+  \item{\code{nuVar2thetaVar_lambda} }{Transformation of Sampling Variances
+    from \code{lambda} Scale for \code{theta}.}
   \item{\code{nu2theta_noTrans} }{Structures \code{theta} when not
     transformed.}
 }
