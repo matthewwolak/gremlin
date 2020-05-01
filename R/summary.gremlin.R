@@ -364,7 +364,7 @@ summary.gremlin <- function(object, ...){
       invAI <- solve(object$grMod$AI)
       if(object$grMod$lambda){
         varcompSummary[, "Std. Error"] <- sqrt(nuVar2thetaVar_lambda(object))
-      } else sqrt(diag(invAI))
+      } else varcompSummary[, "Std. Error"] <- sqrt(diag(invAI))
       varcompSampCor <- cov2cor(invAI)
     } else{
         varcompSampCor <- matrix(NA, nrow = nvc, ncol = nvc)
