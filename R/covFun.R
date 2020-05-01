@@ -233,12 +233,12 @@ nuVar2thetaVar_lambda <- function(object){
   nuv <- c(matlist2vech(object$grMod$nu))
   s2e_ind <- length(nuv) #FIXME assumes always at the end (find which ==1.0)
   nuv[s2e_ind] <- s2e 
-  AIinv <- solve(object$grMod$AI)  #<-- TODO some check about invertibility?
-  s2e_var <- diag(AIinv)[s2e_ind]
+  invAI <- solve(object$grMod$AI)  #<-- TODO some check about invertibility?
+  s2e_var <- diag(invAI)[s2e_ind]
 
  c(nuv[-s2e_ind]^2 * s2e_var +
-    2 * s2e * nuv[-s2e_ind] * AIinv[s2e_ind, -s2e_ind] +
-    s2e^2 * diag(AIinv)[-s2e_ind],
+    2 * s2e * nuv[-s2e_ind] * invAI[s2e_ind, -s2e_ind] +
+    s2e^2 * diag(invAI)[-s2e_ind],
       s2e_var)
 }
 
