@@ -951,6 +951,23 @@ remlIt.gremlinR <- function(grMod, ...){
     }
     stItTime <- Sys.time()
 
+    nuv <- matlist2vech(nu)
+    if(lambda){
+      itMat[i, 1:(2*p)] <- c(nuv,
+        matlist2vech(nu2theta_lambda(nu, sigma2e, thetaG, thetaR))) 
+    } else{
+        itMat[i, 1:(2*p)] <- c(nuv,
+	  matlist2vech(nu2theta_noTrans(nu, thetaG, thetaR)))
+      }
+
+    if(grMod$v > 1 && vitout == 0){
+      cat("\n")
+      print(as.table(itMat[i, 1:(2*p)]), digits = 4, zero.print = ".")
+      cat("\n")
+    }
+
+
+
     if(lambda){
       remlOut <- reml(nu, skel, thetaG, sLc,
 	grMod$modMats, grMod$W, grMod$Bpinv,
@@ -964,15 +981,21 @@ remlIt.gremlinR <- function(grMod, ...){
 	  thetaR,
 	  tWW = NULL, RHS = NULL)
       }  #<-- end if/else lambda
-      nuv <- matlist2vech(nu)
       sigma2e[] <- remlOut$sigma2e
       grMod$sln <- remlOut$sln
       grMod$r <- remlOut$r
       sLc <- remlOut$sLc #TODO to use `update()` need to return `C` in `remlOut`
 
-    itMat[i, -ncol(itMat)] <- c(nuv,
-      matlist2vech(if(lambda) nu2theta_lambda(nu, sigma2e, thetaG, thetaR) else nu2theta_noTrans(nu, thetaG, thetaR)),
-      sigma2e, remlOut$tyPy, remlOut$logDetC, remlOut$loglik) 
+    itMat[i, (2*p+1):(ncol(itMat)-1)] <- with(remlOut,
+      c(sigma2e, tyPy, logDetC, loglik))
+
+    if(grMod$v > 1 && vitout == 0){
+      itMatLLcols <- match(c("sigma2e", "tyPy", "logDetC"), colnames(itMat)) 
+        if(!lambda) itMatLLcols <- itMatLLcols[-1]
+      print(as.table(itMat[i, itMatLLcols]), digits = 4, zero.print = ".")
+      cat("\n")
+    }
+
     # 5c check convergence criteria
     ## Knight 2008 (ch. 6) says Searle et al. 1992 and Longford 1993 discuss diff types of converg. crit.
     ## See Appendix 2 of WOMBAT help manual for 4 convergence criteria used
@@ -996,6 +1019,10 @@ remlIt.gremlinR <- function(grMod, ...){
 
 
 
+    if(grMod$v > 0 && vitout == 0){
+      cat("\tlL:", format(round(itMat[i, "loglik"], 6), nsmall = 6))
+      if(grMod$v > 1) cat("\tConvergence crit:", cc, "\n")
+    }
 
 
     if(!all(cc, na.rm = TRUE)){
@@ -1143,13 +1170,7 @@ stop(cat("\nNot allowing `NR` right now"))
     nu <- sapply(nuout, FUN = stTrans)
     itTime <- Sys.time() - stItTime
     if(grMod$v > 0 && vitout == 0){
-      cat("\tlL:", format(round(itMat[i, "loglik"], 6), nsmall = 6), "\ttook ",
-	round(itTime, 2), units(itTime), "\n")
-      if(grMod$v > 1){
-        cat("\n")
-        print(as.table(itMat[i, -match(c("loglik", "itTime"), colnames(itMat))]), digits = 4, zero.print = ".")
-        cat("\tConvergence crit:", cc, "\n")
-      }
+      cat("\ttook ", round(itTime, 2), units(itTime), "\n")
       if(grMod$v > 2){#algit[i] == "AI" && 
         sgd <- matrix(NA, nrow = p, ncol = p+4)  #<-- `sgd` is summary.gremlinDeriv 
           dimnames(sgd) <- list(row.names(dLdnu),
