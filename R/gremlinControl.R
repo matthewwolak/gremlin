@@ -29,7 +29,8 @@ gremlinControl <- function(cctol = c(5e-4, 1e-8, 1e-3, NULL),
 
   stopifnot(is.list(algArgs))
 
- return(structure(list(cctol = cctol, ezero = ezero, lambda = lambda,
+ return(structure(list(cctol = cctol, ezero = ezero, step = step,
+		lambda = lambda,
 		algorithm = algorithm, algArgs = algArgs),
 	class = c("gremlinControl")))
 }  #<-- end `gremlinControl()`
