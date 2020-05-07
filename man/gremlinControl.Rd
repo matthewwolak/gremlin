@@ -5,7 +5,7 @@
 \title{Advanced Options for Mixed-effect modeling functions.}
 \usage{
 gremlinControl(cctol = c(5e-04, 1e-08, 0.001, NULL), ezero = 1e-08,
-  step = 0.5, lambda = TRUE, algorithm = NULL, algArgs = list())
+  step = 0.3, lambda = TRUE, algorithm = NULL, algArgs = list())
 }
 \arguments{
 \item{cctol}{Convergence criteria tolerances. TODO}
