@@ -931,6 +931,7 @@ remlIt.gremlinR <- function(grMod, ...){
 
   theta <- vech2matlist(thetav, skel)
   f <- NA
+  step <- 1.0
   itMat <- matrix(NA, nrow = grMod$maxit, ncol = 2 * p + 5) 
     colnames(itMat) <- c(paste0(names(thetav), "_nu"),
 	paste0(names(thetav), "_theta"),
@@ -989,7 +990,7 @@ remlIt.gremlinR <- function(grMod, ...){
     itMat[i, (2*p+1):(ncol(itMat)-1)] <- with(remlOut,
       c(sigma2e, tyPy, logDetC, loglik))
 
-    if(grMod$v > 1 && vitout == 0){
+    if(grMod$v > 2 && vitout == 0){
       itMatLLcols <- match(c("sigma2e", "tyPy", "logDetC"), colnames(itMat)) 
         if(!lambda) itMatLLcols <- itMatLLcols[-1]
       print(as.table(itMat[i, itMatLLcols]), digits = 4, zero.print = ".")
@@ -1111,7 +1112,13 @@ if(nrow(theta[[thetaR]]) != 1){
             Hinv <- solve(H)
 #TODO need a check that not proposing negative/0 variance or |correlation|>1
 ## Require restraining naughty components
-            nuvout <- matrix(nuv, ncol = 1) + grMod$step * (Hinv %*% dLdnu)
+            dnu <- Hinv %*% dLdnu   #<-- proposed change in nu parameters
+ 	    # Rule: if `dnu` propsed greater than 80% change in any parameter 
+            ## Then implement step reduction (`grMod$step` default) else do not
+            if(any(abs(dnu / matrix(nuv, ncol = 1)) > 0.8)){
+	      step <- grMod$step
+	    } else step <- 1.0
+            nuvout <- matrix(nuv, ncol = 1) + step * dnu
             zeroV <- which(nuvout < grMod$ezero) #FIXME check variances & cov/corr separately
             if(length(zeroV) > 0L){
               if(grMod$v > 1) cat("\nVariance component(s)", zeroV, "fixed to zero")
@@ -1181,7 +1188,7 @@ stop(cat("\nNot allowing `NR` right now"))
           sgd[rc, 3:(rc+2)] <- AI[rc, 1:rc]
           sgd[rc, (4+rc):(4+p)] <- AIinv[rc, rc:p]   
         }
-        cat("\tstep", grMod$step, "\n")
+        cat("\tstep", step, "\n")
         cat("\tAI modification", f, "\n")
         print(as.table(sgd), digits = 3, na.print = " | ", zero.print = ".")
         cat("\n")
