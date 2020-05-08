@@ -28,13 +28,15 @@
 #'     \code{theta2nu_lambda}.}
 #'   \item{\code{nuVar2thetaVar_lambda} }{Transformation of Sampling Variances
 #'     from \code{lambda} Scale for \code{theta}.}
+#'   \item{\code{nuAI2thetaAIinv_lambda} }{Transform AI matrix from \code{lambda}
+#'     Scale to AI-inverse of \code{theta}.}
 #'   \item{\code{nu2theta_noTrans} }{Structures \code{theta} when not
 #'     transformed.}
 #' }
 #'
 #' @aliases stTrans vech2matlist start2theta matlist2vech theta2nu_trans
 #'   nu2theta_trans theta2nu_lambda nu2theta_lambda nuVar2thetaVar_lambda
-#'   nu2theta_noTrans
+#'   nuAI2thetaAIinv_lambda nu2theta_noTrans
 #' @param x,theta,nu A \code{list} of matrices containing the (co)variance
 #'       parameters of the model.
 #' @param object An object of \code{class} \sQuote{gremlin}.
@@ -57,6 +59,10 @@
 #'     \item{thetaG }{A \code{vector} indexing the G-structure components.}
 #'     \item{thetaR }{A \code{vector} indexing the R-structure components.}
 #'   }
+#'   Alternatively, \code{nuVar2thetaVar_lambda} and \code{nuAI2thetaAIinv_lambda}
+#'   return a \code{vector} and \code{matrix}, respectively, holding the sampling
+#'   (co)variances of the model (co)variance parameters both on the \code{theta}
+#'   scale. These are elements of the inverse Average Information matrix.
 #' @author \email{matthewwolak@@gmail.com}
 #' @import Matrix
 #' @examples
@@ -228,6 +234,9 @@ nu2theta_lambda <- function(nu, sigma2e, thetaG, thetaR){ #TODO FIXME
 #' @rdname covFun
 #' @export
 nuVar2thetaVar_lambda <- function(object){
+  if(!object$grMod$lambda){
+    stop("object must be of type lambda = TRUE")
+  }
   s2e <- object$grMod$sigma2e
   se <- sqrt(s2e)
   nuv <- c(matlist2vech(object$grMod$nu))
@@ -241,6 +250,47 @@ nuVar2thetaVar_lambda <- function(object){
     s2e^2 * diag(invAI)[-s2e_ind],
       s2e_var)
 }
+
+
+
+#XXX Works on AI matrix XXX
+# Transform AI matrix from lambda Scale to AI-inverse of theta
+#' @rdname covFun
+#' @export
+#XXX for psi: cov(psi, theta_i) = nu_i * cov(s2e, psi) + s2e * cov(psi, nu_i)
+nuAI2thetaAIinv_lambda <- function(object){
+  if(!object$grMod$lambda){
+    stop("object must be of type lambda = TRUE")
+  }
+  s2e <- object$grMod$sigma2e
+  thetav <- c(object$grMod$thetav)
+  nuv <- c(matlist2vech(object$grMod$nu))
+  s2e_ind <- length(nuv) #FIXME assumes always at the end (find which ==1.0)
+  invAIl <- solve(object$grMod$AI)  #<-- TODO some check about invertibility?
+  invAI <- matrix(NA, nrow = length(thetav), ncol = length(thetav))
+
+  # cov(theta_i, s2e)
+    invAI[s2e_ind, -s2e_ind] <- invAI[-s2e_ind, s2e_ind] <- nuv[-s2e_ind] *
+        invAIl[s2e_ind, s2e_ind] + s2e * invAIl[s2e_ind, -s2e_ind]
+
+  # var(theta)
+    diag(invAI) <- nuVar2thetaVar_lambda(object)
+
+  # cov(theta_r, theta_c)
+  for(c in seq(length(nuv))[-s2e_ind]){
+    for(r in seq(c+1, length(nuv), 1)){
+      if(r == s2e_ind) next
+      invAI[r, c] <- invAI[c, r] <- nuv[r] * nuv[c] * invAIl[s2e_ind, s2e_ind] +
+        thetav[r] * invAIl[s2e_ind, c] +
+	thetav[c] * invAIl[s2e_ind, r] +
+	s2e^2 * invAIl[r, c]# - invAIl[s2e_ind, r] * invAIl[s2e_ind, c]
+    }  #<-- end for r
+  }  #<-- end for c
+
+ invAI
+}
+
+
 
 
 

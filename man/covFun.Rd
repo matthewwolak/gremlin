@@ -11,6 +11,7 @@
 \alias{theta2nu_lambda}
 \alias{nu2theta_lambda}
 \alias{nuVar2thetaVar_lambda}
+\alias{nuAI2thetaAIinv_lambda}
 \alias{nu2theta_noTrans}
 \title{(Co)variance parameter transformations.}
 \usage{
@@ -31,6 +32,8 @@ theta2nu_lambda(theta, thetaG, thetaR)
 nu2theta_lambda(nu, sigma2e, thetaG, thetaR)
 
 nuVar2thetaVar_lambda(object)
+
+nuAI2thetaAIinv_lambda(object)
 
 nu2theta_noTrans(nu, thetaG, thetaR)
 }
@@ -66,6 +69,10 @@ Functions are specified to mostly return either a \code{list} of
     \item{thetaG }{A \code{vector} indexing the G-structure components.}
     \item{thetaR }{A \code{vector} indexing the R-structure components.}
   }
+  Alternatively, \code{nuVar2thetaVar_lambda} and \code{nuAI2thetaAIinv_lambda}
+  return a \code{vector} and \code{matrix}, respectively, holding the sampling
+  (co)variances of the model (co)variance parameters both on the \code{theta}
+  scale. These are elements of the inverse Average Information matrix.
 }
 \description{
 Converts lists of (co)variance parameters either between \code{list} and 
@@ -96,6 +103,8 @@ Converts lists of (co)variance parameters either between \code{list} and
     \code{theta2nu_lambda}.}
   \item{\code{nuVar2thetaVar_lambda} }{Transformation of Sampling Variances
     from \code{lambda} Scale for \code{theta}.}
+  \item{\code{nuAI2thetaAIinv_lambda} }{Transform AI matrix from \code{lambda}
+    Scale to AI-inverse of \code{theta}.}
   \item{\code{nu2theta_noTrans} }{Structures \code{theta} when not
     transformed.}
 }
