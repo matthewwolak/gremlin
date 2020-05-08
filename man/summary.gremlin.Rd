@@ -24,10 +24,21 @@ A \code{list} of class \code{summary.gremlin} or a printed value
   to the screen with no return values.
   \describe{
     \item{logLik }{Model log-likelihood.}
-    \item{formulae }{Function call and model fixed, random, and residual formulae.}
+    \item{formulae }{Function call and model fixed, random, and residual
+      formulae.}
+    \item{runtime }{A \code{numeric} of class \sQuote{difftime} containing
+      the length of time to run the model. See how this is handled in
+      \code{\link{[gremlin]update}}.}
+    \item{lambda }{A \code{logical} indicating if the model was transformed
+      to the variance ratio, or \code{lambda} scale.}
+    \item{residQuants }{A named \code{vector} listing summary output for the
+      model residuals.}
     \item{varcompSummary }{Table of variance components and approximate
       standard errors (calculated from the inverse of the average information
       matrix).}
+    \item{varcompSampCor }{A \code{matrix} containing the sampling correlations
+      of the (co)variance components. Note this is on the underlying \code{nu}
+      scale that the model is fitting.}
     \item{fxdSummary }{Table of fixed effects and standard errors (calculated
       from the corresponding diagonal elements of the inverse of the
       coefficient matrixm, transformed where necessary).}

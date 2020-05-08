@@ -424,7 +424,7 @@ print.summary.gremlin <- function(x,
   cat("\n Linear mixed model fit by REML ['", x$formula$fn, "']")
   cat("\n REML log-likelihood:", round(x$logLik, digits+2), "\n")
   cat("\n elapsed time for model:", round(x$runtime, digits), "\n")
-    cat("\t lambda:", x$labmda, "\n")
+    cat("\t lambda:", x$lambda, "\n")
 
   # Adapted from `lme4::.prt.resids`
     cat("\n Scaled residuals:\n")
