@@ -1059,7 +1059,7 @@ if(v[0] > 3){
     // Determine if model has converged
     //FIXME: change number of parameters that must be true as add criteria
     if(cc[4] > 2){ // FIXME: change number of parameters that must be true
-      Rprintf("\n\n***  REML converged  ***\n\n"); 
+      if(v[0] > 0) Rprintf("\n***  REML converged  ***\n\n"); 
       i++;     
       break;
     }

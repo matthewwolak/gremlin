@@ -1198,7 +1198,7 @@ stop(cat("\nNot allowing `NR` right now"))
     units(itTime) <- "secs"
     itMat[i, ncol(itMat)] <- round(itTime, 1)
     if(all(cc, na.rm = TRUE)){
-      cat("***  REML converged  ***\n\n")
+      if(grMod$v > 0) cat("\n***  REML converged  ***\n\n")
       break
     }
 
