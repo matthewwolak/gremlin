@@ -912,12 +912,12 @@ if(v[0] > 3){
             //// Then implement step reduction (`step[0]` default) else do not
             if(abs(dnu[k] / itMat[itc-4-p[0]+k]) > 0.8){
               stpVal = step[0];
-              break;  // just 1 extreme parameter change causes step-halve 4 all
             }
-          }
+          }  // end for k
           if(stpVal == step[0]){
-            for(k = 0; k < p[0]; k++)
+            for(k = 0; k < p[0]; k++){
               nu[k] = itMat[itc-4-p[0]+k] + dnu[k] * stpVal;
+
             }
           }  
 
@@ -1008,7 +1008,7 @@ if(v[0] > 3){
         if(v[0] > 2){
           if(algit[i] == 1){
             // output step-size modification
-            Rprintf("\tstep: %6.4f", stpVal);
+            Rprintf("\tstep: %6.4f\n", stpVal);
             Rprintf("\tgradient | AI\n");
             Rprintf("\t-------- |--------\n");
             for(g = 0; g < p[0]; g++){
