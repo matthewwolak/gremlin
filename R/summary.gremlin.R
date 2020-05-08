@@ -432,10 +432,10 @@ print.summary.gremlin <- function(x,
 	c("Min", "1Q", "Median", "3Q", "Max"))
     print(resids, digits = digits, ...)
 
-  cat("\n Random effects:", paste(as.expression(x$formulae$random)), "\n")
+  cat("\n (co)variance parameters:", paste(as.expression(x$formulae$random)), "\n")
     print(as.data.frame(x$varcompSummary), digits = digits, ...)
 
-  cat("\n Random effect sampling correlations:\n")
+  cat("\n (co)variance parameter sampling correlations:\n")
     print(as.data.frame(x$varcompSampCor), digits = digits, ...)
 
   cat("\n Fixed effects:", paste(as.expression(x$formulae$fxd)), "\n")
