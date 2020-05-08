@@ -329,10 +329,21 @@ residuals.gremlin <- function(object,
 #'   to the screen with no return values.
 #'   \describe{
 #'     \item{logLik }{Model log-likelihood.}
-#'     \item{formulae }{Function call and model fixed, random, and residual formulae.}
+#'     \item{formulae }{Function call and model fixed, random, and residual
+#'       formulae.}
+#'     \item{runtime }{A \code{numeric} of class \sQuote{difftime} containing
+#'       the length of time to run the model. See how this is handled in
+#'       \code{\link{[gremlin]update}}.}
+#'     \item{lambda }{A \code{logical} indicating if the model was transformed
+#'       to the variance ratio, or \code{lambda} scale.}
+#'     \item{residQuants }{A named \code{vector} listing summary output for the
+#'       model residuals.}
 #'     \item{varcompSummary }{Table of variance components and approximate
 #'       standard errors (calculated from the inverse of the average information
 #'       matrix).}
+#'     \item{varcompSampCor }{A \code{matrix} containing the sampling correlations
+#'       of the (co)variance components. Note this is on the underlying \code{nu}
+#'       scale that the model is fitting.}
 #'     \item{fxdSummary }{Table of fixed effects and standard errors (calculated
 #'       from the corresponding diagonal elements of the inverse of the
 #'       coefficient matrixm, transformed where necessary).}
@@ -383,6 +394,7 @@ summary.gremlin <- function(object, ...){
  return(structure(list(logLik = logLik(object),
 		formulae = formulae,
 		runtime = gremlin:::runtime(object),
+		lambda = object$grMod$lambda,
 		residQuants = residQuants,
 		varcompSummary = varcompSummary,
 		varcompSampCor = varcompSampCor,
@@ -410,8 +422,9 @@ print.summary.gremlin <- function(x,
 #TODO calculate convergence criteria & print if REML converged
 ## also print if parameters changed by >XX%
   cat("\n Linear mixed model fit by REML ['", x$formula$fn, "']")
-  cat("\n REML log-likelihood:", round(x$logLik, digits), "\n")
+  cat("\n REML log-likelihood:", round(x$logLik, digits+2), "\n")
   cat("\n elapsed time for model:", round(x$runtime, digits), "\n")
+    cat("\t lambda:", x$labmda, "\n")
 
   # Adapted from `lme4::.prt.resids`
     cat("\n Scaled residuals:\n")
