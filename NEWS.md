@@ -3,7 +3,12 @@
   - `update()` function
     - can now continue a model where it left off or change the structure (e.g., drop a single variance component for likelihood ratio test)
 
-## Mnior Changes
+  - Implement "step-halving" algorithm for AI updates
+    - restricts parameter updates if AI algorithm proposes a change of >80% of original parameter value
+    - amount by which a parameter change is restricted can be set in `gremlinControl()` using the `step` argument
+
+
+## Minor Changes
   - Implement more efficient algorithms in the c++ code, that were developed in the R code for version 1.0.0.0.
   - Add `gremlinControl()` function for _advanced_ changes to the way gremlin runs
 
