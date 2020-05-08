@@ -833,6 +833,7 @@ remlIt.default <- function(grMod, ...){
 	as.double(rep(0, grMod$maxit*(grMod$p+5))),	#itMat
 	as.integer(intfacalgit -1), 			#algorithm for each iteration
 	as.integer(grMod$maxit),			#max it./n algit
+	as.double(grMod$step),			#init./default step-halving value
 	as.double(grMod$cctol),				#convergence tol.
 	as.double(grMod$ezero),				#effective 0
 #uni?
@@ -1113,7 +1114,7 @@ if(nrow(theta[[thetaR]]) != 1){
 #TODO need a check that not proposing negative/0 variance or |correlation|>1
 ## Require restraining naughty components
             dnu <- Hinv %*% dLdnu   #<-- proposed change in nu parameters
- 	    # Rule: if `dnu` propsed greater than 80% change in any parameter 
+ 	    # Rule: if `dnu` proposed greater than 80% change in any parameter 
             ## Then implement step reduction (`grMod$step` default) else do not
             if(any(abs(dnu / matrix(nuv, ncol = 1)) > 0.8)){
 	      step <- grMod$step

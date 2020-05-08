@@ -81,11 +81,12 @@ void ugremlin(
 /*32*/	double *itMat,		// parameter information at each iteration
 /*33*/	int *algit,		// algorithm for optimization at each iteration
 /*34*/	int *maxit,		// maximum No. iterations
-/*35*/	double *cctol,		// convergence criteria tolerances
-/*36*/	double *ezero,		// effective zero
-/*37*/	int *v,			// verbosity level of  output messages
-/*38*/	int *vit,		// at what iterations to output messages
-/*39*/  int *sLcPinv		// empty Cholesky permutation vector
+/*35*/  double *step,		// initial/default step-halving value
+/*36*/	double *cctol,		// convergence criteria tolerances
+/*37*/	double *ezero,		// effective zero
+/*38*/	int *v,			// verbosity level of  output messages
+/*39*/	int *vit,		// at what iterations to output messages
+/*40*/  int *sLcPinv		// empty Cholesky permutation vector
 		
 ){
 
@@ -105,8 +106,8 @@ void ugremlin(
   cs*    *Ginv = new cs*[nG];
   cs* 	 *KGinv = new cs*[nG];
 
-  double t[2], T[2], took, dsLc, tyRinvy, tyPy, logDetC, sigma2e, loglik,
-         d, cc2, cc2d;
+  double t[2], T[2], took, dsLc, tyRinvy, tyPy, logDetC, sigma2e, loglik, 
+         d, cc2, cc2d, stpVal;
 
   int 	 g, i, k, rw, si, si2, vitout,
 	 itc = 0,
@@ -120,7 +121,7 @@ void ugremlin(
 
   int	 *cc = new int[5];
 
-
+  double  *dnu = new double[p[0]];
 
 
 if(v[0] > 3) simple_tic(t);
@@ -846,6 +847,7 @@ if(v[0] > 3){
         // Find next set of parameters using a quasi-Newton method/algorithm
         //// Meyer 1989 pp. 326-327 describes quasi-Newton methods 
 //TODO see Meyer 1997 eqn 58 for Marquardt 1963: theta_t+1=theta_t - (H_t + k_t * I)^{-1} g_t 
+// What I do below is similar: except k_t=f
         //// Mrode 2005 eqn 11.4
         //// Johnson and Thompson 1995 eqn 12
         //////(though gremlin uses `+` instead of J & T '95 `-` because
@@ -901,6 +903,24 @@ if(v[0] > 3){
           // fill `nu` with parameters proposed for next iteration
           ////  cs_gaxpy is y = A*x+y where y=nu and x=dLdnu
           cs_gaxpy(AIinv, dLdnu, nu);
+          // calculate change in nu parameters
+          stpVal = 1.0;
+          for(k = 0; k < p[0]; k++){
+          //change = proposed-values at current lL evaluation            
+            dnu[k] = nu[k] - itMat[itc-4-p[0]+k];
+            // Rule: if proposed values >80% change in any parameter
+            //// Then implement step reduction (`step[0]` default) else do not
+            if(abs(dnu[k] / itMat[itc-4-p[0]+k]) > 0.8){
+              stpVal = step[0];
+              break;  // just 1 extreme parameter change causes step-halve 4 all
+            }
+          }
+          if(stpVal == step[0]){
+            for(k = 0; k < p[0]; k++)
+              nu[k] = itMat[itc-4-p[0]+k] + dnu[k] * stpVal;
+            }
+          }  
+
 
           for(g = 0; g < p[0]; g++){
             //FIXME check variances and cov/corr separately
@@ -987,6 +1007,8 @@ if(v[0] > 3){
         // V=3 LEVEL of OUTPUT
         if(v[0] > 2){
           if(algit[i] == 1){
+            // output step-size modification
+            Rprintf("\tstep: %6.4f", stpVal);
             Rprintf("\tgradient | AI\n");
             Rprintf("\t-------- |--------\n");
             for(g = 0; g < p[0]; g++){
@@ -1180,6 +1202,7 @@ if(v[0] > 3) simple_tic(t);
 //
   delete [] rfxlvls;
   delete [] cc;
+  delete [] dnu;
 
 
 if(v[0] > 3){
