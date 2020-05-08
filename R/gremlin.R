@@ -1089,7 +1089,7 @@ if(nrow(theta[[thetaR]]) != 1){
         ### Check/modify AI matrix to 'ensure' positive definiteness
         ### `fI` is factor to adjust AI matrix
         #### (e.g., Meyer 1997 eqn 58 and WOMBAT manual A.5 strategy 3b)
-        AIeigvals <- eigen(AI)$values
+        AIeigvals <- eigen(AI, symmetric = TRUE, only.values = TRUE)$values
           d <- (3*10^-6) * AIeigvals[1]
           f <- max(0, d - AIeigvals[nrow(AI)])
         fI <- f * diag(x = 1, nrow = nrow(AI))
