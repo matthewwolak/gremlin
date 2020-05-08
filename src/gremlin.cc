@@ -398,8 +398,28 @@ if(v[0] > 3){
     simple_tic(T);
     if(i == 0){vitout = 0;}else{vitout = (i+1)%vit[0];}  // always do first iteration
     if(v[0] > 0 && vitout == 0){
-      Rprintf("  %i of max %i", i+1, maxit[0]);//TODO TIME of DAY format as remlIt
-    }
+      Rprintf("  %i of max %i\t", i+1, maxit[0]);//TODO TIME of DAY format as remlIt
+      // V=2 LEVEL of OUTPUT
+      if(v[0] > 1){
+        Rprintf("\n");
+        // output names of variables
+        for(g = 0; g < p[0]; g++) Rprintf("\tV%i", g+1);
+        Rprintf("\n");
+        // output underlines
+        //// =No. characters (2 for V1-V9 and 3 for V10 and up)
+        for(g = 0; g < p[0]; g++){
+          if(g < 10) Rprintf("\t--"); else Rprintf("\t---");  
+        }
+        Rprintf("\n");
+        // output variable values
+        for(g = 0; g < p[0]; g++) Rprintf("\t%6.4f", nu[g]);
+        Rprintf("\n");
+      }  // end v>1
+    }  // end v>0
+
+
+
+
 
 
     // For ALL iterations i=1 and greater
@@ -625,6 +645,16 @@ if(v[0] > 3){
     // Factored out residual variance (only for lambda scale)
     if(lambda[0] == 1) sigma2e = tyPy / nminffx[0]; else sigma2e = 1.0;
 
+
+    // V=2 LEVEL of OUTPUT
+    if(v[0] > 2 && vitout == 0){
+      Rprintf("\n\tsigma2e\ttyPy\tlogDetC\n");
+      Rprintf("\t-------\t----\t--------\n");
+      Rprintf("\t%6.4f\t%6.4f\t%6.4f\n", sigma2e, tyPy, logDetC);
+    }  // end v > 2
+
+
+
     // Construct the log-likelihood (Meyer 1997 eqn. 8)
     //// (firt put together as `-2 log-likelihood`)
     // `log(|R|)`
@@ -662,8 +692,6 @@ if(v[0] > 3){
     // Multiply by -0.5 to calculate `loglik` from `-2loglik`
     loglik *= -0.5;
       if(v[0] > 3) Rprintf("\n\t multiplied by -0.5=%6.4f", loglik);
-
-
 
 
 
@@ -709,6 +737,11 @@ if(v[0] > 3){
   simple_tic(t);
 }
 
+    // V=1 LEVEL of OUTPUT
+    //// same line if minimal output, different lines if more extensive output
+    if(v[0] > 1 && vitout == 0) Rprintf("\n");  
+    if(v[0] > 0 && vitout == 0) Rprintf("\tlL:%6.6f", loglik);
+
 
 
     ////////////////////////////////////////////////////////////////////////////
@@ -752,6 +785,18 @@ if(v[0] > 3){
   Rprintf("\n    %6.4f sec.: cpp REML i=%i convergence crit. calc.", took, i);
   simple_tic(t);
 }
+
+    // V=2 LEVEL of OUTPUT
+    if(v[0] > 1 && vitout == 0){ 
+      // output convergence criteria
+      Rprintf("\tConvergence crit:");
+        for(k = 0; k < 4; k++) Rprintf("%4i", cc[k]);
+        Rprintf("\n");
+    }  // end v > 1
+
+
+
+
 
 
 
@@ -975,40 +1020,14 @@ if(v[0] > 3){
 
     took = simple_toc(T);        // Capture cpu clock time for i REML iteration
     // V=1 LEVEL of OUTPUT
-    if(v[0] > 0 && vitout == 0){ 
-      Rprintf("\tlL:%6.6f", loglik);
-      Rprintf("\t\ttook %6.4f sec.\n", took); //TODO format units if >60 (and do for all Rprintf(took))
-      // To format units see const *char in: http://www.cplusplus.com/reference/cmath/round/
-
+    if(v[0] > 0 && vitout == 0){
       // V=2 LEVEL of OUTPUT
-      if(v[0] > 1){
-        Rprintf("\n");
-        // output names of variables
-        for(g = 0; g < p[0]; g++){
-          Rprintf("\tV%i", g+1);
-        }
-        Rprintf("\tsigma2e\ttyPy\tlogDetC\n");
-        // output underlines"
-        for(g = 0; g < p[0]; g++){
-          if(g < 10) Rprintf("\t--"); else Rprintf("\t---");
-        }
-        Rprintf("\t------\t----\t--------\n");
-        // output variable values
-        for(g = 0; g < p[0]; g++){
-          Rprintf("\t%6.4f", itMat[itc-(4+p[0])+g]);
-        }
-        Rprintf("\t%6.4f\t%6.4f\t%6.4f\n", sigma2e, tyPy, logDetC);
-
-        // output convergence criteria
-        Rprintf("\tConvergence crit:");
-          for(k = 0; k < 4; k++) Rprintf("%4i", cc[k]);
-          Rprintf("\n");
-        
+      if(v[0] > 1 && vitout == 0){ 
         // V=3 LEVEL of OUTPUT
         if(v[0] > 2){
           if(algit[i] == 1){
             // output step-size modification
-            Rprintf("\tstep: %6.4f\n", stpVal);
+            Rprintf("\n\tstep: %6.4f\n", stpVal);
             Rprintf("\tgradient | AI\n");
             Rprintf("\t-------- |--------\n");
             for(g = 0; g < p[0]; g++){
@@ -1023,9 +1042,11 @@ if(v[0] > 3){
               Rprintf("\n");  // start next row of output/AI
             }  // end for g (gth parameter/row of AI)  
           }  // end algit == AI
-        }  // end if v>2
-      }  // end if v>1
-    }  // end if v>0
+        }  // end if v > 2
+      }  // end if v > 1
+      Rprintf("\t\ttook %6.4f sec.\n", took); //TODO format units if >60 (and do for all Rprintf(took))
+      // To format units see const *char in: http://www.cplusplus.com/reference/cmath/round/
+    }  // end if v > 0
 
 
     itMat[itc] += round(took*10) / 10;              // gives 1 decimal place
@@ -1038,7 +1059,7 @@ if(v[0] > 3){
     // Determine if model has converged
     //FIXME: change number of parameters that must be true as add criteria
     if(cc[4] > 2){ // FIXME: change number of parameters that must be true
-      Rprintf("\n\nREML converged\n\n"); 
+      Rprintf("\n\n***  REML converged  ***\n\n"); 
       i++;     
       break;
     }
