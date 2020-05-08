@@ -903,6 +903,8 @@ if(v[0] > 3){
         ////// (e.g., Meyer 1997 eqn 58 and WOMBAT manual A.5 strategy 3b)
 
 /*
+See `La_rs` defined around line 153 of "R/src/modules/lapack/Lapack.c"
+Whate R's `eigen()` calls
         check if any small/zero eigenvalues of AI
         AIeigvals <- eigen(AI)$values
           d <- (3*10^-6) * AIeigvals[1]
