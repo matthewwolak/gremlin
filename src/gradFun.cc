@@ -41,12 +41,7 @@ csi cs_gradFun(double *nu, double *dLdnu, double *Cinv_ii,
   double  *trace = new double[nG];
   if(lambda == 0) g = nG + 1; else g = nG;
   double  *tugug = new double[g];  // includes crossprod(residual) when !lambda
-  double  *tmp_sln = new double[nsln];
   double  *w = new double[nsln];
-    for(k = 0; k < nsln; k++){
-      tmp_sln[k] = 0.0;
-      w[k] = 0.0;
-    }
 
   for(g = 0; g < nG; g++){
     trace[g] = 0.0;
@@ -57,6 +52,7 @@ csi cs_gradFun(double *nu, double *dLdnu, double *Cinv_ii,
 //TODO XXX for using covariance matrices, see Johnson & Thompson 1995 eqn 11a
     // Johnson & Thompson 1995 equations 9 & 10
     //// BUT t(BLUXs) %*% geninv == transpose of vector of geninv %*% BLUXs
+    for(i = 0; i < nsln; i++) w[i] = 0.0;  // clear w
     if(ndgeninv[g] > 0){
       // Non-diagonal generalized inverses
       // crossproduct of BLUXs[si:ei] with geninv (t(BLUXs) %*% geninv)
@@ -65,19 +61,15 @@ csi cs_gradFun(double *nu, double *dLdnu, double *Cinv_ii,
         if(!sln_g) return(0);
       for(i = 0; i < qi; i++) sln_g[i] = Bx[si + i];
       // Johnson & Thompson 1995 eqn 9a
-      cs_gaxpy(geninv[g], sln_g, tmp_sln);
+      cs_gaxpy(geninv[g], sln_g, w);
       delete [] sln_g;
     } else{
-      for(i = 0; i < qi; i++) tmp_sln[i] = Bx[si + i];  
+      for(i = 0; i < qi; i++) w[i] = Bx[si + i];  
     }  // end if/else geninv is non-diagonal
 
     // `tugug` is the numerator of the 3rd term in the equation
-    //// Above (tmp_sln) post-multiplied by BLUXs (... %*% BLUXs)
-    for(k = 0; k < qi; k++){
-      tugug[g] += tmp_sln[k] * Bx[si + k];
-      //  zero out tmp_sln for use below in trace term
-      tmp_sln[k] = 0.0;  // clear tmp_sln
-    }  // end for k
+    //// Above (w) post-multiplied by BLUXs (... %*% BLUXs)
+    for(k = 0; k < qi; k++) tugug[g] += w[k] * Bx[si + k];
 
 
 
@@ -86,18 +78,15 @@ csi cs_gradFun(double *nu, double *dLdnu, double *Cinv_ii,
     ////// each k column of Lc, create Cinv[si:ei, si:ei] elements
     //////// forward solve with Identity[, k] then backsolve
     for(k = si; k <= ei; k++){
-    // use tmp_sln as working vector: first create Identity[, k]
-    //// Lc is permuted, use t(P) %*% I[, k]
-      tmp_sln[Pinv[k]] += 1.0;              /* essentially `cs_ipvec` */
-      cs_lsolve (Lc, tmp_sln);              /* x = L\x */      
-      cs_ltsolve(Lc, tmp_sln);              /* x = L'\x */
-      // Now tmp_sln holds a permuted ordering of Cinv[, k]
-//TODO combine pvec (take code out of function) and multiplication in next step
-      cs_pvec(Pinv, tmp_sln, w, nsln);      /* b = P'*x */
-      // w holds Cinv[, k]
-      for(i = 0; i < nsln; i++) tmp_sln[i] = 0.0;  // clear tmp_sln
+    // use w as working vector: first create Identity[, k]
+      for(i = 0; i < nsln; i++) w[i] = 0.0;  // clear w
+      //// Lc is permuted, use t(P) %*% I[, k]
+      w[Pinv[k]] += 1.0;              /* essentially `cs_ipvec` */
+      cs_lsolve (Lc, w);              /* x = L\x */      
+      cs_ltsolve(Lc, w);              /* x = L'\x */
+      // Now w holds a permuted ordering of Cinv[, k]
       // write sampling variance for kth BLUP
-      Cinv_ii[k] = w[k];
+      Cinv_ii[k] = w[Pinv[k]];	      /* essentially `cs_pvec` */
 
       if(ndgeninv[g] == 0){
         // if a diagonal geninv, trace=sum(diag(Cinv[si:ei, si:ei]))
@@ -109,7 +98,7 @@ csi cs_gradFun(double *nu, double *dLdnu, double *Cinv_ii,
         //// trace (numerator of 2nd) term in the equation
         for(i = geninv[g]->p[k-si]; i < geninv[g]->p[k-si+1]; i++){
           j = geninv[g]->i[i] + si;
-          trace[g] += geninv[g]->x[i] * w[j];
+          trace[g] += geninv[g]->x[i] * Cinv_ii[j];
         }  // end for i
       }  // end if/else non-diagonal geninv trace calculation
     }  // end for k
@@ -154,7 +143,6 @@ csi cs_gradFun(double *nu, double *dLdnu, double *Cinv_ii,
 
 
   delete [] w;
-  delete [] tmp_sln;
   delete [] tugug;
   delete [] trace;
 
