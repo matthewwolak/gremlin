@@ -20,11 +20,11 @@ csi cs_chol2inv_ii(const cs *L, const csi *Pinv, double *Cinv_ii, int r){
 
   for(j = r; j < n; j++){
     // initiate jth column of identity matrix  
-    b[Pinv[j]] = 1.0;
+    b[Pinv[j]] = 1.0;           /* essentially `cs_ipvec` */
     cs_lsolve(L, b);    	/* b = L\b   */
     cs_ltsolve(L, b);   	/* b = L'\b  */
     // load diagnoal from b into output
-    Cinv_ii[j] = b[Pinv[j]];
+    Cinv_ii[j] = b[Pinv[j]];    /* essentially `cs_pvec` */
 
     // Also, reset b for next column
     for(g = 0; g < n; g++) b[g] = 0.0;
