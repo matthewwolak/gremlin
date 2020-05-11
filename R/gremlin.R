@@ -1223,6 +1223,7 @@ stop(cat("\nNot allowing `NR` right now"))
 
   # Calculate Cinv_ii and AI for last set of parameters
   grMod$Cinv_ii <- diag(solve(a = sLc, b = Ic, system = "A"))
+
   ## AI
   if(lambda){
     AI <- ai(nuv, skel, thetaG,
