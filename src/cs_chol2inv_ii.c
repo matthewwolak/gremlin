@@ -23,10 +23,9 @@ csi cs_chol2inv_ii(const cs *L, const csi *Pinv, double *Cinv_ii, int r){
     b[Pinv[j]] = 1.0;
     cs_lsolve(L, b);    	/* b = L\b   */
     cs_ltsolve(L, b);   	/* b = L'\b  */
-    cs_pvec(Pinv, b, b, n);     /* b = P'*x  */
-
     // load diagnoal from b into output
-    Cinv_ii[j] = b[j];
+    Cinv_ii[j] = b[Pinv[j]];
+
     // Also, reset b for next column
     for(g = 0; g < n; g++) b[g] = 0.0;
   }  // end for j

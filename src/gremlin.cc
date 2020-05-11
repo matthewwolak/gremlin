@@ -885,7 +885,6 @@ if(v[0] > 3){
 
           }  // end if cs_gradFun
         }  // end if/else lambda
-
         //TODO do I need to check convergence criteria here (i.e., cc[3:4])
 
 
