@@ -242,9 +242,12 @@ gremlin <- function(formula, random = NULL, rcov = ~ units,
 
   mc <- as.list(match.call())
   mGmc <- as.call(c(quote(gremlinSetup), mc[-1]))
+    if(v > 2) cat("\tsetting up model matrices...")
   grMod <- eval(mGmc, parent.frame())
     grMod$call[[1L]] <- quote(gremlin)
+    if(v > 2) cat("model matrices made\n")
 
+  if(v > 2) cat("beginning REML iterations\n")
   grModOut <- remlIt(grMod)
 
   endTime <- Sys.time()
@@ -276,10 +279,13 @@ gremlinR <- function(formula, random = NULL, rcov = ~ units,
 
   mc <- as.list(match.call())
   mGmc <- as.call(c(quote(gremlinSetup), mc[-1]))
+    if(v > 2) cat("\tsetting up model matrices...")
   grMod <- eval(mGmc, parent.frame())
     grMod$call[[1L]] <- quote(gremlinR)
   class(grMod) <- c(class(grMod)[1], "gremlinR", class(grMod)[2])
+    if(v > 2) cat("model matrices made\n")
 
+  if(v > 2) cat("beginning REML iterations\n")
   grModOut <- remlIt(grMod)
 
   endTime <- Sys.time()
