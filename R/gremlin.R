@@ -958,17 +958,11 @@ remlIt.gremlinR <- function(grMod, ...){
     stItTime <- Sys.time()
 
     nuv <- matlist2vech(nu)
-    if(lambda){
-      itMat[i, 1:(2*p)] <- c(nuv,
-        matlist2vech(nu2theta_lambda(nu, sigma2e, thetaG, thetaR))) 
-    } else{
-        itMat[i, 1:(2*p)] <- c(nuv,
-	  matlist2vech(nu2theta_noTrans(nu, thetaG, thetaR)))
-      }
+    itMat[i, 1:p] <- nuv
 
     if(grMod$v > 1 && vitout == 0){
       cat("\n")
-      print(as.table(itMat[i, 1:(2*p)]), digits = 4, zero.print = ".")
+      print(as.table(itMat[i, 1:p]), digits = 4, zero.print = ".")
       cat("\n")
     }
 
@@ -992,6 +986,13 @@ remlIt.gremlinR <- function(grMod, ...){
       grMod$r <- remlOut$r
       sLc <- remlOut$sLc #TODO to use `update()` need to return `C` in `remlOut`
 
+    if(lambda){
+      itMat[i, (p+1):(2*p)] <- matlist2vech(nu2theta_lambda(nu, sigma2e,
+							thetaG, thetaR)) 
+    } else{
+        itMat[i, (p+1):(2*p)] <- matlist2vech(nu2theta_noTrans(nu, thetaG,
+								thetaR))
+      }
     itMat[i, (2*p+1):(ncol(itMat)-1)] <- with(remlOut,
       c(sigma2e, tyPy, logDetC, loglik))
 
