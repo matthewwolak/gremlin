@@ -808,7 +808,7 @@ if(v[0] > 3){
       // Expectation Maximization
       /////////////////////////////
       if(algit[i] == 0){
-        if(v[0] > 1 && vitout == 0) Rprintf("\n\tEM to find next theta");
+        if(v[0] > 1 && vitout == 0) Rprintf("\n\tEM to find next nu");
         if(!cs_em(BLUXs, nu, Cinv_ii,
 	    nG, rfxlvls, nffx, ndgeninv, geninv, Lc->L, sLc->pinv)){
           error("\nUnsuccessful EM algorithm in iteration %i", i);
@@ -828,7 +828,7 @@ if(v[0] > 3){
       // Average Information
       /////////////////////////////
       if(algit[i] == 1){
-        if(v[0] > 1 && vitout == 0) Rprintf("\n\tAI to find next theta");
+        if(v[0] > 1 && vitout == 0) Rprintf("\n\tAI to find next nu");
         if(aiformed == 1) cs_spfree(AI);
         if(lambda[0] == 1){
           AI = cs_ai(BLUXs, Ginv, R, 0, 0,
@@ -928,7 +928,7 @@ Whate R's `eigen()` calls
 
           //// if AI cannot be inverted do EM
           //////////////  TEMPORARY EM    /////////
-          if(v[0] > 1 && vitout == 0) Rprintf("\n\t\tEM to find next theta");
+          if(v[0] > 1 && vitout == 0) Rprintf("\n\t\tEM to find next nu");
           if(!cs_em(BLUXs, nu, Cinv_ii,
 	      nG, rfxlvls, nffx, ndgeninv, geninv, Lc->L, sLc->pinv)){
             error("\nUnsuccessful EM algorithm in iteration %i", i);

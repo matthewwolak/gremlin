@@ -1037,7 +1037,7 @@ remlIt.gremlinR <- function(grMod, ...){
       #    EM
       ############################
       if(grMod$algit[i] == "EM"){
-        if(grMod$v > 1 && vitout == 0) cat("\n\tEM to find next theta")
+        if(grMod$v > 1 && vitout == 0) cat("\n\tEM to find next nu")
         emOut <- em(nuv, thetaG, thetaR,
             grMod$modMats, grMod$nminffx, sLc, grMod$ndgeninv, grMod$sln, grMod$r)
           nuvout <- emOut$nuv
@@ -1049,7 +1049,7 @@ remlIt.gremlinR <- function(grMod, ...){
       #    AI
       ############################
       if(grMod$algit[i] == "AI"){
-        if(grMod$v > 1 && vitout == 0) cat("\n\tAI to find next theta")
+        if(grMod$v > 1 && vitout == 0) cat("\n\tAI to find next nu")
 #FIXME Currently, only allow when not: 
 if(nrow(theta[[thetaR]]) != 1){
   stop(cat("\nAI algorithm currently only works for a single residual variance"))
@@ -1107,7 +1107,7 @@ if(nrow(theta[[thetaR]]) != 1){
           if(grMod$v > 1){
             cat("\nReciprocal condition number of AI matrix is", signif(rcondH , 2), "\n\tAI matrix may be singular - switching to an iteration of the EM algorithm")
           }  #<-- end `if v>1`
-          if(grMod$v > 1 && vitout == 0) cat("\n\tEM to find next theta")
+          if(grMod$v > 1 && vitout == 0) cat("\n\tEM to find next nu")
             emOut <- em(nuv, thetaG, thetaR,
               grMod$modMats, grMod$nminffx, sLc, grMod$ndgeninv, grMod$sln, grMod$r)
             nuvout <- emOut$nuv
@@ -1152,7 +1152,7 @@ stop(cat("\nNot allowing `minqa::bobyqa()` right now"))
 ## See Meyer 1996 eqns ~ 45-55ish
       if(grMod$algit[i] == "NR"){
 stop(cat("\nNot allowing `NR` right now"))
-#        if(grMod$v > 1 && vitout == 0) cat("\n\tNR to find next theta")
+#        if(grMod$v > 1 && vitout == 0) cat("\n\tNR to find next nu")
 #        gr <- gradFun(nuv, thetaG, thetaR, modMats, Cinv, nminfrfx, sln, r)
 #        H <- hessian(func = reml, x = nuv, skel = skel) 
 #tmp <- numDeriv::genD(func = reml, x = nuv, skel = skel)
