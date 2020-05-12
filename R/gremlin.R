@@ -1080,7 +1080,6 @@ if(nrow(theta[[thetaR]]) != 1){
             dLdnu <- gradFun(nuv, thetaG, grMod$modMats, Cinv, grMod$sln,
   	      sigma2e = NULL, grMod$r, grMod$nminfrfx)
           }
-	AIinv <- solve(AI)
 
         ## Find next set of parameters using a quasi-Newton method/algorithm
         ### Meyer 1989 pp. 326-327 describes quasi-Newton methods 
@@ -1091,6 +1090,15 @@ if(nrow(theta[[thetaR]]) != 1){
         ####(though gremlin uses `+` instead of J & T '95 `-` because
         ##### gremlin multiplies gradient by -0.5 in `gradFun()`)
 
+        # Check if AI can be inverted
+        rcondAI <- rcond(AI)
+        if(rcondAI < grMod$ezero){
+          if(grMod$v > 2){
+            cat("\nReciprocal condition number of AI matrix is",
+	      signif(rcondAI , 2), 
+	      "\n\tAI matrix may be singular - modifying diagonals")
+          }  #<-- end `if v>2`
+        }  #<-- end if AI singular
         ### Check/modify AI matrix to 'ensure' positive definiteness
         ### `fI` is factor to adjust AI matrix
         #### (e.g., Meyer 1997 eqn 58 and WOMBAT manual A.5 strategy 3b)
@@ -1100,12 +1108,14 @@ if(nrow(theta[[thetaR]]) != 1){
         fI <- f * diag(x = 1, nrow = nrow(AI))
 	##### modified 'Hessian'
         H <- fI + AI
-        # Check if AI can be inverted
+        # Check if H can be inverted
         rcondH <- rcond(H)
-        ## if AI cannot be inverted do EM
+        ## if H cannot be inverted do EM
         if(rcondH < grMod$ezero){
           if(grMod$v > 1){
-            cat("\nReciprocal condition number of AI matrix is", signif(rcondH , 2), "\n\tAI matrix may be singular - switching to an iteration of the EM algorithm")
+            cat("\nReciprocal condition number of modified Hessian is",
+	      signif(rcondH , 2), 
+	      "\n\tHessian may be singular - switching to the EM algorithm")
           }  #<-- end `if v>1`
           if(grMod$v > 1 && vitout == 0) cat("\n\tEM to find next nu")
             emOut <- em(nuv, thetaG, thetaR,
@@ -1114,7 +1124,7 @@ if(nrow(theta[[thetaR]]) != 1){
             grMod$Cinv_ii <- emOut$Cinv_ii
             grMod$algit[i] <- "EM"
 
-        } else{  #<-- end if AI cannot be inverted
+        } else{  #<-- end if Hessian cannot be inverted
             Hinv <- solve(H)
 #TODO need a check that not proposing negative/0 variance or |correlation|>1
 ## Require restraining naughty components
@@ -1189,10 +1199,10 @@ stop(cat("\nNot allowing `NR` right now"))
           dimnames(sgd) <- list(row.names(dLdnu),
             c("gradient", "", "AI", "", "AI-inv", rep("", p-1)))
         sgd[, 1] <- dLdnu
-        if(grMod$algit[i] == "EM") AIinv <- AI
+        if(grMod$algit[i] == "EM") Hinv <- H <- AI
         for(rc in 1:p){
-          sgd[rc, 3:(rc+2)] <- AI[rc, 1:rc]
-          sgd[rc, (4+rc):(4+p)] <- AIinv[rc, rc:p]   
+          sgd[rc, 3:(rc+2)] <- H[rc, 1:rc]
+          sgd[rc, (4+rc):(4+p)] <- Hinv[rc, rc:p]   
         }
         cat("\tstep", step, "\n")
         cat("\tAI modification", f, "\n")
