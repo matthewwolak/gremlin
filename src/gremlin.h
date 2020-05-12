@@ -32,6 +32,17 @@ csi cs_gradFun(double *nu, double *dLdnu, double *Cinv_ii,
         double sigma2e,    // 1.0 if lambda=FALSE
 	csi thetaR, double *r);      // 0 if lambda=TRUE
 
+/* Gradient/Score (first derivative) function
+     return 1 if successful else returns 0
+     dLdnu overwritten with output
+     Cinv_ii overwritten with diag(Cinv) */
+csi cs_gradFun2(double *nu, double *dLdnu, double *Cinv_ii,
+	csi n, csi p, csi nG, csi *rfxlvls, csi nb, csi *ndgeninv,
+	cs **geninv,
+	const cs *BLUXs, const cs *Lc, const csi *Pinv,
+        double sigma2e,    // 1.0 if lambda=FALSE
+	csi thetaR, double *r);      // 0 if lambda=TRUE
+
 // replaces elements in Cinv_ii inverse diagonals as double
 //// Returns 1=success else 0
 csi cs_chol2inv_ii(const cs *L, const csi *Pinv, double *Cinv_ii, int r);  
