@@ -43,6 +43,13 @@ csi cs_gradFun2(double *nu, double *dLdnu, double *Cinv_ii,
         double sigma2e,    // 1.0 if lambda=FALSE
 	csi thetaR, double *r);      // 0 if lambda=TRUE
 
+/* solve Ax=k where Lx=b, L'b=k, and x, b, and k are dense.
+   x=b on input, solution on output. */
+// combines cs_lsolve followed by cs_ltsolve
+//// start at element k of x
+csi gr_cs_lltsolve (const cs *L, double *x, csi k);
+
+
 // replaces elements in Cinv_ii inverse diagonals as double
 //// Returns 1=success else 0
 csi cs_chol2inv_ii(const cs *L, const csi *Pinv, double *Cinv_ii, int r);  
