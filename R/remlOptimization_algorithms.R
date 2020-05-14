@@ -413,7 +413,6 @@ gradFun <- function(nuvin, thetaG, modMats, Cinv, sln,
 
       si <- ei+1
 
-cat("\ntugug[g]=", tugug[[g]]@x, "| trace[g]=", trCinvGeninv_gg[[g]], "\t")
     }  #<-- end `for g in thetaG`
 
     # First derivatives (gradient/score)
@@ -578,7 +577,13 @@ gradFun_TEST2 <- function(nuvin, thetaG,
 #         slv1P <- solve(sLc, Ig, system = "P")
 #         slv1L <- solve(sLc, slv1P, system = "L")
 #         slv1Lt <- solve(sLc, slv1L, system = "Lt")
-#         Cinv_siei_k <- solve(sLc, slv1Lt, system = "Pt")@x
+#         Cinv_siei_k <- solve(sLc, slv1Lt, system = "Pt")@x[si:ei]
+##    lltsolve(expand(sLc)$L, slv1P, (invPerm(sLc@perm)+1)[k])
+## ginvi <- modMats$listGeninv[[g]]@i + 1
+## ginvp <- modMats$listGeninv[[g]]@p
+## k_ginv_ind <- ginvi[(ginvp[k-si+1]+1):ginvp[k-si+2]]
+# tmpLtout <- lltsolve2(sLc, k, si, k_ginv_ind)
+#     slv1Lt - tmpLtout
 #    }
 
         Ig[k, ] <- 0.0
@@ -587,7 +592,6 @@ gradFun_TEST2 <- function(nuvin, thetaG,
             modMats$listGeninv[[g]]@p[k-si+2], 1)
         trace[g] <- trace[g] + sum(modMats$listGeninv[[g]]@x[k_ginv_ind] *
             Cinv_siei_k[modMats$listGeninv[[g]]@i[k_ginv_ind]+1])
-#        trace[g] <- trace[g] + sum(modMats$listGeninv[[g]][(k-si+1), , drop = TRUE] * Cinv_siei_k)
       }  #<-- end for k
     } else{
         ### No generalized inverse associated with the random effects
