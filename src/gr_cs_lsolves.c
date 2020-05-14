@@ -22,8 +22,9 @@ csi gr_cs_lltsolve (const cs *L, double *x, csi k)
     // lsolve
     for (j = k ; j < n ; j++){
         if(x[j] != 0.0){
-          x [j] /= Lx [Lp [j]] ;
-          for (p = Lp [j]+1 ; p < Lp [j+1] ; p++) {
+          x [j] /= Lx [Lp [j]] ;    // set diagonal (1 / L[k, k])
+          // for loop to determine off-diagonals
+          for (p = Lp [j]+1 ; p < Lp [j+1] ; p++) {  
             x [Li [p]] -= Lx [p] * x [j] ;
           }
         }  // end if NOT 0
