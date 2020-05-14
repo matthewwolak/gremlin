@@ -87,11 +87,12 @@ simple_tic(t);
 
 
 // print timing
+/*
 took = simple_toc(t);
 Rprintf("\n\t\t    %6.6f sec.: calculate tugug for %i of %i term", took, g, nG-1);
 simple_tic(t);
 Rprintf("\n\t\t      tugug for %i of %i term=%6.4f", g, nG-1, tugug[g]);
-
+*/
 
 
     // ... + trace(geninv[g] %*% Cinv[si:ei, si:ei]) ...
@@ -99,29 +100,42 @@ Rprintf("\n\t\t      tugug for %i of %i term=%6.4f", g, nG-1, tugug[g]);
     ////// each k column of Lc, create Cinv[si:ei, si:ei] elements
     //////// forward solve with Identity[, k] then backsolve
     for(k = si; k <= ei; k++){
+
+
 // timing
+/*
 if((k == si) | (k ==ei-1)){
-  took = simple_toc(t);
+//  took = simple_toc(t);
   // just setting start time, no need to print here
-  simple_tic(t);
+//  simple_tic(t);
 }
+*/
+
+
     // use w as working vector: first create Identity[, k]
       for(i = 0; i < nsln; i++) w[i] = 0.0;  // clear w
- // print timing
+
+// print timing
+/*
 if((k == si) | (k ==ei-1)){
   took = simple_toc(t);
   Rprintf("\n\t\t\t    %6.6f sec.: clear w at %i for %i of %i term", took,k,g,nG-1);
   simple_tic(t);
 }
+*/
+
      //// Lc is permuted, use t(P) %*% I[, k]
       w[Pinv[k]] += 1.0;              /* essentially `cs_ipvec` */
       gr_cs_lltsolve(Lc, w, Pinv[k]); /* x = L\x then x = L'\x  */
+
 // print timing AND CHECK
+/*
 if((k == si) | (k ==ei-1)){
   took = simple_toc(t);
   Rprintf("\n\t\t\t    %6.6f sec.: gr_cs_lltsolve %i for %i of %i term",took,k,g,nG-1);
   simple_tic(t);
 }
+*/
       // Now w holds a permuted ordering of Cinv[, k]
       // write sampling variance for kth BLUP
       Cinv_ii[k] = w[Pinv[k]];	      /* essentially `cs_pvec` */
@@ -147,11 +161,12 @@ if((k == si) | (k ==ei-1)){
 
 
 // print timing
+/*
 took = simple_toc(t);
 Rprintf("\n\t\t    %6.6f sec.: calculate trace for %i of %i term", took, g, nG-1);
 simple_tic(t);
 Rprintf("\n\t\t      trace for %i of %i term=%6.4f", g, nG-1, trace[g]);
-
+*/
 
 
   }  // end for g in nG
@@ -246,8 +261,8 @@ csi cs_gradFun2(double *nu, double *dLdnu, double *Cinv_ii,
 ){
 
   int     lambda, nminfrfx;
-  double  *Bx;
-  csi     g, i, k, nsln, si, qi, ei;
+  double  *Bx, *Lx;
+  csi     g, i, j, k, nsln, si, qi, ei, *Lp, *Li, minginviPerm;
 
 // for printing timings within gradFun
 double	t[2], took;
@@ -259,6 +274,7 @@ simple_tic(t);
 
   nsln = BLUXs->m;
   Bx = BLUXs->x;
+  Lp = Lc->p; Li = Lc->i; Lx = Lc->x;
   si = nb;
   nminfrfx = n - nb;
     if(lambda == 0) for(g = 0; g < nG; g++) nminfrfx -= rfxlvls[g];
@@ -304,11 +320,12 @@ simple_tic(t);
 
 
 // print timing
+/*
 took = simple_toc(t);
 Rprintf("\n\t\t    %6.6f sec.: gradFun2 calculate tugug for %i of %i term", took, g, nG-1);
 simple_tic(t);
 Rprintf("\n\t\t      gradFun2 tugug for %i of %i term=%6.4f", g, nG-1, tugug[g]);
-
+*/
 
 
     // ... + trace(geninv[g] %*% Cinv[si:ei, si:ei]) ...
@@ -319,33 +336,91 @@ Rprintf("\n\t\t      gradFun2 tugug for %i of %i term=%6.4f", g, nG-1, tugug[g])
 
 
 // timing
+/*
 if((k == si) | (k ==ei-1)){
   took = simple_toc(t);
   // just setting start time, no need to print here
   simple_tic(t);
 }
+*/
 
 
-    // use w as working vector: first create Identity[, k]
+      // use w as working vector: first create Identity[, k]
       for(i = 0; i < nsln; i++) w[i] = 0.0;  // clear w
+
+/*
  // print timing
 if((k == si) | (k ==ei-1)){
   took = simple_toc(t);
   Rprintf("\n\t\t\t    %6.6f sec.: clear w at %i for %i of %i term", took,k,g,nG-1);
   simple_tic(t);
 }
+*/
 
 
-     //// Lc is permuted, use t(P) %*% I[, k]
+      //// Lc is permuted, use t(P) %*% I[, k]
       w[Pinv[k]] += 1.0;              /* essentially `cs_ipvec` */
-      gr_cs_lltsolve(Lc, w, Pinv[k]); /* x = L\x then x = L'\x  */
+//      gr_cs_lltsolve(Lc, w, Pinv[k]); /* x = L\x then x = L'\x  */
+      for(j = Pinv[k]; j < nsln; j++){
+        if(w[j] != 0.0){
+          w[j] /= Lx[Lp[j]];  // set diagonal (1 / L[k,k])
+          // for loop to determine off-diagonal contributions
+          for(i = Lp[j]+1; i < Lp[j+1]; i++){
+            w[Li[i]] -= Lx[i] * w[j];
+          }
+        }  // end if NOT 0
+      }
+
+
 // print timing AND CHECK
+/*
 if((k == si) | (k ==ei-1)){
   took = simple_toc(t);
-  Rprintf("\n\t\t\t    %6.6f sec.: gr_cs_lltsolve %i for %i of %i term",took,k,g,nG-1);
+  Rprintf("\n\t\t\t    %6.6f sec.: lsolve step %i for %i of %i term",took,k,g,nG-1);
   simple_tic(t);
 }
+*/
 
+
+
+       // if Diagonal generalized inverse associated
+       if(ndgeninv[g] == 0){
+         // only need to find diagonal element for Cinv_ii[k]
+         for(j = nsln-1; j>=Pinv[k]; j--){
+           for(i = Lp[j]+1; i<Lp[j+1]; i++){
+             w[j] -= Lx[i] * w[Li[i]];
+           }
+           w[j] /= Lx[Lp[j]];
+         }  
+       } else{
+
+           // calculate minimum row of geninverse[g][, k] after permuting it
+           minginviPerm = nsln;
+           for(i = geninv[g]->p[k-si]; i < geninv[g]->p[k-si+1]; i++){
+             j = Pinv[geninv[g]->i[i]+si];
+             if(j < minginviPerm) minginviPerm = j;
+           }
+
+           // if non-diagonal generalized inverse
+           //// need entire "column" of Cinv
+           ////// until worked up to first row of non-zero in geninv[g][, k]
+           for(j = nsln-1; j>=minginviPerm; j--){
+             for(i = Lp[j]+1; i<Lp[j+1]; i++){
+               w[j] -= Lx[i] * w[Li[i]];
+             }
+             w[j] /= Lx[Lp[j]];
+           }  
+         }  // end if/else non-diag geninv[g]
+
+
+// print timing AND CHECK
+/*
+if((k == si) | (k ==ei-1)){
+  took = simple_toc(t);
+  Rprintf("\n\t\t\t    %6.6f sec.: ltsolve step %i for %i of %i term",took,k,g,nG-1);
+  simple_tic(t);
+}
+*/
 
       // Now w holds a permuted ordering of Cinv[, k]
       // write sampling variance for kth BLUP
@@ -368,11 +443,12 @@ if((k == si) | (k ==ei-1)){
 
 
 // print timing
+/*
 took = simple_toc(t);
 Rprintf("\n\t\t    %6.6f sec.: gradFun2 calculate trace for %i of %i term", took, g, nG-1);
 simple_tic(t);
 Rprintf("\n\t\t      gradFun2 trace for %i of %i term=%6.4f", g, nG-1, trace[g]);
-
+*/
 
 
   }  // end for g in nG
