@@ -32,17 +32,6 @@ csi cs_gradFun(double *nu, double *dLdnu, double *Cinv_ii,
         double sigma2e,    // 1.0 if lambda=FALSE
 	csi thetaR, double *r);      // 0 if lambda=TRUE
 
-/* Gradient/Score (first derivative) function
-     return 1 if successful else returns 0
-     dLdnu overwritten with output
-     Cinv_ii overwritten with diag(Cinv) */
-csi cs_gradFun2(double *nu, double *dLdnu, double *Cinv_ii,
-	csi n, csi p, csi nG, csi *rfxlvls, csi nb, csi *ndgeninv,
-	cs **geninv,
-	const cs *BLUXs, const cs *Lc, const csi *Pinv,
-        double sigma2e,    // 1.0 if lambda=FALSE
-	csi thetaR, double *r);      // 0 if lambda=TRUE
-
 /* solve Ax=k where Lx=b, L'b=k, and x, b, and k are dense.
    x=b on input, solution on output. */
 // combines cs_lsolve followed by cs_ltsolve
