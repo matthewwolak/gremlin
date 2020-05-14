@@ -1068,36 +1068,23 @@ if(nrow(theta[[thetaR]]) != 1){
 #	  	      grMod$modMats, sLc, grMod$ndgeninv, grMod$sln,	
 #		      sigma2e = sigma2e,   #<-- NULL if lambda==FALSE
 #		      thetaR = NULL, r = NULL, nminfrfx = NULL)  #<-- NULL if lambda==TRUE
-          dLdnu_TEST2 <- gradFun_TEST2(nuv, thetaG,
-	  	      grMod$modMats, sLc, grMod$ndgeninv, grMod$sln,	
-		      sigma2e = sigma2e,   #<-- NULL if lambda==FALSE
-		      thetaR = NULL, r = NULL, nminfrfx = NULL)  #<-- NULL if lambda==TRUE
+#          dLdnu_TEST2 <- gradFun_TEST2(nuv, thetaG,
+#	  	      grMod$modMats, sLc, grMod$ndgeninv, grMod$sln,	
+#		      sigma2e = sigma2e,   #<-- NULL if lambda==FALSE
+#		      thetaR = NULL, r = NULL, nminfrfx = NULL)  #<-- NULL if lambda==TRUE
        } else{
             AI <- ai(nuv, skel, thetaG,
         		grMod$modMats, grMod$W, sLc, grMod$sln, grMod$r,
                         thetaR,   #<-- NULL if lambda==TRUE
 		        sigma2e = NULL)
-browser()
+
 	    dLdnu <- gradFun(nuv, thetaG, grMod$modMats, Cinv, grMod$sln,
   	      sigma2e = NULL, grMod$r, grMod$nminfrfx)
 
-dLdnu_TEST2 <- gradFun_TEST2(nuv, thetaG,
-	  	      grMod$modMats, sLc, grMod$ndgeninv, grMod$sln,	
-		      sigma2e = NULL,   #<-- NULL if lambda==FALSE
-		      thetaR = thetaR, r = grMod$r, nminfrfx = grMod$nminfrfx)
-quickWrap <- function(){
-  Cinv <- solve(a = sLc, b = Ic, system = "A")
-  Cinv_ii <- diag(Cinv)
-  dLdnu <- gradFun(nuv, thetaG, grMod$modMats, Cinv, grMod$sln,
-  	      sigma2e = NULL, grMod$r, grMod$nminfrfx)
- dLdnu
-}
-#browser()
-#	system.time(dLdnu <- quickWrap())      
-#	system.time(dLdnu_TEST2 <- gradFun_TEST2(nuv, thetaG,
+#	   dLdnu_TEST2 <- gradFun_TEST2(nuv, thetaG,
 #	  	      grMod$modMats, sLc, grMod$ndgeninv, grMod$sln,	
 #		      sigma2e = NULL,   #<-- NULL if lambda==FALSE
-#		      thetaR = thetaR, r = grMod$r, nminfrfx = grMod$nminfrfx))  #<-- NULL if lambda==TRUE
+#		      thetaR = thetaR, r = grMod$r, nminfrfx = grMod$nminfrfx) #<-- NULL if lambda==TRUE
           }
 
         ## Find next set of parameters using a quasi-Newton method/algorithm
