@@ -405,11 +405,15 @@ gradFun <- function(nuvin, thetaG, modMats, Cinv, sln,
           #### 3rd term in the equation
           tugug[[g]] <- crossprod(sln[si:ei, , drop = FALSE], modMats$listGeninv[[g]]) %*% sln[si:ei, , drop = FALSE]
           #### 2nd term in the equation
-#TODO: DOES the trace of a product = the sum of the element-by-element product?
+          # the trace of a product = the sum of the element-by-element product
+          ## trace(geninv[[g]] %*% Cinv[si:ei, si:ei]
+          ###                       = sum((geninv[[g]] * Cinv[si:ei, si:ei])@x)
           trCinvGeninv_gg[[g]] <- tr(modMats$listGeninv[[g]] %*% Cinv[si:ei, si:ei])
         }  #<-- end if else whether a diagonal g-inverse associated with rfx
 
       si <- ei+1
+
+cat("\ntugug[g]=", tugug[[g]]@x, "| trace[g]=", trCinvGeninv_gg[[g]], "\t")
     }  #<-- end `for g in thetaG`
 
     # First derivatives (gradient/score)
@@ -579,7 +583,11 @@ gradFun_TEST2 <- function(nuvin, thetaG,
 
         Ig[k, ] <- 0.0
         Cinv_ii[k] <- Cinv_siei_k[k-si+1]       
-        trace[g] <- trace[g] + sum(modMats$listGeninv[[g]][(k-si+1), , drop = TRUE] * Cinv_siei_k)
+        k_ginv_ind <- seq(modMats$listGeninv[[g]]@p[k-si+1]+1,
+            modMats$listGeninv[[g]]@p[k-si+2], 1)
+        trace[g] <- trace[g] + sum(modMats$listGeninv[[g]]@x[k_ginv_ind] *
+            Cinv_siei_k[modMats$listGeninv[[g]]@i[k_ginv_ind]+1])
+#        trace[g] <- trace[g] + sum(modMats$listGeninv[[g]][(k-si+1), , drop = TRUE] * Cinv_siei_k)
       }  #<-- end for k
     } else{
         ### No generalized inverse associated with the random effects
