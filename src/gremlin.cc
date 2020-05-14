@@ -733,7 +733,7 @@ if(v[0] > 3){
 
 if(v[0] > 3){
   took = simple_toc(t);
-  Rprintf("\n    %6.4f sec.: cpp REML i=%i itMat recording took", took, i);
+  Rprintf("\n    %6.4f sec.: cpp REML i=%i itMat recording", took, i);
   simple_tic(t);
 }
 
@@ -857,37 +857,6 @@ if(v[0] > 3){
   simple_tic(t);
 }
 
-// FIXME: temporary for error checking gradFun to gradFun2
-for(k=0; k<p[0]; k++) Rprintf("\n\t grad dLdnu[%i]=%6.4f", k, dLdnu[k]);
-Rprintf("\n");
-for(k=0; k<p[0]; k++) Rprintf("\t nu[%i]=%6.9f", k, nu[k]);
-
-/////////////////////////////////////
-          if(!cs_gradFun2(nu, dLdnu, Cinv_ii,
-	      ny[0], p[0], nG, rfxlvls, nffx, ndgeninv,
-	      geninv, BLUXs, Lc->L, sLc->pinv, 
-              sigma2e,    // 1.0 if lambda=FALSE
-	      0, res)){      // 0 if lambda=TRUE
-	      
-            error("\nUnsuccessful gradient calculation gradFun2 in iteration %i", i);
-          }  // end if cs_gradFun
-
-if(v[0] > 3){
-  took = simple_toc(t);
-  Rprintf("\n\t    %6.4f sec.: calculate gradient gradFun2", took);
-  simple_tic(t);
-}
-
-// FIXME: temporary for error checking gradFun to gradFun2
-for(k=0; k<p[0]; k++) Rprintf("\n\t grad2 dLdnu[%i]=%6.4f", k, dLdnu[k]);
-Rprintf("\n");
-for(k=0; k<p[0]; k++) Rprintf("\t nu[%i]=%6.4f", k, nu[k]);
-/////////////////////////////////////
-
-
-
-
-
         }else{
           AI = cs_ai(BLUXs, Ginv, R, KRinv, tWKRinv,
 	      res, W, tW, ny[0], p[0], nG, rfxlvls, nffx, Lc->L, sLc->pinv,
@@ -915,34 +884,6 @@ if(v[0] > 3){
   simple_tic(t);
 }
 
-// FIXME: temporary for error checking gradFun to gradFun2
-for(k=0; k<p[0]; k++) Rprintf("\n\t grad dLdnu[%i]=%6.4f", k, dLdnu[k]);
-Rprintf("\n");
-for(k=0; k<p[0]; k++) Rprintf("\t nu[%i]=%6.4f", k, nu[k]);
-
-/////////////////////////////////////
-
-          if(!cs_gradFun2(nu, dLdnu, Cinv_ii,
-	      ny[0], p[0], nG, rfxlvls, nffx, ndgeninv,
-	      geninv, BLUXs, Lc->L, sLc->pinv, 
-              1.0,    // 1.0 if lambda=FALSE
-	      nG, res)){      // 0 if lambda=TRUE
-
-            error("\nUnsuccessful gradient calculation gradFun2 in iteration %i", i);
-          }  // end if cs_gradFun
-
-if(v[0] > 3){
-  took = simple_toc(t);
-  Rprintf("\n\t    %6.4f sec.: calculate gradient gradFun2", took);
-  simple_tic(t);
-}
-
-// FIXME: temporary for error checking gradFun to gradFun2
-for(k=0; k<p[0]; k++) Rprintf("\n\t grad2 dLdnu[%i]=%6.4f", k, dLdnu[k]);
-Rprintf("\n");
-for(k=0; k<p[0]; k++) Rprintf("\t nu[%i]=%6.4f", k, nu[k]);
-
-/////////////////////////////////////
 
 
         }  // end if/else lambda
