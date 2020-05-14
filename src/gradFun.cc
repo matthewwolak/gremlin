@@ -5,7 +5,7 @@
 
 /*
  note the trace of a product is equal to the sum of the element-by-element product
-Consequently, don't have to make `Cinv`, just diagonals
+  don't have to make `Cinv` for diagonal generalized inverses, just Cinv diagonals
 XXX TODO see Knight 2008 thesis eqns 2.36 & 2.42 (and intermediates) for more generalized form of what is in Mrode (i.e., multivariate/covariance matrices instead of single varcomps)
 XXX eqn. 2.44 is the score/gradient! for a varcomp
 
@@ -90,6 +90,7 @@ simple_tic(t);
 took = simple_toc(t);
 Rprintf("\n\t\t    %6.6f sec.: calculate tugug for %i of %i term", took, g, nG-1);
 simple_tic(t);
+Rprintf("\n\t\t      tugug for %i of %i term=%6.4f", g, nG-1, tugug[g]);
 
 
 
@@ -138,8 +139,7 @@ if((k == si) | (k ==ei-1)){
         //(geninv[g]%*%Cinv[si:ei, si:ei])[k,k] = geninv[g][k,]%*%Cinv[si:ei,k]
         //// trace (numerator of 2nd) term in the equation
         for(i = geninv[g]->p[k-si]; i < geninv[g]->p[k-si+1]; i++){
-          j = geninv[g]->i[i] + si;
-          trace[g] += geninv[g]->x[i] * Cinv_ii[j];
+          trace[g] += geninv[g]->x[i] * w[Pinv[geninv[g]->i[i]+si]];
         }  // end for i
       }  // end if/else non-diagonal geninv trace calculation
     }  // end for k
@@ -150,6 +150,7 @@ if((k == si) | (k ==ei-1)){
 took = simple_toc(t);
 Rprintf("\n\t\t    %6.6f sec.: calculate trace for %i of %i term", took, g, nG-1);
 simple_tic(t);
+Rprintf("\n\t\t      trace for %i of %i term=%6.4f", g, nG-1, trace[g]);
 
 
 
@@ -227,7 +228,7 @@ simple_tic(t);
 ////////////////////////////////////////////////////////////////////////////////
 /*
  note the trace of a product is equal to the sum of the element-by-element product
-Consequently, don't have to make `Cinv`, just diagonals
+  don't have to make `Cinv` for diagonal generalized inverses, just Cinv diagonals
 XXX TODO see Knight 2008 thesis eqns 2.36 & 2.42 (and intermediates) for more generalized form of what is in Mrode (i.e., multivariate/covariance matrices instead of single varcomps)
 XXX eqn. 2.44 is the score/gradient! for a varcomp
 
@@ -246,7 +247,7 @@ csi cs_gradFun2(double *nu, double *dLdnu, double *Cinv_ii,
 
   int     lambda, nminfrfx;
   double  *Bx;
-  csi     g, i, j, k, nsln, si, qi, ei, qimax;
+  csi     g, i, k, nsln, si, qi, ei;
 
 // for printing timings within gradFun
 double	t[2], took;
@@ -272,13 +273,6 @@ simple_tic(t);
   double  *tugug = new double[g];  // includes crossprod(residual) when !lambda
   double  *w = new double[nsln];
 
-  // only need sln_g for non-diagonal generalized inverses, so make as large as that
-  //// if no non-diagonal generalized inverse this makes sln_g size 1
-  qimax = 1;  
-  for(g = 0; g < nG; g++){
-    if((ndgeninv[g] > 0) & (rfxlvls[g] > qimax)) qimax = rfxlvls[g];
-  }
-  double  *sln_g = new double[qimax];
 
   for(g = 0; g < nG; g++){
     trace[g] = 0.0;
@@ -289,29 +283,31 @@ simple_tic(t);
 //TODO XXX for using covariance matrices, see Johnson & Thompson 1995 eqn 11a
     // Johnson & Thompson 1995 equations 9 & 10
     //// BUT t(BLUXs) %*% geninv == transpose of vector of geninv %*% BLUXs
-    for(i = 0; i < nsln; i++) w[i] = 0.0;  // clear w
+    // `tugug` is the numerator of the 3rd term in the equation
+    //// Above post-multiplied by BLUXs (... %*% BLUXs)
     if(ndgeninv[g] > 0){
       // Non-diagonal generalized inverses
-      // crossproduct of BLUXs[si:ei] with geninv (t(BLUXs) %*% geninv)
+      // crossproduct of BLUXs[si:ei] with geninv (t(BLUXs) %*% geninv %*% BLUXs)
       if(!CS_CSC(geninv[g])) error("geninv[%i] not CSC matrix\n", g);
-      for(i = 0; i < qi; i++) sln_g[i] = Bx[si + i];
+      for(i = 0; i < geninv[g]->n; i++) w[i] = 0.0;  // clear w
       // Johnson & Thompson 1995 eqn 9a
-      cs_gaxpy(geninv[g], sln_g, w);
-      for(i = 0; i < qi; i++) sln_g[i] = 0.0;
+      for(k = 0; k < geninv[g]->n; k++){
+        for(i = geninv[g]->p[k]; i < geninv[g]->p[k+1]; i++){
+          w[k] += geninv[g]->x[i] * Bx[geninv[g]->i[i]+si];
+        }  // end for i
+        tugug[g] += w[k] * Bx[k+si];
+      }  // end for k
     } else{
-      for(i = 0; i < qi; i++) w[i] = Bx[si + i];  
-    }  // end if/else geninv is non-diagonal
-
-    // `tugug` is the numerator of the 3rd term in the equation
-    //// Above (w) post-multiplied by BLUXs (... %*% BLUXs)
-    for(k = 0; k < qi; k++) tugug[g] += w[k] * Bx[si + k];
+        for(k = si; k <= ei; k++) tugug[g] += Bx[k] * Bx[k];  
+      }  // end if/else geninv is non-diagonal
 
 
 
 // print timing
 took = simple_toc(t);
-Rprintf("\n\t\t    %6.6f sec.: calculate tugug for %i of %i term", took, g, nG-1);
+Rprintf("\n\t\t    %6.6f sec.: gradFun2 calculate tugug for %i of %i term", took, g, nG-1);
 simple_tic(t);
+Rprintf("\n\t\t      gradFun2 tugug for %i of %i term=%6.4f", g, nG-1, tugug[g]);
 
 
 
@@ -320,12 +316,16 @@ simple_tic(t);
     ////// each k column of Lc, create Cinv[si:ei, si:ei] elements
     //////// forward solve with Identity[, k] then backsolve
     for(k = si; k <= ei; k++){
+
+
 // timing
 if((k == si) | (k ==ei-1)){
   took = simple_toc(t);
   // just setting start time, no need to print here
   simple_tic(t);
 }
+
+
     // use w as working vector: first create Identity[, k]
       for(i = 0; i < nsln; i++) w[i] = 0.0;  // clear w
  // print timing
@@ -334,6 +334,8 @@ if((k == si) | (k ==ei-1)){
   Rprintf("\n\t\t\t    %6.6f sec.: clear w at %i for %i of %i term", took,k,g,nG-1);
   simple_tic(t);
 }
+
+
      //// Lc is permuted, use t(P) %*% I[, k]
       w[Pinv[k]] += 1.0;              /* essentially `cs_ipvec` */
       gr_cs_lltsolve(Lc, w, Pinv[k]); /* x = L\x then x = L'\x  */
@@ -343,13 +345,11 @@ if((k == si) | (k ==ei-1)){
   Rprintf("\n\t\t\t    %6.6f sec.: gr_cs_lltsolve %i for %i of %i term",took,k,g,nG-1);
   simple_tic(t);
 }
+
+
       // Now w holds a permuted ordering of Cinv[, k]
       // write sampling variance for kth BLUP
       Cinv_ii[k] = w[Pinv[k]];	      /* essentially `cs_pvec` */
-
-
-
-
 
       if(ndgeninv[g] == 0){
         // if a diagonal geninv, trace=sum(diag(Cinv[si:ei, si:ei]))
@@ -360,8 +360,7 @@ if((k == si) | (k ==ei-1)){
         //(geninv[g]%*%Cinv[si:ei, si:ei])[k,k] = geninv[g][k,]%*%Cinv[si:ei,k]
         //// trace (numerator of 2nd) term in the equation
         for(i = geninv[g]->p[k-si]; i < geninv[g]->p[k-si+1]; i++){
-          j = geninv[g]->i[i] + si;
-          trace[g] += geninv[g]->x[i] * Cinv_ii[j];
+          trace[g] += geninv[g]->x[i] * w[Pinv[geninv[g]->i[i]+si]];
         }  // end for i
       }  // end if/else non-diagonal geninv trace calculation
     }  // end for k
@@ -370,8 +369,9 @@ if((k == si) | (k ==ei-1)){
 
 // print timing
 took = simple_toc(t);
-Rprintf("\n\t\t    %6.6f sec.: calculate trace for %i of %i term", took, g, nG-1);
+Rprintf("\n\t\t    %6.6f sec.: gradFun2 calculate trace for %i of %i term", took, g, nG-1);
 simple_tic(t);
+Rprintf("\n\t\t      gradFun2 trace for %i of %i term=%6.4f", g, nG-1, trace[g]);
 
 
 
@@ -419,7 +419,6 @@ simple_tic(t);
   delete [] w;
   delete [] tugug;
   delete [] trace;
-  delete [] sln_g;
 
   return(1);
 }
