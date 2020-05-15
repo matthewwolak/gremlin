@@ -11,24 +11,41 @@ backwards solve:  Lt Ainv_j = b_j (Lt is transpose of L)
 
 csi cs_chol2inv_ii(const cs *L, const csi *Pinv, double *Cinv_ii, int r){  
 
-  csi	 g, j, n;
-  double *b;
+  csi	 i, j, k, n, *Lp, *Li;
+  double *b, *Lx;
 
   n = L->n;
+  Lp = L->p; Li = L->i; Lx = L->x;
   b = cs_malloc(n, sizeof (double));
-  for(g = 0; g < n; g++) b[g] = 0.0;
 
-  for(j = r; j < n; j++){
+  for(k = r; k < n; k++){
+    for(i = 0; i < n; i++) b[i] = 0.0;  // clear b
     // initiate jth column of identity matrix  
-    b[Pinv[j]] = 1.0;           /* essentially `cs_ipvec` */
-    cs_lsolve(L, b);    	/* b = L\b   */
-    cs_ltsolve(L, b);   	/* b = L'\b  */
-    // load diagnoal from b into output
-    Cinv_ii[j] = b[Pinv[j]];    /* essentially `cs_pvec` */
+    b[Pinv[k]] += 1.0;           /* essentially `cs_ipvec` */
+    // forward solve (e.g., cs_lsolve) b = L\b
+    for(j = Pinv[k]; j < n; j++){
+      if(b[j] != 0.0){
+        b[j] /= Lx[Lp[j]];  // set diagonal ( 1 / L[k,k])
+        // for loop to determine off-diagonal contributions
+        for(i = Lp[j]+1; i < Lp[j+1]; i++){
+          b[Li[i]] -= Lx[i] * b[j];
+        }
+      }  // end if NOT 0
+    }
+ 
+    // back solve (e.g., cs_ltsolve) b = L' \ b
+    //// only need to find diagonal element for Cinv_ii[k] so stop at diagonal
+    for(j = n-1; j >= Pinv[k]; j--){
+      for(i = Lp[j]+1; i < Lp[j+1]; i++){
+        b[j] -= Lx[i] * b[Li[i]];
+      }
+      b[j] /= Lx[Lp[j]];
+    }
 
-    // Also, reset b for next column
-    for(g = 0; g < n; g++) b[g] = 0.0;
-  }  // end for j
+    // load diagnoal from b into output
+    Cinv_ii[k] = b[Pinv[k]];    /* essentially `cs_pvec` */
+
+  }  // end for k
   cs_free(b);
 
  return(1);
