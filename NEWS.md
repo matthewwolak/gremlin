@@ -1,3 +1,12 @@
+# 1.0.1
+## NEW
+  - change version numbering to just 3 numbers (instead of 4)
+    - just dropping last number
+
+## Minor Changes
+
+
+
 # 1.0.0.1
 ## NEW
   - `update()` function
@@ -11,6 +20,10 @@
 ## Minor Changes
   - Implement more efficient algorithms in the c++ code, that were developed in the R code for version 1.0.0.0.
   - Add `gremlinControl()` function for _advanced_ changes to the way gremlin runs
+  - Begin major improvements to speed of gradient calculation function
+    - changes to be incorporated in `em`, `ai`, and elsewhere (where relevant) in next version
+    - implements calculations that take advantage of sparsity (i.e., don't calculate values where there are zeroes)
+
 
 # 1.0.0.0
 ## NEW
