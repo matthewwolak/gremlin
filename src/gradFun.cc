@@ -1,6 +1,7 @@
+#include "gremlin.h"
+
 //#include "gremlincc.h"  // lists `gremlin.h` within it
 // if NOT using clock functions simple_tic etc. then just include `gremlin.h`
-#include "gremlin.h"
 
 
 
@@ -15,7 +16,7 @@ XXX eqn. 2.44 is the score/gradient! for a varcomp
 /* return 1 if successful else returns 0
        dLdnu overwritten with output
        Cinv_ii overwritten with diag(Cinv) */
-csi cs_gradFun2(double *nu, double *dLdnu, double *Cinv_ii,
+csi cs_gradFun(double *nu, double *dLdnu, double *Cinv_ii,
 	csi n, csi p, csi nG, csi *rfxlvls, csi nb, csi *ndgeninv,
 	cs **geninv,
 	const cs *BLUXs, const cs *Lc, const csi *Pinv,
@@ -85,9 +86,9 @@ csi cs_gradFun2(double *nu, double *dLdnu, double *Cinv_ii,
 // print timing
 /*
 took = simple_toc(t);
-Rprintf("\n\t\t    %6.6f sec.: gradFun2 calculate tugug for %i of %i term", took, g, nG-1);
+Rprintf("\n\t\t    %6.6f sec.: gradFun calculate tugug for %i of %i term", took, g, nG-1);
 simple_tic(t);
-Rprintf("\n\t\t      gradFun2 tugug for %i of %i term=%6.4f", g, nG-1, tugug[g]);
+Rprintf("\n\t\t      gradFun tugug for %i of %i term=%6.4f", g, nG-1, tugug[g]);
 */
 
 
@@ -208,9 +209,9 @@ if((k == si) | (k ==ei-1)){
 // print timing
 /*
 took = simple_toc(t);
-Rprintf("\n\t\t    %6.6f sec.: gradFun2 calculate trace for %i of %i term", took, g, nG-1);
+Rprintf("\n\t\t    %6.6f sec.: gradFun calculate trace for %i of %i term", took, g, nG-1);
 simple_tic(t);
-Rprintf("\n\t\t      gradFun2 trace for %i of %i term=%6.4f", g, nG-1, trace[g]);
+Rprintf("\n\t\t      gradFun trace for %i of %i term=%6.4f", g, nG-1, trace[g]);
 */
 
 

@@ -41,7 +41,7 @@ A \code{list} of class \code{summary.gremlin} or a printed value
       scale that the model is fitting.}
     \item{fxdSummary }{Table of fixed effects and standard errors (calculated
       from the corresponding diagonal elements of the inverse of the
-      coefficient matrixm, transformed where necessary).}
+      coefficient matrix, transformed where necessary).}
   }
 }
 \description{
