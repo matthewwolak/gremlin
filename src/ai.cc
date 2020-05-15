@@ -1,8 +1,6 @@
 #include "gremlin.h"
 
 
-
-
 /* AI returned */
 cs *cs_ai(const cs *BLUXs, cs **Ginv,
         const cs *R, const cs *KRinv, const cs *tWKRinv,
@@ -25,10 +23,6 @@ cs *cs_ai(const cs *BLUXs, cs **Ginv,
   double  *Scol = new double[BLUXs->m];
   if(!p_sln || !Scol) return(0);
  
-  double  *Btmp = new double[n];
-  if(!Btmp) return(0);
-    for(i = 0; i < n; i++) Btmp[i] = 0.0;  // intialize at 0.0 so cs_gaxpy works below
-
   if(thetaR != 0 && fabs(sigma2e - 1.00) < DBL_EPSILON) lambda = 0; else lambda = 1;
 
   if(lambda == 1){
@@ -56,9 +50,6 @@ cs *cs_ai(const cs *BLUXs, cs **Ginv,
     qi = rfxlvls[g];
     ei = si - 1 + qi;
     Zg = cs_spalloc(n, qi, W->p[ei+1] - W->p[si], true, false);
-    double  *sln_g = new double[qi];  // TODO: just make 1 sln_g size=max(rfxlvls)?
-      if(!sln_g) return(0);
-      for(i = 0; i < qi; i++) sln_g[i] = BLUXs->x[si + i];
 
     cnt = 0;
     for(k = W->p[si]; k < W->p[ei+1]; k++){
@@ -74,20 +65,24 @@ cs *cs_ai(const cs *BLUXs, cs **Ginv,
     //TODO for covariances see Johnson & Thompson 1995 eqn 11b
     //// B[,g] = Z_g %*% sln[si:ei, 1] %*% Ginv[g] FIXME is order correct? See difference in order between Johnson & Thompson (e.g., eqn. 11b) and Meyer 1997 eqn 20
     ////// B[,g] = Z_g %*% sln[si:ei, 1] ...
-    cs_gaxpy(Zg, sln_g, Btmp);  /* y = A*x+y */
-    ////// B[,g] = .... %*% Ginv[g]
-    for(i = 0; i < n; i++){
-      B->x[B->p[g] + i] += Btmp[i] * Ginv[g]->x[0];  //TODO ?? what to do if Ginv is a matrix?
-      Btmp[i] = 0.0;  // clear Btmp for next time
+    //////// alternatively cs_gaxpy(Zg, sln_g, Btmp);  /* y = A*x+y */
+    for(i = 0; i < qi; i++){
+      for(k = Zg->p[i]; k < Zg->p[i+1]; k++){
+        B->x[B->p[g] + Zg->i[k]] += Zg->x[k] * BLUXs->x[si + i] * Ginv[g]->x[0];  //TODO what to do if Ginv is a matrix?
+      }
     }
+
+    ////// B[,g] = .... %*% Ginv[g]
+//    for(i = 0; i < n; i++){
+//      B->x[B->p[g] + i] *= Ginv[g]->x[0];  //TODO what to do if Ginv is a matrix?
+//    }
     cs_spfree(Zg);
-    delete [] sln_g;
     si = ei + 1;
   }  // end for g
 
   //FIXME TODO Check what to do if more than 1 residual variance parameter
   for(k = 0; k < n; k++){
-    B->x[B->p[nG] + k] += rory[k] * Rinv->x[0];  //TODO ?? what to do if Rinv is a matrix?
+    B->x[B->p[nG] + k] += rory[k] * Rinv->x[0];  //TODO what to do if Rinv is a matrix?
   }
   tB = cs_transpose(B, 1);
 
@@ -174,13 +169,11 @@ cs *cs_ai(const cs *BLUXs, cs **Ginv,
   cs_spfree(B);
   cs_spfree(Rinv);
 
-  delete [] Btmp;
   delete [] p_sln;
   delete [] Scol;
 
  return(AI);
 }
-
 
 
 

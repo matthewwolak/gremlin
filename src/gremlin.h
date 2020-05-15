@@ -12,7 +12,7 @@ extern "C" {
 
 
 /* Average Information Algorithm:
-     replaces elements in AI. Returns 1=success else 0 */
+     returns AI */
 cs *cs_ai(const cs *BLUXs, cs **Ginv,
         const cs *R, const cs *KRinv, const cs *tWKRinv,
         double *rory,  // residuals if lambda=FALSE else y if lambda=TRUE
@@ -21,6 +21,8 @@ cs *cs_ai(const cs *BLUXs, cs **Ginv,
 	csi thetaR,       // 0 if lambda=TRUE
         double sigma2e);    // 1.0 if lambda=FALSE
 
+
+ 
 /* Gradient/Score (first derivative) function
      return 1 if successful else returns 0
      dLdnu overwritten with output

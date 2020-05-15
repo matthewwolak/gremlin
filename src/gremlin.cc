@@ -831,17 +831,20 @@ if(v[0] > 3){
         if(v[0] > 1 && vitout == 0) Rprintf("\n\tAI to find next nu");
         if(aiformed == 1) cs_spfree(AI);
         if(lambda[0] == 1){
+
           AI = cs_ai(BLUXs, Ginv, R, 0, 0,
 	      y, W, tW, ny[0], p[0], nG, rfxlvls, nffx, Lc->L, sLc->pinv,
 	      0, sigma2e);
           if(AI == NULL) error("\nUnsuccessful AI algorithm in iteration %i", i);
 
+
 if(v[0] > 3){
   took = simple_toc(t);
-  Rprintf("\n\t    %6.4f sec.: calculate AI", took);
+  Rprintf("\n\t    %6.6f sec.: calculate AI", took);
   simple_tic(t);
 }
-       
+
+      
           if(!cs_gradFun(nu, dLdnu, Cinv_ii,
 	      ny[0], p[0], nG, rfxlvls, nffx, ndgeninv,
 	      geninv, BLUXs, Lc->L, sLc->pinv, 
@@ -851,6 +854,7 @@ if(v[0] > 3){
             error("\nUnsuccessful gradient calculation in iteration %i", i);
           }  // end if cs_gradFun
 
+
 if(v[0] > 3){
   took = simple_toc(t);
   Rprintf("\n\t    %6.4f sec.: calculate gradient", took);
@@ -858,17 +862,20 @@ if(v[0] > 3){
 }
 
         }else{
+
           AI = cs_ai(BLUXs, Ginv, R, KRinv, tWKRinv,
 	      res, W, tW, ny[0], p[0], nG, rfxlvls, nffx, Lc->L, sLc->pinv,
 	      nG, 1.0);
           if(AI == NULL) error("\nUnsuccessful AI algorithm in iteration %i", i);
 
- if(v[0] > 3){
+
+if(v[0] > 3){
   took = simple_toc(t);
-  Rprintf("\n\t    %6.4f sec.: calculate AI", took);
+  Rprintf("\n\t    %6.6f sec.: calculate AI", took);
   simple_tic(t);
 }
-          
+  
+
           if(!cs_gradFun(nu, dLdnu, Cinv_ii,
 	      ny[0], p[0], nG, rfxlvls, nffx, ndgeninv,
 	      geninv, BLUXs, Lc->L, sLc->pinv, 
@@ -878,13 +885,12 @@ if(v[0] > 3){
             error("\nUnsuccessful gradient calculation in iteration %i", i);
           }  // end if cs_gradFun
 
+
 if(v[0] > 3){
   took = simple_toc(t);
   Rprintf("\n\t    %6.4f sec.: calculate gradient", took);
   simple_tic(t);
 }
-
-
 
         }  // end if/else lambda
         //TODO do I need to check convergence criteria here (i.e., cc[3:4])
