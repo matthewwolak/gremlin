@@ -124,7 +124,7 @@ if((k == si) | (k ==ei-1)){
       //// Lc is permuted, use t(P) %*% I[, k]
       w[Pinv[k]] += 1.0;              /* essentially `cs_ipvec` */
 //      gr_cs_lltsolve(Lc, w, Pinv[k]); /* x = L\x then x = L'\x  */
-      // forward solve (e.g., cs_lsolve
+      // forward solve (e.g., cs_lsolve)
       for(j = Pinv[k]; j < nsln; j++){
         if(w[j] != 0.0){
           w[j] /= Lx[Lp[j]];  // set diagonal (1 / L[k,k])
