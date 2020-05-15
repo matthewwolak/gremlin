@@ -63,19 +63,20 @@ cs *cs_ai(const cs *BLUXs, cs **Ginv,
     // Meyer 1997: eqn. 20 [also f(theta) in Johnson & Thompson 1995 eqn 9c)]
     // Knight 2008: eqn 2.32-2.35 and 3.11-3.13 (p.34)
     //TODO for covariances see Johnson & Thompson 1995 eqn 11b
-    //// B[,g] = Z_g %*% sln[si:ei, 1] %*% Ginv[g] FIXME is order correct? See difference in order between Johnson & Thompson (e.g., eqn. 11b) and Meyer 1997 eqn 20
-    ////// B[,g] = Z_g %*% sln[si:ei, 1] ...
-    //////// alternatively cs_gaxpy(Zg, sln_g, Btmp);  /* y = A*x+y */
+    //// B[,g] = Z_g %*% sln[si:ei, 1] %*% Ginv[g] 
+    ////// See difference in order between Johnson & Thompson (e.g., eqn. 11b) and Meyer 1997 eqn 20
+    ////// Actually calculates t(sln) %*% Z_g for computational ease (go by columns)
+    //////// Also include multiplication with Ginv
+    ////////// because matrix multiplication identity holds:
+    ////////// (Ginv * (r_1 * c_1 + r_2 * c_2) == Ginv * r_1 * c_1 + Ginv * r_2 * c_2)
+
+    ////// alternatively cs_gaxpy(Zg, sln_g, Btmp);  /* y = A*x+y */
     for(i = 0; i < qi; i++){
       for(k = Zg->p[i]; k < Zg->p[i+1]; k++){
         B->x[B->p[g] + Zg->i[k]] += Zg->x[k] * BLUXs->x[si + i] * Ginv[g]->x[0];  //TODO what to do if Ginv is a matrix?
       }
     }
 
-    ////// B[,g] = .... %*% Ginv[g]
-//    for(i = 0; i < n; i++){
-//      B->x[B->p[g] + i] *= Ginv[g]->x[0];  //TODO what to do if Ginv is a matrix?
-//    }
     cs_spfree(Zg);
     si = ei + 1;
   }  // end for g
