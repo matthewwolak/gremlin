@@ -27,7 +27,7 @@ cs *cs_ai(const cs *BLUXs, cs **Ginv,
      return 1 if successful else returns 0
      dLdnu overwritten with output
      Cinv_ii overwritten with diag(Cinv) */
-csi cs_gradFun(double *nu, double *dLdnu, double *Cinv_ii,
+csi cs_gradFun(double *nu, double *dLdnu,
 	csi n, csi p, csi nG, csi *rfxlvls, csi nb, csi *ndgeninv,
 	cs **geninv,
 	const cs *BLUXs, const cs *Lc, const csi *Pinv,

@@ -845,7 +845,7 @@ if(v[0] > 3){
 }
 
       
-          if(!cs_gradFun(nu, dLdnu, Cinv_ii,
+          if(!cs_gradFun(nu, dLdnu,
 	      ny[0], p[0], nG, rfxlvls, nffx, ndgeninv,
 	      geninv, BLUXs, Lc->L, sLc->pinv, 
               sigma2e,    // 1.0 if lambda=FALSE
@@ -876,7 +876,7 @@ if(v[0] > 3){
 }
   
 
-          if(!cs_gradFun(nu, dLdnu, Cinv_ii,
+          if(!cs_gradFun(nu, dLdnu,
 	      ny[0], p[0], nG, rfxlvls, nffx, ndgeninv,
 	      geninv, BLUXs, Lc->L, sLc->pinv, 
               1.0,    // 1.0 if lambda=FALSE
@@ -1101,7 +1101,7 @@ if(v[0] > 3){
 }
        
 /*
-    if(!cs_gradFun(nu, dLdnu, Cinv_ii,
+    if(!cs_gradFun(nu, dLdnu,
    	    ny[0], p[0], nG, rfxlvls, nffx, ndgeninv,
 	    geninv, BLUXs, Lc->L, sLc->pinv, 
             sigma2e,    // 1.0 if lambda=FALSE
@@ -1130,7 +1130,7 @@ if(v[0] > 3){
 }
 
 /*          
-    if(!cs_gradFun(nu, dLdnu, Cinv_ii,
+    if(!cs_gradFun(nu, dLdnu,
           ny[0], p[0], nG, rfxlvls, nffx, ndgeninv,
 	  geninv, BLUXs, Lc->L, sLc->pinv, 
           1.0,    // 1.0 if lambda=FALSE
@@ -1156,19 +1156,6 @@ if(v[0] > 3) simple_tic(t);
   //// Solution vector
   for(k = 0; k < dimZWG[3]; k++) sln[k] += BLUXs->x[k];
 
-
-//XXX keep this commented out bit for ref on how to un-pack a cs matrix
-/* No longer needed - cs_em automatically replaces and don't make Cinv
-  //// diagonals of Cinv (sln sampling variances) 
-  for(k = 0; k < Cn; k++){
-    for(i = Cinv->p[k]; i < Cinv->p[k+1]; i++){
-      if(Cinv->i[i] == k){
-        Cinv_ii[k] += Cinv->x[i];
-        break; 
-      }  // end if
-    }  // end for i
-  }  // end for k
-*/
 
   //// return AI
   if(CS_CSC(AI)){

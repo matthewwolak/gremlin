@@ -15,8 +15,8 @@ XXX eqn. 2.44 is the score/gradient! for a varcomp
 
 /* return 1 if successful else returns 0
        dLdnu overwritten with output
-       Cinv_ii overwritten with diag(Cinv) */
-csi cs_gradFun(double *nu, double *dLdnu, double *Cinv_ii,
+       					 */
+csi cs_gradFun(double *nu, double *dLdnu, 
 	csi n, csi p, csi nG, csi *rfxlvls, csi nb, csi *ndgeninv,
 	cs **geninv,
 	const cs *BLUXs, const cs *Lc, const csi *Pinv,
@@ -42,7 +42,6 @@ csi cs_gradFun(double *nu, double *dLdnu, double *Cinv_ii,
   si = nb;
   nminfrfx = n - nb;
     if(lambda == 0) for(g = 0; g < nG; g++) nminfrfx -= rfxlvls[g];
-  // `Cinv_ii` is the diagonals only of the C-inverse matrix
   // `trace` = trace(Cinv_gg %*% geninv_gg])
   // `tugug` = t(u_gg) %*% geninv_gg %*% u_gg
   //// `g` is the gth component of the G-structure to model
@@ -125,6 +124,7 @@ if((k == si) | (k ==ei-1)){
       //// Lc is permuted, use t(P) %*% I[, k]
       w[Pinv[k]] += 1.0;              /* essentially `cs_ipvec` */
 //      gr_cs_lltsolve(Lc, w, Pinv[k]); /* x = L\x then x = L'\x  */
+      // forward solve (e.g., cs_lsolve
       for(j = Pinv[k]; j < nsln; j++){
         if(w[j] != 0.0){
           w[j] /= Lx[Lp[j]];  // set diagonal (1 / L[k,k])
@@ -149,7 +149,7 @@ if((k == si) | (k ==ei-1)){
 
        // if Diagonal generalized inverse associated
        if(ndgeninv[g] == 0){
-         // only need to find diagonal element for Cinv_ii[k]
+         // only need to find diagonal element for Cinv_ii[k] to calculate trace
          for(j = nsln-1; j>=Pinv[k]; j--){
            for(i = Lp[j]+1; i<Lp[j+1]; i++){
              w[j] -= Lx[i] * w[Li[i]];
@@ -187,13 +187,10 @@ if((k == si) | (k ==ei-1)){
 */
 
       // Now w holds a permuted ordering of Cinv[, k]
-      // write sampling variance for kth BLUP
-      Cinv_ii[k] = w[Pinv[k]];	      /* essentially `cs_pvec` */
-
       if(ndgeninv[g] == 0){
         // if a diagonal geninv, trace=sum(diag(Cinv[si:ei, si:ei]))
         //// trace (numerator of 2nd) term in the equation
-        trace[g] += Cinv_ii[k];
+        trace[g] += w[Pinv[k]];  // essentially `cs_pvec` on w
       } else{
         // Contribution to the trace: calculate diagonal of matrix product
         //(geninv[g]%*%Cinv[si:ei, si:ei])[k,k] = geninv[g][k,]%*%Cinv[si:ei,k]
