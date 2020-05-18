@@ -121,6 +121,8 @@ void ugremlin(
 
   int	 *cc = new int[5];
 
+  double  *w = new double[dimZWG[3]];
+
   double  *trace = new double[nG];
 
   if(lambda == 0) g = nG+1; else g = nG;
@@ -847,7 +849,7 @@ if(v[0] > 3){
         if(v[0] > 1 && vitout == 0) Rprintf("\n\tAI to find next nu");
         if(aiformed == 1) cs_spfree(AI);
 
-        if(!tugugFun(tugug, nG, rfxlvls,
+        if(!tugugFun(tugug, w, nG, rfxlvls,
 	    nffx, ndgeninv, geninv, BLUXs)){
           error("\nUnsuccessful tugug calculation: AI algorithm in iteration %i", i);
         }
@@ -858,7 +860,7 @@ if(v[0] > 3){
   simple_tic(t);
 }
 
-        if(!traceFun(trace, nG, rfxlvls,
+        if(!traceFun(trace, w, nG, rfxlvls,
 	    nffx, ndgeninv, geninv, BLUXs, Lc->L, sLc->pinv)){
           error("\nUnsuccessful trace calculation: AI algorithm in iteration %i", i);
         }
@@ -868,6 +870,9 @@ if(v[0] > 3){
   Rprintf("\n\t    %6.6f sec.: calculate trace(s)", took);
   simple_tic(t);
 }
+
+
+
 
         if(lambda[0] == 1){
 
@@ -1290,6 +1295,7 @@ if(v[0] > 3) simple_tic(t);
 //
   delete [] rfxlvls;
   delete [] cc;
+  delete [] w;
   delete [] trace;
   delete [] tugug;
   delete [] dnu;

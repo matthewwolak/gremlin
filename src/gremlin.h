@@ -63,13 +63,13 @@ csi cs_em(const cs *BLUXs, double *nu,
        					 
    `tugug` = t(u_gg) %*% geninv_gg %*% u_gg
 */
-csi tugugFun(double *tugug, csi nG, csi *rfxlvls, 
+csi tugugFun(double *tugug, double *w, csi nG, csi *rfxlvls, 
         csi nb, csi *ndgeninv, cs **geninv, const cs *BLUXs);
 
 /* return 1 if successful else returns 0
        trace overwritten with output
 */
-csi traceFun(double *trace, csi nG, csi *rfxlvls,
+csi traceFun(double *trace, double *w, csi nG, csi *rfxlvls,
 	csi nb, csi *ndgeninv, cs **geninv, const cs *BLUXs,
 	const cs *Lc, const csi *Pinv);
 
