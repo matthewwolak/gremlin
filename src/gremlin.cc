@@ -402,6 +402,7 @@ if(v[0] > 3){
   //////////////////////////////////////////////////////////////////////////////
   for(i = 0; i < maxit[0]; i++){
     simple_tic(T);
+    simple_tic(t);
     if(i == 0){vitout = 0;}else{vitout = (i+1)%vit[0];}  // always do first iteration
     if(v[0] > 0 && vitout == 0){
       Rprintf("  %i of max %i\t", i+1, maxit[0]);//TODO TIME of DAY format as remlIt
