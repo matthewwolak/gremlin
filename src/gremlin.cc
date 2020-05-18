@@ -121,8 +121,7 @@ void ugremlin(
 
   int	 *cc = new int[5];
 
-  float  *w = new float[dimZWG[3]];
-//    double  *w = new double[dimZWG[3]];
+  double  *w = new double[dimZWG[3]];
 
   g = (lambda[0]) ? nG : nG+1;
     double  *tugug = new double[g];  // includes crossprod(residual) when !lambda

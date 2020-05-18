@@ -51,13 +51,13 @@ csi cs_chol2inv_ii(const cs *L, const csi *Pinv, double *Cinv_ii, int r);
        					 
    `tugug` = t(u_gg) %*% geninv_gg %*% u_gg
 */
-csi tugugFun(double *tugug, float *w, csi nG, csi *rfxlvls, 
+csi tugugFun(double *tugug, double *w, csi nG, csi *rfxlvls, 
         csi nb, csi *ndgeninv, cs **geninv, const cs *BLUXs);
 
 /* return 1 if successful else returns 0
        trace overwritten with output
 */
-csi traceFun(double *trace, float *w, csi nG, csi *rfxlvls,
+csi traceFun(double *trace, double *w, csi nG, csi *rfxlvls,
 	csi nb, csi *ndgeninv, cs **geninv, const cs *BLUXs,
 	const cs *Lc, const csi *Pinv);
 
