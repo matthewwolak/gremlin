@@ -123,10 +123,10 @@ void ugremlin(
 
   double  *w = new double[dimZWG[3]];
 
-  double  *trace = new double[nG];
-
-  if(lambda == 0) g = nG+1; else g = nG;
+  if(lambda[0] == 0) g = nG+1; else g = nG;
     double  *tugug = new double[g];  // includes crossprod(residual) when !lambda
+
+  double  *trace = new double[nG];
 
   double  *dnu = new double[p[0]];
 
@@ -353,8 +353,6 @@ if(v[0] > 3){
   if(sLc == NULL){
     error("FAILED: symbolic Cholesky factorization of Coefficient matrix (`C`)\n");
   }
-
-
 
 
 if(v[0] > 3){
@@ -873,20 +871,16 @@ if(v[0] > 3){
 
 
         if(lambda[0] == 1){
-
           AI = cs_ai(BLUXs, Ginv, R, 0, 0,
 	      y, W, tW, ny[0], p[0], nG, rfxlvls, nffx, Lc->L, sLc->pinv,
 	      0, sigma2e);
           if(AI == NULL) error("\nUnsuccessful AI algorithm in iteration %i", i);
-
-
 if(v[0] > 3){
   took = simple_toc(t);
   Rprintf("\n\t    %6.6f sec.: calculate AI matrix", took);
   simple_tic(t);
 }
 
- 
           if(!cs_gradFun(nu, dLdnu,
 	      tugug, trace,
 	      ny[0], nG, rfxlvls, nffx,
@@ -895,8 +889,6 @@ if(v[0] > 3){
 	      
             error("\nUnsuccessful gradient calculation in iteration %i", i);
           }  // end if cs_gradFun
-
-
 if(v[0] > 3){
   took = simple_toc(t);
   Rprintf("\n\t    %6.4f sec.: calculate gradient", took);
@@ -904,30 +896,24 @@ if(v[0] > 3){
 }
 
         } else{
-
+          // when lambda = FALSE
           AI = cs_ai(BLUXs, Ginv, R, KRinv, tWKRinv,
 	      res, W, tW, ny[0], p[0], nG, rfxlvls, nffx, Lc->L, sLc->pinv,
 	      nG, 1.0);
           if(AI == NULL) error("\nUnsuccessful AI algorithm in iteration %i", i);
-
-
 if(v[0] > 3){
   took = simple_toc(t);
   Rprintf("\n\t    %6.6f sec.: calculate AI matrix", took);
   simple_tic(t);
 }
-  
 
           if(!cs_gradFun(nu, dLdnu,
 	      tugug, trace,
 	      ny[0], nG, rfxlvls, nffx,
               1.0,    // 1.0 if lambda=FALSE
 	      nG, res)){      // 0 if lambda=TRUE
-
             error("\nUnsuccessful gradient calculation in iteration %i", i);
           }  // end if cs_gradFun
-
-
 if(v[0] > 3){
   took = simple_toc(t);
   Rprintf("\n\t    %6.4f sec.: calculate gradient", took);
@@ -1180,7 +1166,6 @@ if(v[0] > 3) simple_tic(t);
 
 
 
-
   //////////////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
   cs_spfree(Bpinv);
@@ -1212,12 +1197,12 @@ if(v[0] > 3) simple_tic(t);
   delete [] G; delete [] Ginv;
   delete [] KGinv;
 //
-  delete [] rfxlvls;
-  delete [] cc;
-  delete [] w;
+  delete [] dnu;
   delete [] trace;
   delete [] tugug;
-  delete [] dnu;
+  delete [] w;
+  delete [] cc;
+  delete [] rfxlvls;
 
 
 if(v[0] > 3){
