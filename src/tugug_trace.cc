@@ -16,7 +16,7 @@
        					 
    `tugug` = t(u_gg) %*% geninv_gg %*% u_gg
 */
-csi tugugFun(double *tugug, double *w, csi nG, csi *rfxlvls, 
+csi tugugFun(double *tugug, float *w, csi nG, csi *rfxlvls, 
         csi nb, csi *ndgeninv, cs **geninv, const cs *BLUXs
 ){
 
@@ -99,7 +99,7 @@ XXX TODO see Knight 2008 thesis eqns 2.36 & 2.42 (and intermediates) for more ge
 /* return 1 if successful else returns 0
        trace overwritten with output
 */
-csi traceFun(double *trace, double *w,
+csi traceFun(double *trace, float *w,
 	csi nG, csi *rfxlvls, csi nb, csi *ndgeninv, cs **geninv,
 	const cs *BLUXs, const cs *Lc, const csi *Pinv
 ){
