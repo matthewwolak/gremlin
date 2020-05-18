@@ -121,7 +121,8 @@ void ugremlin(
 
   int	 *cc = new int[5];
 
-  double  *w = new double[dimZWG[3]];
+//  float  *w = new float[dimZWG[3]];
+    double  *w = new double[dimZWG[3]];
 
   g = (lambda[0]) ? nG : nG+1;
     double  *tugug = new double[g];  // includes crossprod(residual) when !lambda
@@ -1207,7 +1208,7 @@ if(v[0] > 3) simple_tic(t);
 
 if(v[0] > 3){
   took = simple_toc(t);
-  Rprintf("%6.4f sec.: cpp post-REML freeing-up\n", took);
+  Rprintf("\n    %6.4f sec.: cpp post-REML freeing-up\n", took);
 }
 
 }
