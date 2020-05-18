@@ -109,9 +109,10 @@ csi traceFun(double *trace, double *w,
   csi     g, i, j, k, nsln, si, qi, ei, *Lp, *Li, minginviPerm;
 
 // for printing timings within
-//double	t[2], took;
-//simple_tic(t);
-
+/*
+double	t[2], took;
+simple_tic(t);
+*/
 
   if(!CS_CSC (BLUXs) || !nb) return (0);    // check arguments
 
@@ -151,8 +152,9 @@ if((k == si) | (k ==ei-1)){
       // use w as working vector: first create Identity[, k]
       for(i = 0; i < nsln; i++) w[i] = 0.0;  // clear w
 
+
+// print timing
 /*
- // print timing
 if((k == si) | (k ==ei-1)){
   took = simple_toc(t);
   Rprintf("\n\t\t\t    %6.6f sec.: clear w at %i for %i of %i term", took,k,g,nG-1);
@@ -246,7 +248,7 @@ if((k == si) | (k ==ei-1)){
 // print timing
 /*
 took = simple_toc(t);
-Rprintf("\n\t\t    %6.6f sec.: gradFun calculate trace for %i of %i term", took, g, nG-1);
+Rprintf("\n\t\t    %6.6f sec.: calculate trace for %i of %i term", took, g, nG-1);
 simple_tic(t);
 */
 

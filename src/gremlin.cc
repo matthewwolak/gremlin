@@ -826,6 +826,11 @@ if(v[0] > 3){
 	    nffx, ndgeninv, geninv, BLUXs, Lc->L, sLc->pinv)){
           error("\nUnsuccessful trace calculation: EM algorithm in iteration %i", i);
         }
+//FIXME DELETE
+        if(!traceFun2(trace, w, nG, rfxlvls,
+	    nffx, ndgeninv, geninv, BLUXs, Lc->L, sLc->pinv)){
+          error("\nUnsuccessful trace calculation: EM algorithm in iteration %i", i);
+        }
 
         // calculate EM for G (co)variances:
         //// (tugug + trace ) / qi
@@ -871,6 +876,16 @@ if(v[0] > 3){
   simple_tic(t);
 }
 
+//FIXME DELETE
+        if(!traceFun2(trace, w, nG, rfxlvls,
+	    nffx, ndgeninv, geninv, BLUXs, Lc->L, sLc->pinv)){
+          error("\nUnsuccessful trace calculation: EM algorithm in iteration %i", i);
+        }
+if(v[0] > 3){
+  took = simple_toc(t);
+  Rprintf("\n\t    %6.6f sec.: calculate trace(s)", took);
+  simple_tic(t);
+}
 
 
 
