@@ -28,11 +28,17 @@ cs *cs_ai(const cs *BLUXs, cs **Ginv,
      dLdnu overwritten with output
      Cinv_ii overwritten with diag(Cinv) */
 csi cs_gradFun(double *nu, double *dLdnu,
-	csi n, csi p, csi nG, csi *rfxlvls, csi nb, csi *ndgeninv,
+	csi n, csi nG, csi *rfxlvls, csi nb, csi *ndgeninv,
 	cs **geninv,
 	const cs *BLUXs, const cs *Lc, const csi *Pinv,
         double sigma2e,    // 1.0 if lambda=FALSE
 	csi thetaR, double *r);      // 0 if lambda=TRUE
+csi cs_gradFun2(double *nu, double *dLdnu, 
+        double *tugug, double *trace,
+	csi n, csi nG, csi *rfxlvls, csi nb,
+	double sigma2e,    // 1.0 if lambda=FALSE
+	csi thetaR, double *r);      // 0 if lambda=TRUE
+
 
 /* solve Ax=k where Lx=b, L'b=k, and x, b, and k are dense.
    x=b on input, solution on output. */
@@ -46,10 +52,26 @@ csi gr_cs_lltsolve (const cs *L, double *x, csi k);
 csi cs_chol2inv_ii(const cs *L, const csi *Pinv, double *Cinv_ii, int r);  
 
 /* Expectation Maximization Algorithm:
-     replaces elements in theta. Returns 1=success else 0 */
-csi cs_em(const cs *BLUXs, double *nu, double *Cinv_ii,
+     nu overwritten with solution. Returns 1=success else 0 */
+csi cs_em(const cs *BLUXs, double *nu,
 	csi nG, csi *rfxlvls, csi nb, csi *ndgeninv,
 	cs **geninv, const cs *Lc, const csi *Pinv);
+
+
+/* return 1 if successful else returns 0
+       tugug overwritten with output
+       					 
+   `tugug` = t(u_gg) %*% geninv_gg %*% u_gg
+*/
+csi tugugFun(double *tugug, csi nG, csi *rfxlvls, 
+        csi nb, csi *ndgeninv, cs **geninv, const cs *BLUXs);
+
+/* return 1 if successful else returns 0
+       trace overwritten with output
+*/
+csi traceFun(double *trace, csi nG, csi *rfxlvls,
+	csi nb, csi *ndgeninv, cs **geninv, const cs *BLUXs,
+	const cs *Lc, const csi *Pinv);
 
 /*******************************************************************/
 /* Below are functions from MCMCglmm-2.25 by Jarrod Hadfield       */

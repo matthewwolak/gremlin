@@ -121,6 +121,11 @@ void ugremlin(
 
   int	 *cc = new int[5];
 
+  double  *trace = new double[nG];
+
+  if(lambda == 0) g = nG+1; else g = nG;
+    double  *tugug = new double[g];  // includes crossprod(residual) when !lambda
+
   double  *dnu = new double[p[0]];
 
 
@@ -809,10 +814,21 @@ if(v[0] > 3){
       /////////////////////////////
       if(algit[i] == 0){
         if(v[0] > 1 && vitout == 0) Rprintf("\n\tEM to find next nu");
-        if(!cs_em(BLUXs, nu, Cinv_ii,
-	    nG, rfxlvls, nffx, ndgeninv, geninv, Lc->L, sLc->pinv)){
-          error("\nUnsuccessful EM algorithm in iteration %i", i);
+
+        if(!tugugFun(tugug, nG, rfxlvls,
+	    nffx, ndgeninv, geninv, BLUXs)){
+          error("\nUnsuccessful tugug calculation: EM algorithm in iteration %i", i);
         }
+
+        if(!traceFun(trace, nG, rfxlvls,
+	    nffx, ndgeninv, geninv, BLUXs, Lc->L, sLc->pinv)){
+          error("\nUnsuccessful trace calculation: EM algorithm in iteration %i", i);
+        }
+
+        // calculate EM for G (co)variances:
+        //// (tugug + trace ) / qi
+        for(g = 0; g < nG; g++) nu[g] = (tugug[g] + trace[g] ) / rfxlvls[g];
+
         // Calculate EM for residual:
         //// crossprod(y, r) / nminffx
         d = 0.0;
@@ -830,6 +846,29 @@ if(v[0] > 3){
       if(algit[i] == 1){
         if(v[0] > 1 && vitout == 0) Rprintf("\n\tAI to find next nu");
         if(aiformed == 1) cs_spfree(AI);
+
+        if(!tugugFun(tugug, nG, rfxlvls,
+	    nffx, ndgeninv, geninv, BLUXs)){
+          error("\nUnsuccessful tugug calculation: AI algorithm in iteration %i", i);
+        }
+
+if(v[0] > 3){
+  took = simple_toc(t);
+  Rprintf("\n\t    %6.6f sec.: calculate tugug(s)", took);
+  simple_tic(t);
+}
+
+        if(!traceFun(trace, nG, rfxlvls,
+	    nffx, ndgeninv, geninv, BLUXs, Lc->L, sLc->pinv)){
+          error("\nUnsuccessful trace calculation: AI algorithm in iteration %i", i);
+        }
+
+if(v[0] > 3){
+  took = simple_toc(t);
+  Rprintf("\n\t    %6.6f sec.: calculate trace(s)", took);
+  simple_tic(t);
+}
+
         if(lambda[0] == 1){
 
           AI = cs_ai(BLUXs, Ginv, R, 0, 0,
@@ -840,13 +879,13 @@ if(v[0] > 3){
 
 if(v[0] > 3){
   took = simple_toc(t);
-  Rprintf("\n\t    %6.6f sec.: calculate AI", took);
+  Rprintf("\n\t    %6.6f sec.: calculate AI matrix", took);
   simple_tic(t);
 }
 
       
           if(!cs_gradFun(nu, dLdnu,
-	      ny[0], p[0], nG, rfxlvls, nffx, ndgeninv,
+	      ny[0], nG, rfxlvls, nffx, ndgeninv,
 	      geninv, BLUXs, Lc->L, sLc->pinv, 
               sigma2e,    // 1.0 if lambda=FALSE
 	      0, res)){      // 0 if lambda=TRUE
@@ -861,6 +900,25 @@ if(v[0] > 3){
   simple_tic(t);
 }
 
+
+          if(!cs_gradFun2(nu, dLdnu,
+	      tugug, trace,
+	      ny[0], nG, rfxlvls, nffx,
+              sigma2e,    // 1.0 if lambda=FALSE
+	      0, res)){      // 0 if lambda=TRUE
+	      
+            error("\nUnsuccessful gradient calculation in iteration %i", i);
+          }  // end if cs_gradFun
+
+
+if(v[0] > 3){
+  took = simple_toc(t);
+  Rprintf("\n\t    %6.4f sec.: calculate gradient *2*", took);
+  simple_tic(t);
+}
+
+
+
         }else{
 
           AI = cs_ai(BLUXs, Ginv, R, KRinv, tWKRinv,
@@ -871,13 +929,13 @@ if(v[0] > 3){
 
 if(v[0] > 3){
   took = simple_toc(t);
-  Rprintf("\n\t    %6.6f sec.: calculate AI", took);
+  Rprintf("\n\t    %6.6f sec.: calculate AI matrix", took);
   simple_tic(t);
 }
   
 
           if(!cs_gradFun(nu, dLdnu,
-	      ny[0], p[0], nG, rfxlvls, nffx, ndgeninv,
+	      ny[0], nG, rfxlvls, nffx, ndgeninv,
 	      geninv, BLUXs, Lc->L, sLc->pinv, 
               1.0,    // 1.0 if lambda=FALSE
 	      nG, res)){      // 0 if lambda=TRUE
@@ -891,6 +949,25 @@ if(v[0] > 3){
   Rprintf("\n\t    %6.4f sec.: calculate gradient", took);
   simple_tic(t);
 }
+
+
+
+          if(!cs_gradFun2(nu, dLdnu,
+	      tugug, trace,
+	      ny[0], nG, rfxlvls, nffx,
+              1.0,    // 1.0 if lambda=FALSE
+	      nG, res)){      // 0 if lambda=TRUE
+	      
+            error("\nUnsuccessful gradient calculation in iteration %i", i);
+          }  // end if cs_gradFun
+
+
+if(v[0] > 3){
+  took = simple_toc(t);
+  Rprintf("\n\t    %6.4f sec.: calculate gradient *2*", took);
+  simple_tic(t);
+}
+
 
         }  // end if/else lambda
         //TODO do I need to check convergence criteria here (i.e., cc[3:4])
@@ -936,10 +1013,21 @@ Whate R's `eigen()` calls
           //// if AI cannot be inverted do EM
           //////////////  TEMPORARY EM    /////////
           if(v[0] > 1 && vitout == 0) Rprintf("\n\t\tEM to find next nu");
-          if(!cs_em(BLUXs, nu, Cinv_ii,
-	      nG, rfxlvls, nffx, ndgeninv, geninv, Lc->L, sLc->pinv)){
-            error("\nUnsuccessful EM algorithm in iteration %i", i);
+
+          if(!tugugFun(tugug, nG, rfxlvls,
+	      nffx, ndgeninv, geninv, BLUXs)){
+            error("\nUnsuccessful tugug calculation: EM algorithm in iteration %i", i);
           }
+
+          if(!traceFun(trace, nG, rfxlvls,
+	      nffx, ndgeninv, geninv, BLUXs, Lc->L, sLc->pinv)){
+            error("\nUnsuccessful trace calculation: EM algorithm in iteration %i", i);
+          }
+ 
+          // calculate EM for G (co)variances:
+          //// (tugug + trace ) / qi
+          for(g = 0; g < nG; g++) nu[g] = (tugug[g] + trace[g] ) / rfxlvls[g];
+
           // Calculate EM for residual:
           //// crossprod(y, r) / nminffx
           d = 0.0;
@@ -990,23 +1078,6 @@ Whate R's `eigen()` calls
         cs_spfree(AIinv);
       }  // end AI
       /////////////////////////////
-
-
-
-
-
-
-
-
-
-
-
-if(v[0] > 3){
-  took = simple_toc(t);
-  Rprintf(": %6.4f sec.", took, i);
-  simple_tic(t);
-}
-
 
 
     }  // end if REML did not converge
@@ -1102,7 +1173,7 @@ if(v[0] > 3){
        
 /*
     if(!cs_gradFun(nu, dLdnu,
-   	    ny[0], p[0], nG, rfxlvls, nffx, ndgeninv,
+   	    ny[0], nG, rfxlvls, nffx, ndgeninv,
 	    geninv, BLUXs, Lc->L, sLc->pinv, 
             sigma2e,    // 1.0 if lambda=FALSE
 	    0, res)){      // 0 if lambda=TRUE
@@ -1131,7 +1202,7 @@ if(v[0] > 3){
 
 /*          
     if(!cs_gradFun(nu, dLdnu,
-          ny[0], p[0], nG, rfxlvls, nffx, ndgeninv,
+          ny[0], nG, rfxlvls, nffx, ndgeninv,
 	  geninv, BLUXs, Lc->L, sLc->pinv, 
           1.0,    // 1.0 if lambda=FALSE
 	  nG, res)){      // 0 if lambda=TRUE
@@ -1219,6 +1290,8 @@ if(v[0] > 3) simple_tic(t);
 //
   delete [] rfxlvls;
   delete [] cc;
+  delete [] trace;
+  delete [] tugug;
   delete [] dnu;
 
 
