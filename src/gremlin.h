@@ -27,13 +27,7 @@ cs *cs_ai(const cs *BLUXs, cs **Ginv,
      return 1 if successful else returns 0
      dLdnu overwritten with output
      Cinv_ii overwritten with diag(Cinv) */
-csi cs_gradFun(double *nu, double *dLdnu,
-	csi n, csi nG, csi *rfxlvls, csi nb, csi *ndgeninv,
-	cs **geninv,
-	const cs *BLUXs, const cs *Lc, const csi *Pinv,
-        double sigma2e,    // 1.0 if lambda=FALSE
-	csi thetaR, double *r);      // 0 if lambda=TRUE
-csi cs_gradFun2(double *nu, double *dLdnu, 
+csi cs_gradFun(double *nu, double *dLdnu, 
         double *tugug, double *trace,
 	csi n, csi nG, csi *rfxlvls, csi nb,
 	double sigma2e,    // 1.0 if lambda=FALSE
@@ -50,12 +44,6 @@ csi gr_cs_lltsolve (const cs *L, double *x, csi k);
 // replaces elements in Cinv_ii inverse diagonals as double
 //// Returns 1=success else 0
 csi cs_chol2inv_ii(const cs *L, const csi *Pinv, double *Cinv_ii, int r);  
-
-/* Expectation Maximization Algorithm:
-     nu overwritten with solution. Returns 1=success else 0 */
-csi cs_em(const cs *BLUXs, double *nu,
-	csi nG, csi *rfxlvls, csi nb, csi *ndgeninv,
-	cs **geninv, const cs *Lc, const csi *Pinv);
 
 
 /* return 1 if successful else returns 0

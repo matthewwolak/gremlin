@@ -817,12 +817,12 @@ if(v[0] > 3){
       if(algit[i] == 0){
         if(v[0] > 1 && vitout == 0) Rprintf("\n\tEM to find next nu");
 
-        if(!tugugFun(tugug, nG, rfxlvls,
+        if(!tugugFun(tugug, w, nG, rfxlvls,
 	    nffx, ndgeninv, geninv, BLUXs)){
           error("\nUnsuccessful tugug calculation: EM algorithm in iteration %i", i);
         }
 
-        if(!traceFun(trace, nG, rfxlvls,
+        if(!traceFun(trace, w, nG, rfxlvls,
 	    nffx, ndgeninv, geninv, BLUXs, Lc->L, sLc->pinv)){
           error("\nUnsuccessful trace calculation: EM algorithm in iteration %i", i);
         }
@@ -888,10 +888,10 @@ if(v[0] > 3){
   simple_tic(t);
 }
 
-      
+ 
           if(!cs_gradFun(nu, dLdnu,
-	      ny[0], nG, rfxlvls, nffx, ndgeninv,
-	      geninv, BLUXs, Lc->L, sLc->pinv, 
+	      tugug, trace,
+	      ny[0], nG, rfxlvls, nffx,
               sigma2e,    // 1.0 if lambda=FALSE
 	      0, res)){      // 0 if lambda=TRUE
 	      
@@ -905,26 +905,7 @@ if(v[0] > 3){
   simple_tic(t);
 }
 
-
-          if(!cs_gradFun2(nu, dLdnu,
-	      tugug, trace,
-	      ny[0], nG, rfxlvls, nffx,
-              sigma2e,    // 1.0 if lambda=FALSE
-	      0, res)){      // 0 if lambda=TRUE
-	      
-            error("\nUnsuccessful gradient calculation in iteration %i", i);
-          }  // end if cs_gradFun
-
-
-if(v[0] > 3){
-  took = simple_toc(t);
-  Rprintf("\n\t    %6.4f sec.: calculate gradient *2*", took);
-  simple_tic(t);
-}
-
-
-
-        }else{
+        } else{
 
           AI = cs_ai(BLUXs, Ginv, R, KRinv, tWKRinv,
 	      res, W, tW, ny[0], p[0], nG, rfxlvls, nffx, Lc->L, sLc->pinv,
@@ -940,8 +921,8 @@ if(v[0] > 3){
   
 
           if(!cs_gradFun(nu, dLdnu,
-	      ny[0], nG, rfxlvls, nffx, ndgeninv,
-	      geninv, BLUXs, Lc->L, sLc->pinv, 
+	      tugug, trace,
+	      ny[0], nG, rfxlvls, nffx,
               1.0,    // 1.0 if lambda=FALSE
 	      nG, res)){      // 0 if lambda=TRUE
 
@@ -952,24 +933,6 @@ if(v[0] > 3){
 if(v[0] > 3){
   took = simple_toc(t);
   Rprintf("\n\t    %6.4f sec.: calculate gradient", took);
-  simple_tic(t);
-}
-
-
-
-          if(!cs_gradFun2(nu, dLdnu,
-	      tugug, trace,
-	      ny[0], nG, rfxlvls, nffx,
-              1.0,    // 1.0 if lambda=FALSE
-	      nG, res)){      // 0 if lambda=TRUE
-	      
-            error("\nUnsuccessful gradient calculation in iteration %i", i);
-          }  // end if cs_gradFun
-
-
-if(v[0] > 3){
-  took = simple_toc(t);
-  Rprintf("\n\t    %6.4f sec.: calculate gradient *2*", took);
   simple_tic(t);
 }
 
@@ -1019,12 +982,12 @@ Whate R's `eigen()` calls
           //////////////  TEMPORARY EM    /////////
           if(v[0] > 1 && vitout == 0) Rprintf("\n\t\tEM to find next nu");
 
-          if(!tugugFun(tugug, nG, rfxlvls,
+          if(!tugugFun(tugug, w, nG, rfxlvls,
 	      nffx, ndgeninv, geninv, BLUXs)){
             error("\nUnsuccessful tugug calculation: EM algorithm in iteration %i", i);
           }
 
-          if(!traceFun(trace, nG, rfxlvls,
+          if(!traceFun(trace, w, nG, rfxlvls,
 	      nffx, ndgeninv, geninv, BLUXs, Lc->L, sLc->pinv)){
             error("\nUnsuccessful trace calculation: EM algorithm in iteration %i", i);
           }
@@ -1176,22 +1139,6 @@ if(v[0] > 3){
   simple_tic(t);
 }
        
-/*
-    if(!cs_gradFun(nu, dLdnu,
-   	    ny[0], nG, rfxlvls, nffx, ndgeninv,
-	    geninv, BLUXs, Lc->L, sLc->pinv, 
-            sigma2e,    // 1.0 if lambda=FALSE
-	    0, res)){      // 0 if lambda=TRUE
-	      
-    error("Unsuccessful gradient calculation  at convergence %i\n", i);
-
-if(v[0] > 3){
-  took = simple_toc(t); 
-  Rprintf("\n\t    %6.4f sec.: calculate gradient", took);
-  simple_tic(t);
-}
-    }  // end if cs_gradFun
-*/
 
   }else{
     AI = cs_ai(BLUXs, Ginv, R, KRinv, tWKRinv,
@@ -1205,23 +1152,6 @@ if(v[0] > 3){
   simple_tic(t); 
 }
 
-/*          
-    if(!cs_gradFun(nu, dLdnu,
-          ny[0], nG, rfxlvls, nffx, ndgeninv,
-	  geninv, BLUXs, Lc->L, sLc->pinv, 
-          1.0,    // 1.0 if lambda=FALSE
-	  nG, res)){      // 0 if lambda=TRUE
-
-    error("Unsuccessful gradient calculation  at convergence %i\n", i);
-
-if(v[0] > 3){
-  took = simple_toc(t);
-  Rprintf("\n\t    %6.4f sec.: calculate gradient", took);
-  simple_tic(t);
-}
-
-    }  // end if cs_gradFun
-*/
   }  // end if/else lambda
 
 
