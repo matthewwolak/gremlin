@@ -826,11 +826,6 @@ if(v[0] > 3){
 	    nffx, ndgeninv, geninv, BLUXs, Lc->L, sLc->pinv)){
           error("\nUnsuccessful trace calculation: EM algorithm in iteration %i", i);
         }
-//FIXME DELETE
-        if(!traceFun2(trace, w, nG, rfxlvls,
-	    nffx, ndgeninv, geninv, BLUXs, Lc->L, sLc->pinv)){
-          error("\nUnsuccessful trace calculation: EM algorithm in iteration %i", i);
-        }
 
         // calculate EM for G (co)variances:
         //// (tugug + trace ) / qi
@@ -875,18 +870,6 @@ if(v[0] > 3){
   Rprintf("\n\t    %6.6f sec.: calculate trace(s)", took);
   simple_tic(t);
 }
-
-//FIXME DELETE
-        if(!traceFun2(trace, w, nG, rfxlvls,
-	    nffx, ndgeninv, geninv, BLUXs, Lc->L, sLc->pinv)){
-          error("\nUnsuccessful trace calculation: EM algorithm in iteration %i", i);
-        }
-if(v[0] > 3){
-  took = simple_toc(t);
-  Rprintf("\n\t    %6.6f sec.: calculate trace(s)", took);
-  simple_tic(t);
-}
-
 
 
         if(lambda[0] == 1){
@@ -997,16 +980,6 @@ Whate R's `eigen()` calls
           //////////////  TEMPORARY EM    /////////
           if(v[0] > 1 && vitout == 0) Rprintf("\n\t\tEM to find next nu");
 
-          if(!tugugFun(tugug, w, nG, rfxlvls,
-	      nffx, ndgeninv, geninv, BLUXs)){
-            error("\nUnsuccessful tugug calculation: EM algorithm in iteration %i", i);
-          }
-
-          if(!traceFun(trace, w, nG, rfxlvls,
-	      nffx, ndgeninv, geninv, BLUXs, Lc->L, sLc->pinv)){
-            error("\nUnsuccessful trace calculation: EM algorithm in iteration %i", i);
-          }
- 
           // calculate EM for G (co)variances:
           //// (tugug + trace ) / qi
           for(g = 0; g < nG; g++) nu[g] = (tugug[g] + trace[g] ) / rfxlvls[g];
@@ -1016,6 +989,7 @@ Whate R's `eigen()` calls
           d = 0.0;
           for(k = 0; k < ny[0]; k++) d += y[k] * res[k]; 
           nu[nG] = d / nminffx[0];
+
           algit[i] = 0;  // switch algorithm to EM so itMat of output is accurate
         // end EM
         } else{  //<-- end if AI cannot be inverted
