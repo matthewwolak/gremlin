@@ -123,7 +123,7 @@ void ugremlin(
 
   double  *w = new double[dimZWG[3]];
 
-  if(lambda[0] == 0) g = nG+1; else g = nG;
+  g = (lambda[0]) ? nG : nG+1;
     double  *tugug = new double[g];  // includes crossprod(residual) when !lambda
 
   double  *trace = new double[nG];
