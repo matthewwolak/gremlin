@@ -1102,6 +1102,12 @@ Whate R's `eigen()` calls
 
   // Calculate Cinv_ii and AI
   cs_chol2inv_ii(Lc->L, sLc->pinv, Cinv_ii, 0);
+if(v[0] > 3){
+  took = simple_toc(t); 
+  Rprintf("\n\t    %6.4f sec.: calculate Cinv_ii", took);
+  simple_tic(t); 
+}
+
   //// Average Information
   if(aiformed == 1) cs_spfree(AI);
   if(lambda[0] == 1){
@@ -1109,7 +1115,6 @@ Whate R's `eigen()` calls
 	  y, W, tW, ny[0], p[0], nG, rfxlvls, nffx, Lc->L, sLc->pinv,
 	  0, sigma2e);
     if(AI == NULL) error("Unsuccessful AI algorithm at convergence %i\n", i);
-
 if(v[0] > 3){
   took = simple_toc(t);
   Rprintf("\n\t    %6.4f sec.: calculate AI", took);
@@ -1122,8 +1127,7 @@ if(v[0] > 3){
           res, W, tW, ny[0], p[0], nG, rfxlvls, nffx, Lc->L, sLc->pinv,
 	  nG, 1.0);
     if(AI == NULL) error("Unsuccessful AI algorithm  at convergence %i\n", i);
-
- if(v[0] > 3){
+if(v[0] > 3){
   took = simple_toc(t); 
   Rprintf("\n\t    %6.4f sec.: calculate AI", took);
   simple_tic(t); 
