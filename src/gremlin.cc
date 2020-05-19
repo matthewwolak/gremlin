@@ -130,7 +130,6 @@ void ugremlin(
 
   double  *dnu = new double[p[0]];
 
-
 if(v[0] > 3) simple_tic(t);
 
 
@@ -852,7 +851,6 @@ if(v[0] > 3){
 	    nffx, ndgeninv, geninv, BLUXs)){
           error("\nUnsuccessful tugug calculation: AI algorithm in iteration %i", i);
         }
-
 if(v[0] > 3){
   took = simple_toc(t);
   Rprintf("\n\t    %6.6f sec.: calculate tugug(s)", took);
@@ -863,13 +861,11 @@ if(v[0] > 3){
 	    nffx, ndgeninv, geninv, BLUXs, Lc->L, sLc->pinv)){
           error("\nUnsuccessful trace calculation: AI algorithm in iteration %i", i);
         }
-
 if(v[0] > 3){
   took = simple_toc(t);
   Rprintf("\n\t    %6.6f sec.: calculate trace(s)", took);
   simple_tic(t);
 }
-
 
         if(lambda[0] == 1){
           AI = cs_ai(BLUXs, Ginv, R, 0, 0,

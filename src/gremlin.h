@@ -61,6 +61,7 @@ csi traceFun(double *trace, double *w, csi nG, csi *rfxlvls,
 	csi nb, csi *ndgeninv, cs **geninv, const cs *BLUXs,
 	const cs *Lc, const csi *Pinv);
 
+
 /*******************************************************************/
 /* Below are functions from MCMCglmm-2.25 by Jarrod Hadfield       */
 /*******************************************************************/
