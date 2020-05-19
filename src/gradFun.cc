@@ -18,7 +18,6 @@ csi cs_gradFun(double *nu, double *dLdnu,
 ){
 
   int     lambda, nminfrfx;
-  double  *Bx;
   csi     g, k;
 
   if(!nb || !nu) return (0);    // check arguments
