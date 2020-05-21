@@ -257,6 +257,7 @@ nuVar2thetaVar_lambda <- function(object){
 # Transform AI matrix from lambda Scale to AI-inverse of theta
 #' @rdname covFun
 #' @export
+#XXX See Lynch & Walsh (1998) p.818 for variance of a product (eqn. A1.18b,c)
 #XXX for psi: cov(psi, theta_i) = nu_i * cov(s2e, psi) + s2e * cov(psi, nu_i)
 nuAI2thetaAIinv_lambda <- function(object){
   if(!object$grMod$lambda){
@@ -316,6 +317,10 @@ nu2theta_noTrans <- function(nu, thetaG, thetaR){
 
  theta
 }
+
+
+
+
 
 
 
