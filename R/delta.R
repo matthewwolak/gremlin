@@ -93,6 +93,8 @@ deltaSE <- function(expr, object, scale = c("theta", "nu")){
   UseMethod("deltaSE", expr)
 }
 
+
+
 ##############
 # Default
 ##############
@@ -114,16 +116,6 @@ deltaSE.default <- function(expr, object, scale = c("theta", "nu")){
 
  deltaSE.formula(fmla, object, scale)
 }  #<-- end deltaSE.default
-
-
-
-
-#FIXME delete folllowing
-#deltaSE("sqrt(V1) / sqrt(V1 + V2)", grS)
-#deltaSE(~ sqrt(V1) / sqrt(V1 + V2), grS)
-#XXX END delete
-
-
 
 
 
@@ -180,6 +172,9 @@ deltaSE.formula <- function(fmla, object, scale = c("theta", "nu")){
 
  varcompFunSummary
 }  #<-- end deltaSE.formula
+
+
+
 
 
 ##############
