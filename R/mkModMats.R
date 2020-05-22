@@ -50,10 +50,6 @@ mkModMats <- function(formula, random = NULL, rcov = ~ units,
   if(!any("units" %in% all.vars(rcov))){
     stop("'units' must be specified in 'rcov' argument")
   }
-  #FIXME: remove next stop when R structures can be specified
-  if(deparse(rcov) != "~units"){
-    stop("'rcov' can only specify a single R variance at this time")
-  }
 
 
 
@@ -118,15 +114,22 @@ if(ncy > 1) stop("gremlin isn't old enough to play with multivariate models") #F
   rf$formula <- reformulate(deparse(rForm[[-1]]), cl$formula[[2]], intercept = FALSE)
   #TODO: Need to add "units" to 'data'
   Rdata <- data
-  Rdata$units <- factor(paste("units", seq(nrow(Rdata)), sep = "."), levels = paste("units", seq(nrow(Rdata)), sep = ".")) 
+  Rdata$units <- factor(paste("units", seq(nrow(Rdata)), sep = "."),
+    levels = paste("units", seq(nrow(Rdata)), sep = ".")) 
   rf$data <- Rdata
   rf$drop.unused.levels <- TRUE
   #TODO: how handle missing values in random effects?
   rf <- eval.parent(rf)   	# R model frame
   rt <- attr(rf, "terms") 
-  Zr <- sparse.model.matrix(rt, rf,
+  Zinit <- sparse.model.matrix(rt, rf,
 	transpose = FALSE,
 	row.names = TRUE) 
+  emptCol <- which(diff(Zinit@p) == 0)
+  Zr <- sparseMatrix(i = Zinit@i, p = Zinit@p[-emptCol], x = Zinit@x,
+	dimnames = list(NULL, Zinit@Dimnames[[2L]][-emptCol]),
+	symmetric = FALSE, index1 = FALSE)
+
+
 
 
 
