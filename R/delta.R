@@ -37,10 +37,12 @@
 #'     deltaSE(Vsum ~ V1 + V2, grS)
 #'
 #'   # Calculate standard deviations (with standard errors) from variances
-#'     ## Uses a list argument to `fmla`
-#'     deltaSE(c(SD1 ~ sqrt(V1), SDresid ~ sqrt(V2)), grS)
-#'     deltaSE(list("sqrt(V1)", "sqrt(V2)"), grS)
-#'     deltaSE(list(sqrt(V1), sqrt(V2)), grS)
+#'     ## Uses a `list` as the first argument
+#'     ### All 3 below: different formats to calculate the same values
+#'     deltaSE(list(SD1 ~ sqrt(V1), SDresid ~ sqrt(V2)), grS)  #<-- formulas
+#'     deltaSE(list(SD1 ~ sqrt(G.sire), SDresid ~ sqrt(ResVar1)), grS) 
+#'     deltaSE(list("sqrt(V1)", "sqrt(V2)"), grS)  #<-- list of characters
+#'     deltaSE(list(sqrt(V1), sqrt(V2)), grS)  #<-- list of expressions
 #'
 #'   # Additive Genetic Variance calculated from observed Sire Variance
 #'     ## First simulate Full-sib data
@@ -88,20 +90,22 @@ deltaSE.default <- function(expr, object, scale = c("theta", "nu")){
     stop(cat("Must supply an object of class", dQuote(gremlin), "\n"))
   }
 
-  fmla <- as.formula(paste("~", as.expression(eval(expr, parent.frame()))))
+  cl <- match.call()
+  cl_expr <- cl[[match("expr", names(cl))]]
+
+  if(inherits(cl_expr, "character")){
+    fmla <- as.formula(paste("~", expr))
+  } else{
+      fmla <- as.formula(paste("~", as.expression(cl_expr)))
+    }
 
  deltaSE.formula(fmla, object, scale)
 }  #<-- end deltaSE.default
 
 
-
-
-
-deltaSE.list(list(SD1 ~ sqrt(V1), SD2 ~ sqrt(V2)), grS)
-deltaSE.list(list("sqrt(V1)", "sqrt(V2)"), grS)
-deltaSE.list(list(sqrt(V1), sqrt(V2)), grS)
-
-
+deltaSE.default("sqrt(V1) / sqrt(V1 + V2)", grS)
+deltaSE.default(sqrt(V1) / sqrt(V1 + V2), grS)
+deltaSE.formula(~ sqrt(V1) / sqrt(V1 + V2), grS)
 
 
 ##############
@@ -194,17 +198,6 @@ deltaSE.list <- function(lst, object, scale = c("theta", "nu")){
 
  do.call("rbind", lst_out)
 }
-
-
-deltaSE.list(list(SD1 ~ sqrt(V1), SD2 ~ sqrt(V2)), grS)
-deltaSE.list(list("sqrt(V1)", "sqrt(V2)"), grS)
-deltaSE.list(list(sqrt(V1), sqrt(V2)), grS)
-
-
-
-
-
-
 
 
 
