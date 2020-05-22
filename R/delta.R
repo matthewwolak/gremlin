@@ -108,10 +108,10 @@ deltaSE.default <- function(expr, object, scale = c("theta", "nu")){
   cl <- match.call()
   cl_expr <- cl[[match("expr", names(cl))]]
   if(inherits(cl_expr, "character")){
-    fmla <- as.formula(paste("~", expr))
+    fmla <- as.formula(paste("~", eval(expr)))
   } else{
       warning("expr must be a character expression")
-      fmla <- as.formula(paste("~", as.expression(cl_expr)))
+      fmla <- as.formula(paste("~", eval(cl_expr)))
     }
 
  deltaSE.formula(fmla, object, scale)
@@ -147,21 +147,30 @@ deltaSE.formula <- function(fmla, object, scale = c("theta", "nu")){
       if(object$grMod$lambda) covlist[which(covlist == 1.0)] <- object$grMod$sigma2e
     }  #<-- end if/else theta/nu 
 
-  # check whether names of covlist (theta/nu) are used in `RHS`
-  onames <- any(names(covlist) %in% as.list(RHS))
-  vnames <- any(paste0("V", seq(length(covlist))) %in% as.list(RHS))
-  if(!onames && !vnames){
-    stop("Variables in expr/fmla not names from object or V1...Vn")
-  }
-  if(onames & vnames){
-    warning(cat("Variables in expr/fmla are mix of names from object and V1...Vn",
-      "\n\tconverting to all V1...Vn"))
-    onames <- !onames  #<-- will cause next if statement to give correct names
-  }
-  if(!onames & vnames) names(covlist) <- paste0("V", seq(length(covlist)))
 
-  LHSresult <- eval(stats:::deriv(RHS, names(covlist)),
+  # check whether names of covlist (theta/nu) are used in `RHS`
+  ## first create generic "V" names
+  covlistVnms <- paste0("V", seq(length(covlist)))
+  ## now make covlist with these as the names
+  covlistV <- covlist
+    names(covlistV) <- covlistVnms
+  cvlstTry <- try(eval(RHS, covlist), silent = TRUE)
+  cvlstVTry <- try(eval(RHS, covlistV), silent = TRUE)
+
+  if(inherits(cvlstTry, "try-error") & inherits(cvlstVTry, "try-error")){
+    stop(cat("Variables in expr/fmla are not names from object or V1 -",
+	paste0("V", length(covlist)), "\n"))
+  }
+
+  if(!inherits(cvlstTry, "try-error")){
+    LHSresult <- eval(stats:::deriv(RHS, names(covlist)),
                  covlist)
+  }
+  if(!inherits(cvlstVTry, "try-error")){
+    LHSresult <- eval(stats:::deriv(RHS, covlistVnms),
+                 covlistV)
+  }
+
   gradVec <- matrix(as.vector(attr(LHSresult, "gradient")), ncol=1)
   LHSse <- as.vector(sqrt(crossprod(gradVec, invAI) %*% gradVec))
   LHSresultNm <- if(length(fmla) == 3) fmla[[2]] else deparse(RHS)
@@ -200,7 +209,7 @@ deltaSE.list <- function(lst, object, scale = c("theta", "nu")){
           stop("lst must be either all formulas or all expressions")
         }
         fmla_lst <- sapply(lst, FUN = function(x){
-          as.formula(paste("~", x))})
+          as.formula(paste("~", eval(x)))})
       }
 
       if(all(sapply(lst, FUN = inherits, what = "formula"))){
