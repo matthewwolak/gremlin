@@ -1,6 +1,6 @@
 # 1.0.1
 ## NEW
-  - `deltaSE()` function to calculate approximate standard errors for functions of (co)variance parameters (e.g., $h^2$, standard deviations of variances, or correlations)
+  - `deltaSE()` function to calculate approximate standard errors for functions of (co)variance parameters (e.g., h<sup>2</sup>, standard deviations of variances, or correlations)
     - this can take a formula for the function or a character expression
     - also allows for a list of formulas or character expressions
         e.g., calculate all variance components as proportions of total variance
