@@ -39,6 +39,8 @@
 #'   # Calculate standard deviations (with standard errors) from variances
 #'     ## Uses a list argument to `fmla`
 #'     deltaSE(c(SD1 ~ sqrt(V1), SDresid ~ sqrt(V2)), grS)
+#'     deltaSE(list("sqrt(V1)", "sqrt(V2)"), grS)
+#'     deltaSE(list(sqrt(V1), sqrt(V2)), grS)
 #'
 #'   # Additive Genetic Variance calculated from observed Sire Variance
 #'     ## First simulate Full-sib data
@@ -86,10 +88,20 @@ deltaSE.default <- function(expr, object, scale = c("theta", "nu")){
     stop(cat("Must supply an object of class", dQuote(gremlin), "\n"))
   }
 
-  fmla <- as.formula(paste("~", as.expression(substitute(expr))))
+  fmla <- as.formula(paste("~", as.expression(eval(expr, parent.frame()))))
 
  deltaSE.formula(fmla, object, scale)
 }  #<-- end deltaSE.default
+
+
+
+
+
+deltaSE.list(list(SD1 ~ sqrt(V1), SD2 ~ sqrt(V2)), grS)
+deltaSE.list(list("sqrt(V1)", "sqrt(V2)"), grS)
+deltaSE.list(list(sqrt(V1), sqrt(V2)), grS)
+
+
 
 
 ##############
@@ -153,26 +165,46 @@ deltaSE.list <- function(lst, object, scale = c("theta", "nu")){
     stop(cat("Must supply an object of class", dQuote(gremlin), "\n"))
   }
 
-  if(!all(sapply(lst, FUN = inherits, what = "formula"))){
-    if(any(sapply(lst, FUN = inherits, what = "formula"))){
-      stop("lst must be either all formulas or all expressions")
-    }
-    fmla_lst <- sapply(lst, FUN = function(x){
-      as.formula(paste("~", as.expression(substitute(expr))))})
-  }
-
-  if(all(sapply(lst, FUN = inherits, what = "formula"))){
-    fmla_lst <- lst
+  cl <- match.call()
+  cl_lst <- cl[[match("lst", names(cl))]]
+  allFmla <- try(sapply(lst, FUN = inherits, what = "formula"), silent = TRUE)
+  if(inherits(allFmla, what = "try-error")){
+    fmla_lst <- sapply(cl_lst[-1], FUN = function(x){
+      as.formula(paste("~", as.expression(x)))})
   } else{
-     stop("objects in lst were either not formulas or could not be coerced to formulas") 
+      if(!all(sapply(lst, FUN = inherits, what = "formula"))){
+        if(any(sapply(lst, FUN = inherits, what = "formula"))){
+          stop("lst must be either all formulas or all expressions")
+        }
+        fmla_lst <- sapply(lst, FUN = function(x){
+          as.formula(paste("~", as.expression(eval(x, parent.frame()))))})
+      }
+
+      if(all(sapply(lst, FUN = inherits, what = "formula"))){
+        fmla_lst <- lst
+      } 
+    }  #<-- end if/else error in `allFmla`
+
+    # Last check
+    if(any(noForm <- !sapply(fmla_lst, FUN = inherits, what = "formula"))){
+      stop(cat("object(s):", which(noForm), "in lst were either not formulas or could not be coerced to formulas\n")) 
     }
 
   lst_out <- lapply(fmla_lst, FUN = deltaSE.formula, object, scale)
+
  do.call("rbind", lst_out)
 }
 
 
-deltaSE.list(c(SD1 ~ sqrt(V1), SD2 ~ sqrt(V2)), grS)
+deltaSE.list(list(SD1 ~ sqrt(V1), SD2 ~ sqrt(V2)), grS)
+deltaSE.list(list("sqrt(V1)", "sqrt(V2)"), grS)
+deltaSE.list(list(sqrt(V1), sqrt(V2)), grS)
 
-deltaSE.list(c(sqrt(V1), sqrt(V2)), grS)
+
+
+
+
+
+
+
 
