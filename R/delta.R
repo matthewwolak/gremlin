@@ -5,13 +5,25 @@
 ##############
 # Generic
 ##############
-#' Standard Error Calculation for Functions of (co)variance parameters.
+#' Delta Method to Calculate Standard Errors for Functions of (Co)variances.
 #'
 #' Calculates the standard error for results of simple mathematical functions of
 #'   (co)variance parameters using the delta method (Lynch and Walsh 1998,
 #'   Appendix 1).
 #'
-#' 
+#' The delta method (e.g., Lynch and Walsh 1998, Appendix 1) uses a Taylor series
+#'   expansion to approximate the moments of a function of parameters. Here, a
+#'   a second-order Taylor series expansion is implemented to approximate the 
+#'   standard error for a function of (co)variance parameters. Partial first
+#'   derivatives of the function are calculated by algorithmic differentiation 
+#'   with \code{\link[stats]{deriv}}.
+#'
+#' Though \code{deltaSE} can calculate standard errors for non-linear functions
+#'   of (co)variance parameters from a fitted \code{gremlin} model, it is limited
+#'   to non-linear functions constructed by mathematical operations such as the
+#'   arithmetic operators \code{+}, \code{-}, \code{*}, \code{/} and \code{^},
+#'   and single-variable functions such as  \code{exp} and \code{log}. See 
+#'   \code{\link[stats]{deriv}} for more information.
 #'
 #' @aliases deltaSE deltaSE.default deltaSE.formula deltaSE.list
 #' @param fmla,expr,lst An \code{expression}, \code{formula}, or list (of
@@ -21,16 +33,16 @@
 #' @param scale A \code{character} indicating whether to calculate the function
 #'   and standard error on the original data scale (\code{\dQuote{theta}}) or
 #'   on the underlying scale to which (co)variance components are transformed
-#'   to which the model fitting calculations occur (\code{dQuote{nu}}). Defaults
-#'   to \code{\dQuote{theta}} if not specified.
+#'   for the model fitting calculations (\code{dQuote{nu}}). Defaults to
+#'   \code{\dQuote{theta}} if not specified.
 #' @return A \code{data.frame} containing the \dQuote{Estimate} and
-#'   \dQuote{Std. Error} for the mathematical function of (co)variance components.
+#'   \dQuote{Std. Error} for the mathematical function(s) of (co)variance
+#'   components.
 #' @references 
-#'   TODO (Lynch and Walsh 1998)
+#'   Lynch and Walsh 1998.
 #' @author \email{matthewwolak@@gmail.com}
-#' @seealso First derivatives are calculated by symbolic differentiation with
-#'   \code{\link{deriv}}
-#' @import stats:::deriv
+#' @seealso \code{\link[stats]{deriv}}
+#' @importFrom stats deriv
 #' @examples
 #'   # Calculate the sum of the variance components 
 #'     grS <- gremlin(WWG11 ~ sex, random = ~ sire, data = Mrode11)
@@ -42,7 +54,7 @@
 #'     deltaSE(list(SD1 ~ sqrt(V1), SDresid ~ sqrt(V2)), grS)  #<-- formulas
 #'     deltaSE(list(SD1 ~ sqrt(G.sire), SDresid ~ sqrt(ResVar1)), grS) 
 #'     deltaSE(list("sqrt(V1)", "sqrt(V2)"), grS)  #<-- list of characters
-#'     deltaSE(list(sqrt(V1), sqrt(V2)), grS)  #<-- list of expressions
+#'     #deltaSE(list(sqrt(V1), sqrt(V2)), grS)  #<-- list of expressions
 #'
 #'   # Additive Genetic Variance calculated from observed Sire Variance
 #'     ## First simulate Full-sib data
@@ -103,9 +115,18 @@ deltaSE.default <- function(expr, object, scale = c("theta", "nu")){
 }  #<-- end deltaSE.default
 
 
-deltaSE.default("sqrt(V1) / sqrt(V1 + V2)", grS)
-deltaSE.default(sqrt(V1) / sqrt(V1 + V2), grS)
-deltaSE.formula(~ sqrt(V1) / sqrt(V1 + V2), grS)
+
+
+#FIXME delete folllowing
+#deltaSE.default("sqrt(V1) / sqrt(V1 + V2)", grS)
+#deltaSE.default(sqrt(V1) / sqrt(V1 + V2), grS)
+#deltaSE.formula(~ sqrt(V1) / sqrt(V1 + V2), grS)
+#XXX END delete
+
+
+
+
+
 
 
 ##############
