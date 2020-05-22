@@ -26,7 +26,7 @@
 #'   \code{\link[stats]{deriv}} for more information.
 #'
 #' @aliases deltaSE deltaSE.default deltaSE.formula deltaSE.list
-#' @param fmla,expr,lst An \code{expression}, \code{formula}, or list (of
+#' @param fmla,expr,lst A character \code{expression}, \code{formula}, or list (of
 #'   \code{formula} or \code{expression}) expressing the mathematical function
 #'   of (co)variance component for which to calculate standard errors.
 #' @param object A fitted model object of \code{class} \sQuote{gremlin}.
@@ -47,14 +47,14 @@
 #'   # Calculate the sum of the variance components 
 #'     grS <- gremlin(WWG11 ~ sex, random = ~ sire, data = Mrode11)
 #'     deltaSE(Vsum ~ V1 + V2, grS)
+#'     deltaSE("V1 + V2", grS)  #<-- alternative
 #'
 #'   # Calculate standard deviations (with standard errors) from variances
 #'     ## Uses a `list` as the first argument
 #'     ### All 3 below: different formats to calculate the same values
 #'     deltaSE(list(SD1 ~ sqrt(V1), SDresid ~ sqrt(V2)), grS)  #<-- formulas
 #'     deltaSE(list(SD1 ~ sqrt(G.sire), SDresid ~ sqrt(ResVar1)), grS) 
-#'     deltaSE(list("sqrt(V1)", "sqrt(V2)"), grS)  #<-- list of characters
-#'     #deltaSE(list(sqrt(V1), sqrt(V2)), grS)  #<-- list of expressions
+#'     deltaSE(list("sqrt(V1)", "sqrt(V2)"), grS)  #<-- list of character expressions
 #'
 #'   # Additive Genetic Variance calculated from observed Sire Variance
 #'     ## First simulate Full-sib data
@@ -84,9 +84,9 @@
 #'   ## use to demonstrate alternative way to do same calculation of inverse
 #'   ## Average Information matrix of theta scale parameters when lambda = TRUE
 #'   ### what is done inside gremlin::nuVar2thetaVar_lambda 
-#'     dOut <- deltaSE.formula(thetaV1 ~ V1*V2, grSl, "nu")  #<-- V2 is sigma2e
-#'     aiFnOut <- nuVar2thetaVar_lambda(grSl)[1]  #<-- variance (do sqrt below)
-#'     stopifnot(abs(deltaOut[, "Std. Error"] - sqrt(covFunOut)) < 1e-10)
+#'     dOut <- deltaSE(thetaV1 ~ V1*V2, grS, "nu")  #<-- V2 is sigma2e
+#'     aiFnOut <- nuVar2thetaVar_lambda(grS)[1]  #<-- variance (do sqrt below)
+#'     stopifnot(abs(dOut[, "Std. Error"] - sqrt(aiFnOut)) < 1e-10)
 #'
 #' @export
 deltaSE <- function(expr, object, scale = c("theta", "nu")){
@@ -98,16 +98,17 @@ deltaSE <- function(expr, object, scale = c("theta", "nu")){
 ##############
 #' @describeIn deltaSE Default method
 deltaSE.default <- function(expr, object, scale = c("theta", "nu")){
+
   if(!inherits(object, "gremlin")){
     stop(cat("Must supply an object of class", dQuote(gremlin), "\n"))
   }
 
   cl <- match.call()
   cl_expr <- cl[[match("expr", names(cl))]]
-
   if(inherits(cl_expr, "character")){
     fmla <- as.formula(paste("~", expr))
   } else{
+      warning("expr must be a character expression")
       fmla <- as.formula(paste("~", as.expression(cl_expr)))
     }
 
@@ -118,9 +119,8 @@ deltaSE.default <- function(expr, object, scale = c("theta", "nu")){
 
 
 #FIXME delete folllowing
-#deltaSE.default("sqrt(V1) / sqrt(V1 + V2)", grS)
-#deltaSE.default(sqrt(V1) / sqrt(V1 + V2), grS)
-#deltaSE.formula(~ sqrt(V1) / sqrt(V1 + V2), grS)
+#deltaSE("sqrt(V1) / sqrt(V1 + V2)", grS)
+#deltaSE(~ sqrt(V1) / sqrt(V1 + V2), grS)
 #XXX END delete
 
 
@@ -134,6 +134,7 @@ deltaSE.default <- function(expr, object, scale = c("theta", "nu")){
 ##############
 #' @describeIn deltaSE Formula method
 deltaSE.formula <- function(fmla, object, scale = c("theta", "nu")){
+
   if(!inherits(object, "gremlin")){
     stop(cat("Must supply an object of class", dQuote(gremlin), "\n"))
   }
@@ -186,6 +187,7 @@ deltaSE.formula <- function(fmla, object, scale = c("theta", "nu")){
 ##############
 #' @describeIn deltaSE List method
 deltaSE.list <- function(lst, object, scale = c("theta", "nu")){
+
   if(!inherits(object, "gremlin")){
     stop(cat("Must supply an object of class", dQuote(gremlin), "\n"))
   }
@@ -194,6 +196,7 @@ deltaSE.list <- function(lst, object, scale = c("theta", "nu")){
   cl_lst <- cl[[match("lst", names(cl))]]
   allFmla <- try(sapply(lst, FUN = inherits, what = "formula"), silent = TRUE)
   if(inherits(allFmla, what = "try-error")){
+    warning("expr must be a character expression")
     fmla_lst <- sapply(cl_lst[-1], FUN = function(x){
       as.formula(paste("~", as.expression(x)))})
   } else{
@@ -202,7 +205,7 @@ deltaSE.list <- function(lst, object, scale = c("theta", "nu")){
           stop("lst must be either all formulas or all expressions")
         }
         fmla_lst <- sapply(lst, FUN = function(x){
-          as.formula(paste("~", as.expression(eval(x, parent.frame()))))})
+          as.formula(paste("~", x))})
       }
 
       if(all(sapply(lst, FUN = inherits, what = "formula"))){

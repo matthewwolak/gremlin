@@ -24,7 +24,7 @@ on the underlying scale to which (co)variance components are transformed
 for the model fitting calculations (\code{dQuote{nu}}). Defaults to
 \code{\dQuote{theta}} if not specified.}
 
-\item{fmla, expr, lst}{An \code{expression}, \code{formula}, or list (of
+\item{fmla, expr, lst}{A character \code{expression}, \code{formula}, or list (of
 \code{formula} or \code{expression}) expressing the mathematical function
 of (co)variance component for which to calculate standard errors.}
 }
@@ -66,14 +66,14 @@ Though \code{deltaSE} can calculate standard errors for non-linear functions
   # Calculate the sum of the variance components 
     grS <- gremlin(WWG11 ~ sex, random = ~ sire, data = Mrode11)
     deltaSE(Vsum ~ V1 + V2, grS)
+    deltaSE("V1 + V2", grS)  #<-- alternative
 
   # Calculate standard deviations (with standard errors) from variances
     ## Uses a `list` as the first argument
     ### All 3 below: different formats to calculate the same values
-    #deltaSE(list(SD1 ~ sqrt(V1), SDresid ~ sqrt(V2)), grS)  #<-- formulas
-    #deltaSE(list(SD1 ~ sqrt(G.sire), SDresid ~ sqrt(ResVar1)), grS) 
-    #deltaSE(list("sqrt(V1)", "sqrt(V2)"), grS)  #<-- list of characters
-    #deltaSE(list(sqrt(V1), sqrt(V2)), grS)  #<-- list of expressions
+    deltaSE(list(SD1 ~ sqrt(V1), SDresid ~ sqrt(V2)), grS)  #<-- formulas
+    deltaSE(list(SD1 ~ sqrt(G.sire), SDresid ~ sqrt(ResVar1)), grS) 
+    deltaSE(list("sqrt(V1)", "sqrt(V2)"), grS)  #<-- list of character expressions
 
   # Additive Genetic Variance calculated from observed Sire Variance
     ## First simulate Full-sib data
@@ -103,9 +103,9 @@ Though \code{deltaSE} can calculate standard errors for non-linear functions
   ## use to demonstrate alternative way to do same calculation of inverse
   ## Average Information matrix of theta scale parameters when lambda = TRUE
   ### what is done inside gremlin::nuVar2thetaVar_lambda 
-    dOut <- deltaSE.formula(thetaV1 ~ V1*V2, grSl, "nu")  #<-- V2 is sigma2e
-    aiFnOut <- nuVar2thetaVar_lambda(grSl)[1]  #<-- variance (do sqrt below)
-    stopifnot(abs(deltaOut[, "Std. Error"] - sqrt(covFunOut)) < 1e-10)
+    dOut <- deltaSE(thetaV1 ~ V1*V2, grS, "nu")  #<-- V2 is sigma2e
+    aiFnOut <- nuVar2thetaVar_lambda(grS)[1]  #<-- variance (do sqrt below)
+    stopifnot(abs(dOut[, "Std. Error"] - sqrt(aiFnOut)) < 1e-10)
 
 }
 \references{
