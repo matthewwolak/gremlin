@@ -151,26 +151,23 @@ deltaSE.formula <- function(fmla, object, scale = c("theta", "nu")){
   # check whether names of covlist (theta/nu) are used in `RHS`
   ## first create generic "V" names
   covlistVnms <- paste0("V", seq(length(covlist)))
-  ## now make covlist with these as the names
-  covlistV <- covlist
-    names(covlistV) <- covlistVnms
-  cvlstTry <- try(eval(RHS, covlist), silent = TRUE)
-  cvlstVTry <- try(eval(RHS, covlistV), silent = TRUE)
-
-  if(inherits(cvlstTry, "try-error") & inherits(cvlstVTry, "try-error")){
+  onames <- any(names(covlist) %in% all.vars(RHS))
+  vnames <- any(covlistVnms %in% all.vars(RHS))
+  if(!onames && !vnames){
     stop(cat("Variables in expr/fmla are not names from object or V1 -",
 	paste0("V", length(covlist)), "\n"))
   }
+  if(onames & vnames){
+    warning(cat("Variables in expr/fmla are mix of names from object and V1 -",
+	paste0("V", length(covlist)),
+      "\n\tconverting to all V1 -", paste0("V", length(covlist)), "\n"))
+    onames <- !onames  #<-- will cause next if statement to give correct names
+  }
+  if(!onames & vnames) names(covlist) <- covlistVnms
 
-  if(!inherits(cvlstTry, "try-error")){
-    LHSresult <- eval(stats:::deriv(RHS, names(covlist)),
+
+  LHSresult <- eval(stats:::deriv(RHS, names(covlist)),
                  covlist)
-  }
-  if(!inherits(cvlstVTry, "try-error")){
-    LHSresult <- eval(stats:::deriv(RHS, covlistVnms),
-                 covlistV)
-  }
-
   gradVec <- matrix(as.vector(attr(LHSresult, "gradient")), ncol=1)
   LHSse <- as.vector(sqrt(crossprod(gradVec, invAI) %*% gradVec))
   LHSresultNm <- if(length(fmla) == 3) fmla[[2]] else deparse(RHS)
