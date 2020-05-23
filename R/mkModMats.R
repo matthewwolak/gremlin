@@ -121,13 +121,14 @@ if(ncy > 1) stop("gremlin isn't old enough to play with multivariate models") #F
   #TODO: how handle missing values in random effects?
   rf <- eval.parent(rf)   	# R model frame
   rt <- attr(rf, "terms") 
-  Zinit <- sparse.model.matrix(rt, rf,
+  Zr <- sparse.model.matrix(rt, rf,
 	transpose = FALSE,
 	row.names = TRUE) 
-  emptCol <- which(diff(Zinit@p) == 0)
-  Zr <- sparseMatrix(i = Zinit@i, p = Zinit@p[-emptCol], x = Zinit@x,
-	dimnames = list(NULL, Zinit@Dimnames[[2L]][-emptCol]),
-	symmetric = FALSE, index1 = FALSE)
+# Placeholder for more complicated rcov: RENAME `Zr` to `Zinit` above
+#  emptCol <- which(diff(Zinit@p) == 0)  #TODO handle missing values
+#  Zr <- sparseMatrix(i = Zinit@i, p = Zinit@p[-emptCol], x = Zinit@x,
+#	dimnames = list(NULL, Zinit@Dimnames[[2L]][-emptCol]),
+#	symmetric = FALSE, index1 = FALSE)
 
 
 
