@@ -1228,7 +1228,6 @@ stop(cat("\nNot allowing `NR` right now"))
 
   itMat <- itMat[1:i, , drop = FALSE]
     rownames(itMat) <- paste(seq(i), grMod$algit[1:i], sep = "-")
-  dimnames(AI) <- list(rownames(dLdnu), rownames(dLdnu))
   if(lambda){
     theta <- nu2theta_lambda(nu, sigma2e, thetaG, thetaR)
   } else{
@@ -1257,6 +1256,7 @@ stop(cat("\nNot allowing `NR` right now"))
 #      dLdnu <- gradFun(nuv, thetaG, grMod$modMats, Cinv, grMod$sln,
 #  	      sigma2e = NULL, grMod$r, grMod$nminfrfx)
       }
+  dimnames(AI) <- list(rownames(dLdnu), rownames(dLdnu))
   
 
   # place these altered values back into grMod
