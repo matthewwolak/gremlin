@@ -984,7 +984,7 @@ remlIt.gremlinR <- function(grMod, ...){
       sigma2e[] <- remlOut$sigma2e
       grMod$sln <- remlOut$sln
       grMod$r <- remlOut$r
-      sLc <- remlOut$sLc #TODO to use `update()` need to return `C` in `remlOut`
+      sLc <- remlOut$sLc
 
     if(lambda){
       itMat[i, (p+1):(2*p)] <- matlist2vech(nu2theta_lambda(nu, sigma2e,
@@ -1041,7 +1041,6 @@ remlIt.gremlinR <- function(grMod, ...){
         emOut <- em(nuv, thetaG, thetaR,
             grMod$modMats, grMod$nminffx, sLc, grMod$ndgeninv, grMod$sln, grMod$r)
           nuvout <- emOut$nuv
-          grMod$Cinv_ii <- emOut$Cinv_ii
       }
 
 
@@ -1055,7 +1054,6 @@ if(nrow(theta[[thetaR]]) != 1){
   stop(cat("\nAI algorithm currently only works for a single residual variance"))
 }
         Cinv <- solve(a = sLc, b = Ic, system = "A")
-        grMod$Cinv_ii <- diag(Cinv)
 
         if(lambda){
           AI <- ai(nuv, skel, thetaG,
@@ -1127,7 +1125,6 @@ if(nrow(theta[[thetaR]]) != 1){
             emOut <- em(nuv, thetaG, thetaR,
               grMod$modMats, grMod$nminffx, sLc, grMod$ndgeninv, grMod$sln, grMod$r)
             nuvout <- emOut$nuv
-            grMod$Cinv_ii <- emOut$Cinv_ii
             grMod$algit[i] <- "EM"
 
         } else{  #<-- end if Hessian cannot be inverted
