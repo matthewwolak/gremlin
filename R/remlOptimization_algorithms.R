@@ -16,6 +16,7 @@
 #'   when it has been factored out of the Coefficient matrix of the Mixed Model
 #'   Equations, thus converting the (co)variance components to ratios
 #'   (represented by the variable lambda).
+#' @param conv A \code{character} vector of (co)variance parameter constraints.
 #' @param sLc A sparse \code{Matrix} containing the symbolic Cholesky
 #'   factorization of the coefficient matrix of the Mixed Model Equations.
 #' @param Cinv A sparse \code{Matrix} containing the inverse of the Coefficient
@@ -217,7 +218,7 @@ reml <- function(nu, skel, thetaG, sLc,
 ### ?mistake? in Mrode 2005 (p. 241-245), which does include sigma2e
 #' @rdname reml
 #' @export
-em <- function(nuvin, thetaG, thetaR,
+em <- function(nuvin, thetaG, thetaR, conv,
 	modMats, nminffx, sLc, ndgeninv, sln, r){
 
   Cinv_ii <- matrix(0, nrow = nrow(sln), ncol = 1)  #<-- make even if no varcomps
@@ -227,6 +228,7 @@ em <- function(nuvin, thetaG, thetaR,
     ei <- modMats$nb + sum(sapply(modMats$Zg, FUN = ncol))
     Ig <- Diagonal(n = sLc@Dim[1L], x = 1)
     for(g in rev(thetaG)){
+      if(conv[g] == "F") next  #<-- skip if parameter Fixed
       qi <- ncol(modMats$Zg[[g]])
       si <- ei - qi + 1
       # Note: trace of a product == the sum of the element-by-element product

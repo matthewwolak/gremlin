@@ -3,6 +3,7 @@
 \name{covFun}
 \alias{covFun}
 \alias{stTrans}
+\alias{conTrans}
 \alias{vech2matlist}
 \alias{start2theta}
 \alias{matlist2vech}
@@ -16,6 +17,8 @@
 \title{(Co)variance parameter transformations.}
 \usage{
 stTrans(x)
+
+conTrans(Gcon, Rcon)
 
 start2theta(Gstart, Rstart, name = NULL)
 
@@ -40,6 +43,9 @@ nu2theta_noTrans(nu, thetaG, thetaR)
 \arguments{
 \item{x, theta, nu}{A \code{list} of matrices containing the (co)variance
 parameters of the model.}
+
+\item{Gcon, Rcon}{A \code{list} of starting (co)variance constraints for the
+G-structure (random effects terms) or R-structure (residual).}
 
 \item{Gstart, Rstart}{A \code{list} of starting (co)variance values for the
 G-structure (random effects terms) or R-structure (residual).}
@@ -82,6 +88,8 @@ Converts lists of (co)variance parameters either between \code{list} and
 \itemize{
   \item{\code{stTrans} }{Transform start parameters into lower triangle
     matrices of class \code{dsCMatrix}.}
+  \item{\code{conTrans} }{Transformation of starting constraints to correct
+    format.}
   \item{\code{start2theta} }{Converts lists of starting values for (co)variance
     parameters to a theta object used to structure the (co)variance components
     within gremlin.}

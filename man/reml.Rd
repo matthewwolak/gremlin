@@ -10,7 +10,7 @@
 reml(nu, skel, thetaG, sLc, modMats, W, Bpinv, nminffx, nminfrfx, rfxlvls,
   rfxIncContrib2loglik, thetaR = NULL, tWW = NULL, RHS = NULL)
 
-em(nuvin, thetaG, thetaR, modMats, nminffx, sLc, ndgeninv, sln, r)
+em(nuvin, thetaG, thetaR, conv, modMats, nminffx, sLc, ndgeninv, sln, r)
 
 ai(nuvin, skel, thetaG, modMats, W, sLc, sln, r, thetaR = NULL,
   sigma2e = NULL)
@@ -51,6 +51,8 @@ that have non-diagonal generalized inverse matrices (\code{ginverse}).}
 
 \item{RHS}{A sparse \code{Matrix} containing the Right-Hand Side to the 
 Mixed Model Equations.}
+
+\item{conv}{A \code{character} vector of (co)variance parameter constraints.}
 
 \item{ndgeninv}{A \code{logical} vector indicating if each random term is
 associated with a generalized inverse (\code{ginverse}).}

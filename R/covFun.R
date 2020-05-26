@@ -7,6 +7,8 @@
 #' \itemize{
 #'   \item{\code{stTrans} }{Transform start parameters into lower triangle
 #'     matrices of class \code{dsCMatrix}.}
+#'   \item{\code{conTrans} }{Transformation of starting constraints to correct
+#'     format.}
 #'   \item{\code{start2theta} }{Converts lists of starting values for (co)variance
 #'     parameters to a theta object used to structure the (co)variance components
 #'     within gremlin.}
@@ -34,7 +36,7 @@
 #'     transformed.}
 #' }
 #'
-#' @aliases stTrans vech2matlist start2theta matlist2vech theta2nu_trans
+#' @aliases stTrans conTrans vech2matlist start2theta matlist2vech theta2nu_trans
 #'   nu2theta_trans theta2nu_lambda nu2theta_lambda nuVar2thetaVar_lambda
 #'   nuAI2thetaAIinv_lambda nu2theta_noTrans
 #' @param x,theta,nu A \code{list} of matrices containing the (co)variance
@@ -43,6 +45,8 @@
 #' @param vech A \code{vector} of (co)variance parameters.
 #' @param skeleton An example structure to map \code{vech} onto.
 #' @param Gstart,Rstart A \code{list} of starting (co)variance values for the
+#'   G-structure (random effects terms) or R-structure (residual).
+#' @param Gcon,Rcon A \code{list} of starting (co)variance constraints for the
 #'   G-structure (random effects terms) or R-structure (residual).
 #' @param name An (optional) character \code{vector} containing the (co)variance
 #'   component names.
@@ -96,6 +100,24 @@ stTrans <- function(x){
  x
 }
 
+
+
+
+# Transformation of starting constraints to correct format.
+#' @rdname covFun
+#' @export
+conTrans <- function(Gcon, Rcon){
+
+  l2symat <- function(x){
+    if(is.character(x) && !is.matrix(x)) x <- as.matrix(x)
+    if(!isSymmetric(x)){
+      stop(cat(x, "must be a symmetric matrix or a single character\n"))
+    }
+    x[lower.tri(x, diag = TRUE)] 
+  }
+
+ c(G = sapply(Gcon, FUN = l2symat), R. = l2symat(Rcon))
+}
 
 
 # Starting Parameters to theta List.

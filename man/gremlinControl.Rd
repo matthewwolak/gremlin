@@ -5,13 +5,17 @@
 \title{Advanced Options for Mixed-effect modeling functions.}
 \usage{
 gremlinControl(cctol = c(5e-04, 1e-08, 0.001, NULL), ezero = 1e-08,
-  step = 0.3, lambda = TRUE, algorithm = NULL, algArgs = list())
+  einf = 1e+30, step = 0.3, lambda = TRUE, algorithm = NULL,
+  algArgs = list())
 }
 \arguments{
 \item{cctol}{Convergence criteria tolerances. TODO}
 
 \item{ezero}{Effective zero to be used, values less than this number are
 treated as zero and fixed to this value.}
+
+\item{einf}{Effective infinite value to be used, values are limited to a
+to this variable as a maximum.}
 
 \item{step}{A \code{numeric} value for scaling the proposed parameter updates.}
 

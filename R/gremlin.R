@@ -84,11 +84,15 @@
 #'   The name of each element in the list should match a column in \code{data}
 #'   that is associated with a random term. All levels of the random term should
 #'   appear as \code{rownames} for the matrices.
-#' @param Gstart A \code{list} of starting (co)variance values for the
-#'   G-structure or random effects terms.
-#' @param Rstart A \code{list} of starting (co)variance values for the
-#'   R-structure or residual terms.
+#' @param Gstart A \code{list} of matrices with starting (co)variance values for
+#'   the G-structure or random effects terms.
+#' @param Rstart A \code{list} of matrices with starting (co)variance values for
+#'   the R-structure or residual terms.
 #' @param Bp A prior specification for fixed effects.
+#' @param Gcon,Rcon A \code{list} of matrices with constraint codes for the
+#'   G-structure/random effects or R-structure/residual effects terms,
+#'   respectively. Must be a \code{character} of either \code{"F"} for fixed,
+#'   \code{"P"} for positive, or \code{"U"} for unbounded. 
 #' @param maxit An \code{integer} specifying the maximum number of likelihood
 #'   iterations.
 #' @param algit A \code{character} vector of length 1 or more or an expression
@@ -137,9 +141,11 @@
 #'     \item{dimsZg, nminffx, rfxlvls, nminfrfx }{\code{Numeric} vectors or scalars
 #'       describing the numbers of random effects or some function of random and
 #'       fixed effects.}
+#'     \item{conv, bounds }{(Co)variance component constraints and boundaries
+#'       of the allowable parameter space for each component.}
 #'     \item{thetav }{A \code{vector} of the (co)variance parameters to
 #'       be estimated by REML withe the attribute \dQuote{skel} giving the
-#'       skeleton for recreating a list of \code{matrices} from this vector.}
+#'       skeleton to recreate a list of \code{matrices} from this vector.}
 #'     \item{thetaG, thetaR }{\code{Vectors} indexing the random and residual
 #'        (co)variances, respectively, in a list of (co)variance matrices (i.e.,
 #'        \code{theta}).}
@@ -191,9 +197,11 @@
 #'     \item{vit }{See the parameter described above.}
 #'     \item{v }{See the parameter described above.}
 #'     \item{cctol }{A \code{numeric} vector of convergence criteria thresholds.}
-#'     \item{ezero }{A \code{numeric} value for the effective number to use as
-#'       \dQuote{zero}. VAlues less than this number are treated as zero and
-#'       fixed to this value.}
+#'     \item{ezero, einf }{\code{numeric} values for the effective numbers to
+#'       use as \dQuote{zero} and maximum negative or positive numbers. Values
+#'       less than \code{ezero} are treated as zero and fixed to this value.
+#'       Values less than \code{-1*einf} or greater than \code{einf} are
+#'       restricted to these values.}
 #'
 #'     \item{itMat }{A \code{matrix} of details about each iteration. Rows
 #'       indicate each REML iteration (rownames reflect the REML algorithm used)
@@ -236,6 +244,7 @@
 gremlin <- function(formula, random = NULL, rcov = ~ units,
 		data = NULL, ginverse = NULL,
 		Gstart = NULL, Rstart = NULL, Bp = NULL,
+		Gcon = NULL, Rcon = NULL,
 		maxit = 20, algit = NULL,
 		vit = 10, v = 1,
 		control = gremlinControl(), ...){
@@ -272,6 +281,7 @@ gremlin <- function(formula, random = NULL, rcov = ~ units,
 gremlinR <- function(formula, random = NULL, rcov = ~ units,
 		data = NULL, ginverse = NULL,
 		Gstart = NULL, Rstart = NULL, Bp = NULL,
+		Gcon = NULL, Rcon = NULL,
 		maxit = 20, algit = NULL,
 		vit = 10, v = 1,
 		control = gremlinControl(), ...){
@@ -415,7 +425,7 @@ update.gremlin <- function(object, ...){
         }  #<-- end `else`
     }  #<-- end if arg %in% names
   }  #<-- end `for` loop through G/Rstart
-
+  #TODO something for `Gcon` or `Rcon`
 
   # MUST do `maxit` before `algit` to handle `algit` length correctly
   for(arg in c("maxit", "vit", "v")){
@@ -502,6 +512,7 @@ update.gremlin <- function(object, ...){
 gremlinSetup <- function(formula, random = NULL, rcov = ~ units,
 		data = NULL, ginverse = NULL,
 		Gstart = NULL, Rstart = NULL, Bp = NULL,
+		Gcon = NULL, Rcon = NULL,
 		maxit = 20, algit = NULL,
 		vit = 10, v = 1,
 		control = gremlinControl(), ...){
@@ -555,17 +566,65 @@ gremlinSetup <- function(formula, random = NULL, rcov = ~ units,
 #FIXME assumes univariate
   if(is.null(mc$Rstart)) Rstart <- matrix(0.5*var(modMats$y))
     else Rstart <- eval(mc$Rstart)
+#FIXME assumes univariate
+  if(is.null(mc$Gcon)) Gcon <- as.list(rep("P", modMats$nG))
+    else Gcon <- eval(mc$Gcon)
+#FIXME assumes univariate
+  if(is.null(mc$Rcon)) Rcon <- matrix("P")
+    else Rcon <- eval(mc$Rcon)
 
   thetaSt <- start2theta(Gstart, Rstart, name = names(modMats$Zg))
   thetav <- matlist2vech(thetaSt$theta)
   p <- length(thetav)
+  conv <- conTrans(Gcon, Rcon)
+    if(length(conv) != p){
+      if(length(Gcon) != length(Gstart)){
+        stop(cat("Gcon (length=", length(Gcon),
+          ") must be same length as Gstart (", length(Gstart), ")\n"))
+      }
+      if(length(Rcon) != length(Rstart)){
+        stop(cat("Rcon (length=", length(Rcon),
+          ") must be same length as Rstart (", length(Rstart), ")\n"))
+      }
+
+      GconLengths <- sapply(Gcon, FUN = length)
+      GstartLengths <- sapply(Gstart, FUN = length)
+      RconLengths <- sapply(Rcon, FUN = length)
+      RstartLengths <- sapply(Rstart, FUN = length)
+      if(any((GconLengths - GstartLengths) != 0)){
+        stop(cat("Gcon element(s)", which((GconLengths - GstartLengths) != 0),
+          "are not of the same length as their corresponding Gstart elements\n"))
+      }
+      if(any((RconLengths - RstartLengths) != 0)){
+        stop(cat("Rcon element(s)", which((RconLengths - RstartLengths) != 0),
+          "are not of the same length as their corresponding Rstart elements\n"))
+      }
+    }
+    names(conv) <- names(thetav)
+    conv <- factor(conv, levels = c("F", "P", "U"))  #TODO add levels as add constaints
+  boundChoices <- matrix(c(NA, NA,                         # Fixed
+			   control$ezero, control$einf,    # Positive
+                           -1*control$einf, control$einf), # Unbounded
+      ncol = 2, byrow = TRUE)  #<-- TODO add boundaries as add constraints
+  bounds <- matrix(boundChoices[as.integer(conv), ], ncol = 2,
+    dimnames = list(names(conv), c("LB", "UB")))
+
+
+
+
+
+
 
 
 
 #TODO TODO TODO TODO TODO TODO TODO
 #XXX Determine from model how to make `lambda==FALSE` for models where appropriate
-#TODO make `lambda == FALSE` if EM is part of algit (not sure if EM works for lambda or not) #<-- FIXME figure out how to do EM on lambda
   lambda <- control$lambda
+
+
+
+
+
 
 
 #TODO put `uni` in `mkModMats()`
@@ -652,6 +711,7 @@ gremlinSetup <- function(formula, random = NULL, rcov = ~ units,
 		rfxIncContrib2loglik = rfxIncContrib2loglik,
 		ndgeninv = ndgeninv, dimsZg = dimsZg, nminffx = nminffx,
 		rfxlvls = rfxlvls, nminfrfx = nminfrfx,
+		conv = conv, bounds = bounds,
 		thetav = thetav,
 		thetaG = thetaSt$thetaG, thetaR = thetaSt$thetaR,
 		nu = nu,
@@ -662,8 +722,8 @@ gremlinSetup <- function(formula, random = NULL, rcov = ~ units,
 		sln = sln, Cinv_ii = Cinv_ii, r = r,
 		AI = AI, dLdnu = dLdnu,
 		maxit = maxit, algit = algit, vit = vit, v = v,
-		cctol = control$cctol, ezero = control$ezero,
-		step = control$step),
+		cctol = control$cctol,
+		ezero = control$ezero, einf = control$einf, step = control$step),
 	class = c("grMod", "gremlin"),
 	startTime = startTime))
 }  #<-- end `gremlinSetup()`
@@ -921,6 +981,8 @@ remlIt.default <- function(grMod, ...){
 remlIt.gremlinR <- function(grMod, ...){
   # pull a few objects out that will be used repeatedly
   ## favor "small" objects. keep large objects in grMod unless they change often
+  conv <- grMod$conv
+  bounds <- grMod$bounds
   thetav <- grMod$thetav
   skel <- attr(grMod$thetav, "skel")
   thetaG <- grMod$thetaG
@@ -1038,7 +1100,7 @@ remlIt.gremlinR <- function(grMod, ...){
       ############################
       if(grMod$algit[i] == "EM"){
         if(grMod$v > 1 && vitout == 0) cat("\n\tEM to find next nu")
-        emOut <- em(nuv, thetaG, thetaR,
+        emOut <- em(nuv, thetaG, thetaR, conv,
             grMod$modMats, grMod$nminffx, sLc, grMod$ndgeninv, grMod$sln, grMod$r)
           nuvout <- emOut$nuv
       }
@@ -1094,8 +1156,19 @@ if(nrow(theta[[thetaR]]) != 1){
         ####(though gremlin uses `+` instead of J & T '95 `-` because
         ##### gremlin multiplies gradient by -0.5 in `gradFun()`)
 
-        # Check if AI can be inverted
-        rcondAI <- rcond(AI)
+        # Check for fixed (co)variance parameters
+        ## remove them from copies of gradient and AI if so
+        fxdP <- which(conv == "F")
+        if(length(fxdP) > 0){
+          AI_con <- AI[-fxdP, -fxdP, drop = FALSE]
+          dLdnu_con <- dLdnu[-fxdP, , drop = FALSE]
+        } else{
+            AI_con <- AI
+            dLdnu_con <- dLdnu
+          }
+
+        # Check if AI (after removing constrained parameters) can be inverted
+        rcondAI <- rcond(AI_con)
         if(rcondAI < grMod$ezero){
           if(grMod$v > 2){
             cat("\nReciprocal condition number of AI matrix is",
@@ -1106,12 +1179,12 @@ if(nrow(theta[[thetaR]]) != 1){
         ### Check/modify AI matrix to 'ensure' positive definiteness
         ### `fI` is factor to adjust AI matrix
         #### (e.g., Meyer 1997 eqn 58 and WOMBAT manual A.5 strategy 3b)
-        AIeigvals <- eigen(AI, symmetric = TRUE, only.values = TRUE)$values
+        AIeigvals <- eigen(AI_con, symmetric = TRUE, only.values = TRUE)$values
           d <- (3*10^-6) * AIeigvals[1]
-          f <- max(0, d - AIeigvals[nrow(AI)])
-        fI <- f * diag(x = 1, nrow = nrow(AI))
+          f <- max(0, d - AIeigvals[nrow(AI_con)])
+        fI <- f * diag(x = 1, nrow = nrow(AI_con))
 	##### modified 'Hessian'
-        H <- fI + AI
+        H <- fI + AI_con
         # Check if H can be inverted
         rcondH <- rcond(H)
         ## if H cannot be inverted do EM
@@ -1122,29 +1195,80 @@ if(nrow(theta[[thetaR]]) != 1){
 	      "\n\tHessian may be singular - switching to the EM algorithm")
           }  #<-- end `if v>1`
           if(grMod$v > 1 && vitout == 0) cat("\n\tEM to find next nu")
-            emOut <- em(nuv, thetaG, thetaR,
+            emOut <- em(nuv, thetaG, thetaR, conv,
               grMod$modMats, grMod$nminffx, sLc, grMod$ndgeninv, grMod$sln, grMod$r)
             nuvout <- emOut$nuv
             grMod$algit[i] <- "EM"
 
         } else{  #<-- end if Hessian cannot be inverted
             Hinv <- solve(H)
-#TODO need a check that not proposing negative/0 variance or |correlation|>1
-## Require restraining naughty components
-            dnu <- Hinv %*% dLdnu   #<-- proposed change in nu parameters
- 	    # Rule: if `dnu` proposed greater than 80% change in any parameter 
-            ## Then implement step reduction (`grMod$step` default) else do not
-            if(any(abs(dnu / matrix(nuv, ncol = 1)) > 0.8)){
-	      step <- grMod$step
-	    } else step <- 1.0
-            nuvout <- matrix(nuv, ncol = 1) + step * dnu
-            zeroV <- which(nuvout < grMod$ezero) #FIXME check variances & cov/corr separately
-            if(length(zeroV) > 0L){
-              if(grMod$v > 1) cat("\nVariance component(s)", zeroV, "fixed to zero")
-              nuvout[zeroV] <- grMod$ezero #FIXME TODO!!!??
-            }
-          }  #<-- end else AI can be inverted
+            dnu <- Hinv %*% dLdnu_con   #<-- proposed change in nu parameters
+            # First, implement step-halving (if necessary)
+ 	    ## Rule: if `dnu` proposed greater than 200% change in any parameter 
+            ### Then implement step reduction (`grMod$step` default) else do not
+            nuvout <- matrix(nuv, ncol = 1)
+            if(length(fxdP) > 0){
+              if(any(abs(dnu / nuvout[-fxdP, ]) > 2.0)){
+  	        step <- grMod$step
+  	      } else step <- 1.0
+              dnu <- step * dnu
+              nuvout[-fxdP, ] <- nuvout[-fxdP, ] + dnu
+              # Second, check for indecent proposals
+              badLp <- sapply(seq(p)[-fxdP],
+                  FUN = function(x) nuvout[x,] <= bounds[x, "LB"])
+              badUp <- sapply(seq(p)[-fxdP],
+                  FUN = function(x) nuvout[x,] >= bounds[x, "UB"])
+              if(any(badLp) | any(badUp)){
+                bad <- which((badUp + badLp) > 0)
+                if(grMod$v > 1){
+                  cat("\n(co)variance component(s)", bad,
+                    "restrained inside boundaries")
+                }
+                nuvout[-fxdP][which(badLp)] <- bounds[-fxdP, "LB"][which(badLp)] +
+		  grMod$ezero
+                nuvout[-fxdP][which(badUp)] <- bounds[-fxdP, "UB"][which(badUp)] -
+                  grMod$ezero
+              }  #<-- end if bad proposals
+
+            } else{  #<-- now do below if NO fixed parameters
+                if(any(abs(dnu / nuvout) > 2.0)){
+  	          step <- grMod$step
+                } else step <- 1.0
+                dnu <- step * dnu
+                nuvout <- nuvout + dnu
+                # Second, check for indecent proposals
+                badLp <- sapply(seq(p),
+                    FUN = function(x) nuvout[x,] <= bounds[x, "LB"])
+                badUp <- sapply(seq(p),
+                    FUN = function(x) nuvout[x,] >= bounds[x, "UB"])
+                if(any(badLp) | any(badUp)){
+                  bad <- which((badUp + badLp) > 0)
+                  if(grMod$v > 1){
+                    cat("\n(co)variance component(s)", bad,
+                      "restrained inside boundaries")
+                  }
+                  nuvout[which(badLp), ] <- bounds[which(badLp), "LB"] +
+	            grMod$ezero
+                  nuvout[which(badUp), ] <- bounds[which(badUp), "UB"] -
+                    grMod$ezero
+                }  #<-- end if bad proposals
+              }  #<-- end if/else fixed parameters
+
+              if(any(badLp) | any(badUp)){
+                ## Re-calculate parameter updates, CONDITIONAL on restrained values
+                ### Gilmour 2019 AI REML in Practice. J. Anim. Breed. Genet.
+                #TODO check in case all non-fixed parameters are bad!
+                Hinv_uu <- solve(H[-bad, -bad])  #<-- unconditional components
+                H_uc <- H[, bad][-bad]
+                dLdnu_u <- dLdnu_con[-bad, , drop = FALSE]
+                nuvout[-c(fxdP, bad), ] <- nuv[-c(fxdP, bad)] +
+                  (Hinv_uu %*% matrix((dLdnu_u - H_uc * (nuvout[bad]-nuv[bad])),
+                    ncol = 1))
+              }
+          }  #<-- end if/else Hessian can be inverted
       }  #<-- end if algorithm is "AI"
+
+
 
       if(grMod$algit[i] == "bobyqa"){
 stop(cat("\nNot allowing `minqa::bobyqa()` right now"))

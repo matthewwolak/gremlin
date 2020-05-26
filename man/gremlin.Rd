@@ -14,13 +14,13 @@
 \usage{
 gremlin(formula, random = NULL, rcov = ~units, data = NULL,
   ginverse = NULL, Gstart = NULL, Rstart = NULL, Bp = NULL,
-  maxit = 20, algit = NULL, vit = 10, v = 1,
-  control = gremlinControl(), ...)
+  Gcon = NULL, Rcon = NULL, maxit = 20, algit = NULL, vit = 10,
+  v = 1, control = gremlinControl(), ...)
 
 gremlinR(formula, random = NULL, rcov = ~units, data = NULL,
   ginverse = NULL, Gstart = NULL, Rstart = NULL, Bp = NULL,
-  maxit = 20, algit = NULL, vit = 10, v = 1,
-  control = gremlinControl(), ...)
+  Gcon = NULL, Rcon = NULL, maxit = 20, algit = NULL, vit = 10,
+  v = 1, control = gremlinControl(), ...)
 
 \method{getCall}{gremlin}(x, ...)
 
@@ -28,8 +28,8 @@ update.gremlin(object, ...)
 
 gremlinSetup(formula, random = NULL, rcov = ~units, data = NULL,
   ginverse = NULL, Gstart = NULL, Rstart = NULL, Bp = NULL,
-  maxit = 20, algit = NULL, vit = 10, v = 1,
-  control = gremlinControl(), ...)
+  Gcon = NULL, Rcon = NULL, maxit = 20, algit = NULL, vit = 10,
+  v = 1, control = gremlinControl(), ...)
 
 \method{is}{gremlin}(x)
 
@@ -55,13 +55,18 @@ The name of each element in the list should match a column in \code{data}
 that is associated with a random term. All levels of the random term should
 appear as \code{rownames} for the matrices.}
 
-\item{Gstart}{A \code{list} of starting (co)variance values for the
-G-structure or random effects terms.}
+\item{Gstart}{A \code{list} of matrices with starting (co)variance values for
+the G-structure or random effects terms.}
 
-\item{Rstart}{A \code{list} of starting (co)variance values for the
-R-structure or residual terms.}
+\item{Rstart}{A \code{list} of matrices with starting (co)variance values for
+the R-structure or residual terms.}
 
 \item{Bp}{A prior specification for fixed effects.}
+
+\item{Gcon, Rcon}{A \code{list} of matrices with constraint codes for the
+G-structure/random effects or R-structure/residual effects terms,
+respectively. Must be a \code{character} of either \code{"F"} for fixed,
+\code{"P"} for positive, or \code{"U"} for unbounded.}
 
 \item{maxit}{An \code{integer} specifying the maximum number of likelihood
 iterations.}
@@ -122,9 +127,11 @@ A \code{list} containing an object of class \code{grMod} and, if a
     \item{dimsZg, nminffx, rfxlvls, nminfrfx }{\code{Numeric} vectors or scalars
       describing the numbers of random effects or some function of random and
       fixed effects.}
+    \item{conv, bounds }{(Co)variance component constraints and boundaries
+      of the allowable parameter space for each component.}
     \item{thetav }{A \code{vector} of the (co)variance parameters to
       be estimated by REML withe the attribute \dQuote{skel} giving the
-      skeleton for recreating a list of \code{matrices} from this vector.}
+      skeleton to recreate a list of \code{matrices} from this vector.}
     \item{thetaG, thetaR }{\code{Vectors} indexing the random and residual
        (co)variances, respectively, in a list of (co)variance matrices (i.e.,
        \code{theta}).}
@@ -176,9 +183,11 @@ A \code{list} containing an object of class \code{grMod} and, if a
     \item{vit }{See the parameter described above.}
     \item{v }{See the parameter described above.}
     \item{cctol }{A \code{numeric} vector of convergence criteria thresholds.}
-    \item{ezero }{A \code{numeric} value for the effective number to use as
-      \dQuote{zero}. VAlues less than this number are treated as zero and
-      fixed to this value.}
+    \item{ezero, einf }{\code{numeric} values for the effective numbers to
+      use as \dQuote{zero} and maximum negative or positive numbers. Values
+      less than \code{ezero} are treated as zero and fixed to this value.
+      Values less than \code{-1*einf} or greater than \code{einf} are
+      restricted to these values.}
 
     \item{itMat }{A \code{matrix} of details about each iteration. Rows
       indicate each REML iteration (rownames reflect the REML algorithm used)
