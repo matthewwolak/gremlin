@@ -1074,55 +1074,43 @@ remlIt.gremlinR <- function(grMod, ...){
       cc[1] <- diff(itMat[c(i-1, i), "loglik"]) < grMod$cctol[1]
       # wombat 2 (eqn. A.1) (also Knight 2008 (eqn. 6.1) criteria
       cc[2] <- sqrt(sum((itMat[i, 1:p] - itMat[(i-1), 1:p])^2) / sum(itMat[i, 1:p]^2)) < grMod$cctol[2]
-      if(grMod$algit[i] == "AI"){
-        # wombat 3 (eqn. A.2): Norm of the gradient vector
-        # AI only
-#TODO Does this go here or maybe after AI
-## Does this step happen for last AI matrix (i-1) or current (i)?
-        cc[3] <- sqrt(sum(dLdnu * dLdnu)) < grMod$cctol[3]
-        # wombat 4 (eqn A.3): Newton decrement (see Boyd & Vandenberghe 2004 cited in wombat)
-        # AI only
-#        cc[4] <- -1 * c(crossprod(dLdnu, H) %*% dLdnu)
-      }
     } else cc[1] <- FALSE  #<-- ensures one of the EM/AI/etc algorithms used if i==1
 
 
 
     if(grMod$v > 0 && vitout == 0){
       cat("\tlL:", format(round(itMat[i, "loglik"], 6), nsmall = 6))
-      if(grMod$v > 1) cat("\tConvergence crit:", cc, "\n")
     }
 
 
-    if(!all(cc, na.rm = TRUE)){
-      ############################
-      #    EM
-      ############################
-      if(grMod$algit[i] == "EM"){
-        if(grMod$v > 1 && vitout == 0) cat("\n\tEM to find next nu")
-        emOut <- em(nuv, thetaG, thetaR, conv,
-            grMod$modMats, grMod$nminffx, sLc, grMod$ndgeninv, grMod$sln, grMod$r)
-          nuvout <- emOut$nuv
-      }
+    ############################
+    #    EM
+    ############################
+    if(grMod$algit[i] == "EM" && !all(cc, na.rm = TRUE)){
+      if(grMod$v > 1 && vitout == 0) cat("\n\tEM to find next nu")
+      emOut <- em(nuv, thetaG, thetaR, conv,
+          grMod$modMats, grMod$nminffx, sLc, grMod$ndgeninv, grMod$sln, grMod$r)
+        nuvout <- emOut$nuv
+    }
 
 
-      ############################
-      #    AI
-      ############################
-      if(grMod$algit[i] == "AI"){
-        if(grMod$v > 1 && vitout == 0) cat("\n\tAI to find next nu")
+    ############################
+    #    AI
+    ############################
+    if(grMod$algit[i] == "AI"){
+      if(grMod$v > 1 && vitout == 0) cat("\n\tAI to find next nu")
 #FIXME Currently, only allow when not: 
 if(nrow(theta[[thetaR]]) != 1){
   stop(cat("\nAI algorithm currently only works for a single residual variance"))
 }
-        Cinv <- solve(a = sLc, b = Ic, system = "A")
+      Cinv <- solve(a = sLc, b = Ic, system = "A")
 
-        if(lambda){
-          AI <- ai(nuv, skel, thetaG,
-	              grMod$modMats, grMod$W, sLc, grMod$sln, grMod$r,
-	  	      thetaR = NULL,
-		      sigma2e)  #<-- NULL if lambda==FALSE
-	  dLdnu <- gradFun(nuv, thetaG, grMod$modMats, Cinv, grMod$sln,
+      if(lambda){
+        AI <- ai(nuv, skel, thetaG,
+             grMod$modMats, grMod$W, sLc, grMod$sln, grMod$r,
+  	      thetaR = NULL,
+	      sigma2e)  #<-- NULL if lambda==FALSE
+        dLdnu <- gradFun(nuv, thetaG, grMod$modMats, Cinv, grMod$sln,
 	    	      sigma2e = sigma2e, r = NULL, nminfrfx = NULL)
 #          dLdnu_TEST <- gradFun_TEST(nuv, thetaG,
 #	  	      grMod$modMats, sLc, grMod$ndgeninv, grMod$sln,	
@@ -1132,145 +1120,169 @@ if(nrow(theta[[thetaR]]) != 1){
 #	  	      grMod$modMats, sLc, grMod$ndgeninv, grMod$sln,	
 #		      sigma2e = sigma2e,   #<-- NULL if lambda==FALSE
 #		      thetaR = NULL, r = NULL, nminfrfx = NULL)  #<-- NULL if lambda==TRUE
-       } else{
-            AI <- ai(nuv, skel, thetaG,
-        		grMod$modMats, grMod$W, sLc, grMod$sln, grMod$r,
-                        thetaR,   #<-- NULL if lambda==TRUE
-		        sigma2e = NULL)
+      } else{
+          AI <- ai(nuv, skel, thetaG,
+        	grMod$modMats, grMod$W, sLc, grMod$sln, grMod$r,
+                thetaR,   #<-- NULL if lambda==TRUE
+	        sigma2e = NULL)
 
-	    dLdnu <- gradFun(nuv, thetaG, grMod$modMats, Cinv, grMod$sln,
+	  dLdnu <- gradFun(nuv, thetaG, grMod$modMats, Cinv, grMod$sln,
   	      sigma2e = NULL, grMod$r, grMod$nminfrfx)
 
 #	   dLdnu_TEST2 <- gradFun_TEST2(nuv, thetaG,
 #	  	      grMod$modMats, sLc, grMod$ndgeninv, grMod$sln,	
 #		      sigma2e = NULL,   #<-- NULL if lambda==FALSE
 #		      thetaR = thetaR, r = grMod$r, nminfrfx = grMod$nminfrfx) #<-- NULL if lambda==TRUE
-          }
+        }
 
-        ## Find next set of parameters using a quasi-Newton method/algorithm
-        ### Meyer 1989 pp. 326-327 describes quasi-Newton methods 
+      ## Find next set of parameters using a quasi-Newton method/algorithm
+      ### Meyer 1989 pp. 326-327 describes quasi-Newton methods 
 #TODO see Meyer 1997 eqn 58 for Marquardt 1963: theta_t+1=theta_t - (H_t + k_t * I)^{-1} g_t 
 ## What I do below is similar: except k_t=f
-        ### Mrode 2005 eqn 11.4
-        ### Johnson and Thompson 1995 eqn 12
-        ####(though gremlin uses `+` instead of J & T '95 `-` because
-        ##### gremlin multiplies gradient by -0.5 in `gradFun()`)
+      ### Mrode 2005 eqn 11.4
+      ### Johnson and Thompson 1995 eqn 12
+      ####(though gremlin uses `+` instead of J & T '95 `-` because
+      ##### gremlin multiplies gradient by -0.5 in `gradFun()`)
 
-        # Check for fixed (co)variance parameters
-        ## remove them from copies of gradient and AI if so
-        fxdP <- which(conv == "F")
-        if(length(fxdP) > 0){
-          AI_con <- AI[-fxdP, -fxdP, drop = FALSE]
-          dLdnu_con <- dLdnu[-fxdP, , drop = FALSE]
-        } else{
-            AI_con <- AI
-            dLdnu_con <- dLdnu
-          }
+      # Check for fixed (co)variance parameters
+      ## remove them from copies of gradient and AI if so
+      fxdP <- which(conv == "F")
+      if(length(fxdP) > 0){
+        AI_con <- AI[-fxdP, -fxdP, drop = FALSE]
+        dLdnu_con <- dLdnu[-fxdP, , drop = FALSE]
+      } else{
+          AI_con <- AI
+          dLdnu_con <- dLdnu
+        }
 
-        # Check if AI (after removing constrained parameters) can be inverted
-        rcondAI <- rcond(AI_con)
-        if(rcondAI < grMod$ezero){
-          if(grMod$v > 2){
-            cat("\nReciprocal condition number of AI matrix is",
-	      signif(rcondAI , 2), 
-	      "\n\tAI matrix may be singular - modifying diagonals")
-          }  #<-- end `if v>2`
-        }  #<-- end if AI singular
-        ### Check/modify AI matrix to 'ensure' positive definiteness
-        ### `fI` is factor to adjust AI matrix
-        #### (e.g., Meyer 1997 eqn 58 and WOMBAT manual A.5 strategy 3b)
-        AIeigvals <- eigen(AI_con, symmetric = TRUE, only.values = TRUE)$values
-          d <- (3*10^-6) * AIeigvals[1]
-          f <- max(0, d - AIeigvals[nrow(AI_con)])
-        fI <- f * diag(x = 1, nrow = nrow(AI_con))
-	##### modified 'Hessian'
-        H <- fI + AI_con
-        # Check if H can be inverted
-        rcondH <- rcond(H)
-        ## if H cannot be inverted do EM
-        if(rcondH < grMod$ezero){
-          if(grMod$v > 1){
-            cat("\nReciprocal condition number of modified Hessian is",
-	      signif(rcondH , 2), 
-	      "\n\tHessian may be singular - switching to the EM algorithm")
-          }  #<-- end `if v>1`
-          if(grMod$v > 1 && vitout == 0) cat("\n\tEM to find next nu")
-            emOut <- em(nuv, thetaG, thetaR, conv,
-              grMod$modMats, grMod$nminffx, sLc, grMod$ndgeninv, grMod$sln, grMod$r)
-            nuvout <- emOut$nuv
-            grMod$algit[i] <- "EM"
+      # Check if AI (after removing constrained parameters) can be inverted
+      rcondAI <- rcond(AI_con)
+      if(rcondAI < grMod$ezero){
+        if(grMod$v > 2){
+          cat("\nReciprocal condition number of AI matrix is",
+	    signif(rcondAI , 2), 
+	    "\n\tAI matrix may be singular - modifying diagonals")
+        }  #<-- end `if v>2`
+      }  #<-- end if AI singular
+      ### Check/modify AI matrix to 'ensure' positive definiteness
+      ### `fI` is factor to adjust AI matrix
+      #### (e.g., Meyer 1997 eqn 58 and WOMBAT manual A.5 strategy 3b)
+      AIeigvals <- eigen(AI_con, symmetric = TRUE, only.values = TRUE)$values
+        d <- (3*10^-6) * AIeigvals[1]
+        f <- max(0, d - AIeigvals[nrow(AI_con)])
+      fI <- f * diag(x = 1, nrow = nrow(AI_con))
+      ##### modified 'Hessian'
+      H <- fI + AI_con
+      # Check if H can be inverted
+      rcondH <- rcond(H)
+      ## if H cannot be inverted do EM
+      if(rcondH < grMod$ezero){
+        if(grMod$v > 1){
+          cat("\nReciprocal condition number of modified Hessian is",
+	    signif(rcondH , 2), 
+	    "\n\tHessian may be singular - switching to the EM algorithm")
+        }  #<-- end `if v>1`
+        if(grMod$v > 1 && vitout == 0) cat("\n\tEM to find next nu")
+          emOut <- em(nuv, thetaG, thetaR, conv,
+            grMod$modMats, grMod$nminffx, sLc, grMod$ndgeninv, grMod$sln, grMod$r)
+          nuvout <- emOut$nuv
+          grMod$algit[i] <- "EM"
 
-        } else{  #<-- end if Hessian cannot be inverted
-            Hinv <- solve(H)
-            dnu <- Hinv %*% dLdnu_con   #<-- proposed change in nu parameters
-            # First, implement step-halving (if necessary)
- 	    ## Rule: if `dnu` proposed greater than 200% change in any parameter 
-            ### Then implement step reduction (`grMod$step` default) else do not
-            nuvout <- matrix(nuv, ncol = 1)
-            if(length(fxdP) > 0){
-              if(any(abs(dnu / nuvout[-fxdP, ]) > 2.0)){
-  	        step <- grMod$step
-  	      } else step <- 1.0
-              dnu <- step * dnu
-              nuvout[-fxdP, ] <- nuvout[-fxdP, ] + dnu
-              # Second, check for indecent proposals
-              badLp <- sapply(seq(p)[-fxdP],
+      } else{  #<-- end if Hessian cannot be inverted
+          Hinv <- solve(H)
+          dnu <- Hinv %*% dLdnu_con   #<-- proposed change in nu parameters
+          # First, implement step-halving (if necessary)
+ 	  ## Rule: if `dnu` proposed greater than 200% change in any parameter 
+          ### Then implement step reduction (`grMod$step` default) else do not
+          nuvout <- matrix(nuv, ncol = 1)
+          if(length(fxdP) > 0){
+            if(any(abs(dnu / nuvout[-fxdP, ]) > 2.0)){
+  	      step <- grMod$step
+  	    } else step <- 1.0
+            dnu <- step * dnu
+            nuvout[-fxdP, ] <- nuvout[-fxdP, ] + dnu
+            # Second, check for indecent proposals
+            badLp <- sapply(seq(p)[-fxdP],
                   FUN = function(x) nuvout[x,] <= bounds[x, "LB"])
-              badUp <- sapply(seq(p)[-fxdP],
+            badUp <- sapply(seq(p)[-fxdP],
                   FUN = function(x) nuvout[x,] >= bounds[x, "UB"])
+            if(any(badLp) | any(badUp)){
+              bad <- which((badUp + badLp) > 0)
+              if(grMod$v > 1){
+                cat("\n(co)variance component(s) in 'thetav' vector (position:",
+                    bad, ") restrained inside boundaries\t")
+              }
+              nuvout[-fxdP][which(badLp)] <- bounds[-fxdP, "LB"][which(badLp)] +
+	          grMod$ezero
+              nuvout[-fxdP][which(badUp)] <- bounds[-fxdP, "UB"][which(badUp)] -
+                  grMod$ezero
+            }  #<-- end if bad proposals
+
+          } else{  #<-- now do below if NO fixed parameters
+              if(any(abs(dnu / nuvout) > 2.0)){
+                step <- grMod$step
+              } else step <- 1.0
+              dnu <- step * dnu
+              nuvout <- nuvout + dnu
+              # Second, check for indecent proposals
+              badLp <- sapply(seq(p),
+                    FUN = function(x) nuvout[x,] <= bounds[x, "LB"])
+              badUp <- sapply(seq(p),
+                    FUN = function(x) nuvout[x,] >= bounds[x, "UB"])
               if(any(badLp) | any(badUp)){
                 bad <- which((badUp + badLp) > 0)
                 if(grMod$v > 1){
                   cat("\n(co)variance component(s) in 'thetav' vector (position:",
-                    bad, ") restrained inside boundaries")
+                      bad, ") restrained inside boundaries\t")
                 }
-                nuvout[-fxdP][which(badLp)] <- bounds[-fxdP, "LB"][which(badLp)] +
-		  grMod$ezero
-                nuvout[-fxdP][which(badUp)] <- bounds[-fxdP, "UB"][which(badUp)] -
-                  grMod$ezero
-              }  #<-- end if bad proposals
-
-            } else{  #<-- now do below if NO fixed parameters
-                if(any(abs(dnu / nuvout) > 2.0)){
-  	          step <- grMod$step
-                } else step <- 1.0
-                dnu <- step * dnu
-                nuvout <- nuvout + dnu
-                # Second, check for indecent proposals
-                badLp <- sapply(seq(p),
-                    FUN = function(x) nuvout[x,] <= bounds[x, "LB"])
-                badUp <- sapply(seq(p),
-                    FUN = function(x) nuvout[x,] >= bounds[x, "UB"])
-                if(any(badLp) | any(badUp)){
-                  bad <- which((badUp + badLp) > 0)
-                  if(grMod$v > 1){
-                    cat("\n(co)variance component(s)", bad,
-                      "restrained inside boundaries")
-                  }
-                  nuvout[which(badLp), ] <- bounds[which(badLp), "LB"] +
+                nuvout[which(badLp), ] <- bounds[which(badLp), "LB"] +
 	            grMod$ezero
-                  nuvout[which(badUp), ] <- bounds[which(badUp), "UB"] -
+                nuvout[which(badUp), ] <- bounds[which(badUp), "UB"] -
                     grMod$ezero
-                }  #<-- end if bad proposals
-              }  #<-- end if/else fixed parameters
+              }  #<-- end if bad proposals
+            }  #<-- end if/else fixed parameters
 
-              if(any(badLp) | any(badUp)){
-                ## Re-calculate parameter updates, CONDITIONAL on restrained values
-                ### Gilmour 2019 AI REML in Practice. J. Anim. Breed. Genet.
-                #TODO check in case all non-fixed parameters are bad!
-                Hinv_uu <- solve(H[-bad, -bad])  #<-- unconditional components
-                H_uc <- H[, bad][-bad]
-                dLdnu_u <- dLdnu_con[-bad, , drop = FALSE]
-                nuvout[-c(fxdP, bad), ] <- nuv[-c(fxdP, bad)] +
+
+            ## Re-calculate parameter updates, CONDITIONAL on restrained values
+            ### Gilmour 2019 AI REML in Practice. J. Anim. Breed. Genet.
+            if(any(badLp) | any(badUp)){
+              conv[bad] <- "B"  #<-- B for Bounded
+              dLdnu_con[bad] <- 0.0  #<-- so convergence check works correctly
+              #TODO check in case all non-fixed parameters are bad!
+              Hinv_uu <- solve(H[-bad, -bad])  #<-- unconditional components
+              H_uc <- H[, bad][-bad]
+              dLdnu_u <- dLdnu_con[-bad, , drop = FALSE]
+              nuvout[-c(fxdP, bad), ] <- nuv[-c(fxdP, bad)] +
                   (Hinv_uu %*% matrix((dLdnu_u - H_uc * (nuvout[bad]-nuv[bad])),
                     ncol = 1))
-              }
-          }  #<-- end if/else Hessian can be inverted
-      }  #<-- end if algorithm is "AI"
+            }
+
+            # CONVERGENCE checks for AI
+            # wombat 3 (eqn. A.2): Norm of the gradient vector
+            cc[3] <- sqrt(sum(dLdnu_con * dLdnu_con)) < grMod$cctol[3]
+            # wombat 4 (eqn A.3): Newton decrement
+            ## (see Boyd & Vandenberghe 2004 cited in wombat)
+            # AI only
+#            cc[4] <- -1 * c(crossprod(dLdnu_con, H_con) %*% dLdnu_con)
+
+        }  #<-- end if/else Hessian can be inverted
+
+
+    }  #<-- end if algorithm is "AI"
+
+
+    if(grMod$v > 0 && vitout == 0){
+      if(grMod$v > 1) cat("\tConvergence crit:", cc, "\n")
+    }
 
 
 
-      if(grMod$algit[i] == "bobyqa"){
+
+
+    ############################
+    #    BOBYQA/NR
+    ############################
+    if(grMod$algit[i] == "bobyqa"){
 stop(cat("\nNot allowing `minqa::bobyqa()` right now"))
 #        if(v > 1 && vitout == 0) cat("Switching to `minqa::bobyqa()`\n")
 #FIXME lower bounds if not transformed!
@@ -1281,13 +1293,13 @@ stop(cat("\nNot allowing `minqa::bobyqa()` right now"))
 #       loglik <- -1*bobyout$fval
 #FIXME do a better check of loglik and parameter changes
 #	cc <- diff(c(itMat[(i-1), "loglik"], loglik)) < cctol[1] #if(bobyout$ierr == 0) TRUE else FALSE
-      }
+    }
        
 
 #TODO need to transform in order to use non-EM
 ##think requires obtaining gradient and hessian for both `nu` and `theta`
 ## See Meyer 1996 eqns ~ 45-55ish
-      if(grMod$algit[i] == "NR"){
+    if(grMod$algit[i] == "NR"){
 stop(cat("\nNot allowing `NR` right now"))
 #        if(grMod$v > 1 && vitout == 0) cat("\n\tNR to find next nu")
 #        gr <- gradFun(nuv, thetaG, thetaR, modMats, Cinv, nminfrfx, sln, r)
@@ -1301,12 +1313,10 @@ stop(cat("\nNot allowing `NR` right now"))
 #	method = "L-BFGS-B",
 #	itnmax = maxit, hessian = TRUE,
 #	control = list(maximize = FALSE, trace = v))
-      }
+    }
 #        nuvout <- optim(par = nuv, fn = reml, hessian = TRUE, method = "BFGS", skel = skel)
 
 
-
-    }  #<-- end if REML did not converge and other convergence checks
 
 
 
