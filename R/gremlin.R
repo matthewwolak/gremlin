@@ -1221,8 +1221,8 @@ if(nrow(theta[[thetaR]]) != 1){
               if(any(badLp) | any(badUp)){
                 bad <- which((badUp + badLp) > 0)
                 if(grMod$v > 1){
-                  cat("\n(co)variance component(s)", bad,
-                    "restrained inside boundaries")
+                  cat("\n(co)variance component(s) in 'thetav' vector (position:",
+                    bad, ") restrained inside boundaries")
                 }
                 nuvout[-fxdP][which(badLp)] <- bounds[-fxdP, "LB"][which(badLp)] +
 		  grMod$ezero
