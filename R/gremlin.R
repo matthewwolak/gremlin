@@ -601,7 +601,9 @@ gremlinSetup <- function(formula, random = NULL, rcov = ~ units,
       }
     }
     names(conv) <- names(thetav)
-    conv <- factor(conv, levels = c("F", "P", "U"))  #TODO add levels as add constaints
+    #TODO add levels as add constaints
+    # F=Fixed | P=Positive | U=Unbounded | B=Boundary/Bounded
+    conv <- factor(conv, levels = c("F", "P", "U", "B"))
   boundChoices <- matrix(c(NA, NA,                         # Fixed
 			   control$ezero, control$einf,    # Positive
                            -1*control$einf, control$einf), # Unbounded
@@ -1247,7 +1249,7 @@ if(nrow(theta[[thetaR]]) != 1){
             ### Gilmour 2019 AI REML in Practice. J. Anim. Breed. Genet.
             if(any(badLp) | any(badUp)){
               conv[bad] <- "B"  #<-- B for Bounded
-              dLdnu_con[bad] <- 0.0  #<-- so convergence check works correctly
+              dLdnu_con[bad] <- 0.0  #<-- so convergence check 3 works correctly
               #TODO check in case all non-fixed parameters are bad!
               Hinv_uu <- solve(H[-bad, -bad])  #<-- unconditional components
               H_uc <- H[, bad][-bad]
@@ -1255,7 +1257,13 @@ if(nrow(theta[[thetaR]]) != 1){
               nuvout[-c(fxdP, bad), ] <- nuv[-c(fxdP, bad)] +
                   (Hinv_uu %*% matrix((dLdnu_u - H_uc * (nuvout[bad]-nuv[bad])),
                     ncol = 1))
-            }
+            } else{
+                # Remove any boundary constraint codes from previous iterations
+                ## restore to original code
+                if(any(conv == "B")){
+                  conv[which(conv == "B")] <- grMod$conv[which(conv == "B")]
+                }
+              }
 
             # CONVERGENCE checks for AI
             # wombat 3 (eqn. A.2): Norm of the gradient vector
@@ -1263,6 +1271,7 @@ if(nrow(theta[[thetaR]]) != 1){
             # wombat 4 (eqn A.3): Newton decrement
             ## (see Boyd & Vandenberghe 2004 cited in wombat)
             # AI only
+            #TODO: figure it whether to use "_con" versions or not
 #            cc[4] <- -1 * c(crossprod(dLdnu_con, H_con) %*% dLdnu_con)
 
         }  #<-- end if/else Hessian can be inverted
@@ -1371,26 +1380,23 @@ stop(cat("\nNot allowing `NR` right now"))
   grMod$Cinv_ii <- diag(solve(a = sLc, b = Ic, system = "A"))
 
   ## AI
-  if(lambda){
-    AI <- ai(nuv, skel, thetaG,
+  if(grMod$algit[i] != "AI"){
+    if(lambda){
+      AI <- ai(nuv, skel, thetaG,
 	     grMod$modMats, grMod$W, sLc, grMod$sln, grMod$r,
 	     thetaR = NULL,
 	     sigma2e)  #<-- NULL if lambda==FALSE
-
-#    dLdnu <- gradFun(nuv, thetaG, grMod$modMats, Cinv, grMod$sln,
-#	    	      sigma2e = sigma2e, r = NULL, nminfrfx = NULL)
-  } else{
-      AI <- ai(nuv, skel, thetaG,
-       		grMod$modMats, grMod$W, sLc, grMod$sln, grMod$r,
-                thetaR,   #<-- NULL if lambda==TRUE
-	        sigma2e = NULL)
-#      dLdnu <- gradFun(nuv, thetaG, grMod$modMats, Cinv, grMod$sln,
-#  	      sigma2e = NULL, grMod$r, grMod$nminfrfx)
+    } else{ 
+        AI <- ai(nuv, skel, thetaG,
+   	     grMod$modMats, grMod$W, sLc, grMod$sln, grMod$r,
+             thetaR,   #<-- NULL if lambda==TRUE
+	     sigma2e = NULL)
       }
-  dimnames(AI) <- list(rownames(dLdnu), rownames(dLdnu))
-  
+    dimnames(AI) <- list(rownames(dLdnu), rownames(dLdnu))
+  }
 
   # place these altered values back into grMod
+  grMod$conv <- conv
   grMod$thetav <- thetav
   grMod$nu <- nu
   grMod$sigma2e <- sigma2e
