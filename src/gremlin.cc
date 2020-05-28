@@ -116,7 +116,9 @@ void ugremlin(
 	 itc = 0,
          aiformed = 0,
          hformed = 0,
+	 sHformed = 0,
          huuformed = 0,
+         sHuuformed = 0,
          dimM,      // GENERIC dimension of a matrix variable to be REUSED
 	 nr = dimZWG[1],
 	 nffx,
@@ -827,8 +829,9 @@ if(v[0] > 3){
     /////////////////////////////
     if(algit[i] == 1){
       if(v[0] > 1 && vitout == 0) Rprintf("\n\tAI to find next nu");
-      if(aiformed == 1) cs_spfree(AI);
-      if(hformed == 1) cs_spfree(H)
+      if(aiformed == 1) cs_spfree(AI); aiformed = 0;
+      if(hformed == 1) cs_spfree(H); hformed = 0;
+      if(huuformed == 1) cs_spfree(H_uu); huuformed = 0;      
 
       if(!tugugFun(tugug, w, nG, rfxlvls,
 	    nffx, ndgeninv, geninv, BLUXs)){
@@ -928,7 +931,10 @@ if(v[0] > 3){
           si++; 
         }
 
-      H = cs_droprowcol(AI, wchBd);      
+      if(p[0] == conP) H = AI;
+        else H = cs_droprowcol(AI, wchBd);      
+      if(H != NULL) hformed = 1;
+
 
       // CONVERGENCE CRITERIA 3 and 4
       //// Appendix 2 of WOMBAT help manual for 4 criteria specified
@@ -985,16 +991,17 @@ Whate R's `eigen()` calls
 
 
         // Check if Hessian can be inverted
-        if(hformed == 1){
+        if(sHformed == 1){
           cs_sfree(sLh);  // each time in case H pattern changes (fix components)
           cs_nfree(Lh);
+          sHformed = 0;
         }
         sLh = cs_schol(1, H);
         Lh = cs_chol(H, sLh);
-        hformed = 1;
+        sHformed = 1;
         if(Lh == NULL){
           if(v[0] > 1){
-            Rprintf("\H cholesky decomposition failed:\n\t Hessian matrix may be singular - switching to an iteration of the EM algorithm");
+            Rprintf("\nH cholesky decomposition failed:\n\t Hessian matrix may be singular - switching to an iteration of the EM algorithm");
           } // end if v>1
 
           //// if H cannot be inverted do EM
@@ -1083,26 +1090,28 @@ Whate R's `eigen()` calls
             
               // first subset H to just the un-restrained components (no fixed either)
               //// actually work off of AI (may contain fixed parameters)
-              conP = p[0]
+              conP = p[0];
               for(k = 0; k < p[0]; k++){
                 if(conv[k] == 0 || conv[k] == 3){
                  wchBd[k] = 1;
                  conP--;
                 } else wchBd[k] = 0;
               }
+
               H_uu = cs_droprowcol(AI, wchBd);
- 
+              if(H_uu != NULL) huuformed = 1;
               // Check if Hessian sub-matrix can be inverted
-              if(huuformed == 1){
+              if(sHuuformed == 1){
                 cs_sfree(sLh_uu);  // each time - pattern may change (fix components)
                 cs_nfree(Lh_uu);
+                sHuuformed = 0;
               }
               sLh_uu = cs_schol(1, H_uu);
               Lh_uu = cs_chol(H_uu, sLh_uu);
-              huuformed = 1;
+              sHuuformed = 1;
               if(Lh_uu == NULL){
                 if(v[0] > 1){
-                  Rprintf("\H cholesky decomposition failed:\n\t Hessian sub-matrix may be singular - switching to an iteration of the EM algorithm");
+                  Rprintf("\nH cholesky decomposition failed:\n\t Hessian sub-matrix may be singular - switching to an iteration of the EM algorithm");
                 } // end if v>1
 
                 //// if H_uu cannot be inverted do EM
@@ -1176,7 +1185,7 @@ Whate R's `eigen()` calls
                       }  // end if/else
                     }  // end for g 
 
-                cs_spfree(invH_uu)
+                cs_spfree(invH_uu);
 
               }  // end if/else H_uu cannot be inverted
 
@@ -1189,9 +1198,10 @@ Whate R's `eigen()` calls
 
       }  // end if REML did not converge
 
-      // Cleanup: delete grad (for creation next AI) and unpack newnu into nu
+      // Cleanup: delete grad (for creation in next AI) and unpack newnu into nu
       delete [] grad;
 
+      si = 0;
       for(k = 0; k < p[0]; k++){
         if(conv[k] == 0) continue;
         nu[k] = newnu[si];
@@ -1333,7 +1343,9 @@ if(v[0] > 3) simple_tic(t);
     cs_spfree(AI);
   }  // end if AI NOT NULL
 
-  if(CS_CSC(H)) cs_spfree(H);
+  if(hformed == 1) cs_spfree(H);
+  if(huuformed == 1) cs_spfree(H_uu);
+
 
   // return permutation matrix of symbolic Cholesky factorization of C
   for(k = 0; k < C->m; k++) sLcPinv[k] += sLc->pinv[k];
@@ -1366,7 +1378,7 @@ if(v[0] > 3) simple_tic(t);
   cs_sfree(sLc);
   cs_nfree(Lc);
 
-  if(hformed == 1){
+  if(sHformed == 1){
     cs_sfree(sLh);
     cs_nfree(Lh);
   }

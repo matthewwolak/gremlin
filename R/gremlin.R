@@ -890,7 +890,7 @@ remlIt.default <- function(grMod, ...){
 	as.integer(unlist(lapply(gnu, FUN = function(g) g@p))),	      #p GRs
 	as.integer(unlist(lapply(gnu, FUN = function(g) length(g@x)))), #no. non-zero GRs
 	as.double(unlist(lapply(gnu, FUN = function(g) g@x))),	#nu vector
-        as.integer(grMod$conv)-1,                       # constraint codes (F=0)
+        as.integer(as.integer(grMod$conv)-1),   # constraint codes (F=0)
         as.double(c(bound)),			#boundaries (1:p=LB | p+1:2p=UB
 	as.integer(length(grMod$Bpinv@x)),		#Bpinv (fixed fx prior inverse)
 	as.integer(grMod$Bpinv@i),
