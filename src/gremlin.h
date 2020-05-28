@@ -61,6 +61,8 @@ csi traceFun(double *trace, double *w, csi nG, csi *rfxlvls,
 	csi nb, csi *ndgeninv, cs **geninv, const cs *BLUXs,
 	const cs *Lc, const csi *Pinv);
 
+/* B  returned = the reduced matrix of A according to drop */
+cs *cs_droprowcol(const cs *A, csi *drop);
 
 /*******************************************************************/
 /* Below are functions from MCMCglmm-2.25 by Jarrod Hadfield       */
