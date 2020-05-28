@@ -69,24 +69,27 @@ void ugremlin(
 /*20*/	int *pGRs,		
 /*21 */	int *nnzGRs,		// No. non-zeroes in GRs	
 /*22*/	double *nu,		// nus
-/*23*/	int *nnzBpinv,		// inverse Fixed effects prior matrix (no prior=0s)
-/*24*/	int *iBpinv,
-/*25*/	int *pBpinv,
-/*26*/	double *xBpinv,
-/*27*/	double *dLdnu,		// gradient vector (1st deriv. of lL / nus)
-/*28*/	double *AIvec,		// column-wise vector of average information matrix (2nd deriv. of lL / nu)
-/*29*/	double *sln,		// solution vector
-/*30*/  double *Cinv_ii,	// diagonal of Cinv: sampling variances of BLUXs
-/*31*/	double *res,		// residual vector
-/*32*/	double *itMat,		// parameter information at each iteration
-/*33*/	int *algit,		// algorithm for optimization at each iteration
-/*34*/	int *maxit,		// maximum No. iterations
-/*35*/  double *step,		// initial/default step-halving value
-/*36*/	double *cctol,		// convergence criteria tolerances
-/*37*/	double *ezero,		// effective zero
-/*38*/	int *v,			// verbosity level of  output messages
-/*39*/	int *vit,		// at what iterations to output messages
-/*40*/  int *sLcPinv		// empty Cholesky permutation vector
+/*23*/  int *conv,		// constraint codes (F=0)
+/*24*/  double *bound,          // boundaries (0:p-1=LB | p:2p-1=UB) Fixed/NA=0
+/*25*/	int *nnzBpinv,		// inverse Fixed effects prior matrix (no prior=0s)
+/*26*/	int *iBpinv,
+/*27*/	int *pBpinv,
+/*28*/	double *xBpinv,
+/*29*/	double *dLdnu,		// gradient vector (1st deriv. of lL / nus)
+/*30*/	double *AIvec,		// column-wise vector of average information matrix (2nd deriv. of lL / nu)
+/*31*/	double *sln,		// solution vector
+/*32*/  double *Cinv_ii,	// diagonal of Cinv: sampling variances of BLUXs
+/*33*/	double *res,		// residual vector
+/*34*/	double *itMat,		// parameter information at each iteration
+/*35*/	int *algit,		// algorithm for optimization at each iteration
+/*36*/	int *maxit,		// maximum No. iterations
+/*37*/  double *step,		// initial/default step-halving value
+/*38*/	double *cctol,		// convergence criteria tolerances
+/*39*/	double *ezero,		// effective zero
+/*40*/  double *einf,           // effective +/- max values
+/*41*/	int *v,			// verbosity level of  output messages
+/*42*/	int *vit,		// at what iterations to output messages
+/*43*/  int *sLcPinv		// empty Cholesky permutation vector
 		
 ){
 
@@ -94,10 +97,10 @@ void ugremlin(
 	 *R, *Rinv, *KRinv, *tyRinv, *tWKRinv, *tWKRinvW, *ttWKRinvW,
 	 *Ctmp, *C,
 	 *RHS, *tmpBLUXs, *BLUXs,
-	 *AI, *AIinv;
+	 *AI, *H, *Hinv, *H_uu, *invH_uu;
 
-  css    *sLc, *sLai;
-  csn    *Lc, *Lai;
+  css    *sLc, *sLh, *sLh_uu;
+  csn    *Lc, *Lh, *Lh_uu;
 
   int    nG = nGR[0];
 
@@ -112,14 +115,21 @@ void ugremlin(
   int 	 g, i, k, rw, si, si2, vitout,
 	 itc = 0,
          aiformed = 0,
+         hformed = 0,
+         huuformed = 0,
          dimM,      // GENERIC dimension of a matrix variable to be REUSED
 	 nr = dimZWG[1],
 	 nffx,
-	 nminfrfx;
+	 nminfrfx,
+	 conP, bd;
 
   int	 *rfxlvls = new int[nG];
 
   int	 *cc = new int[5];
+
+  // first p[0]=Lwr. Bounds, second p[0]=Upr. Bounds
+  int    *wchBd = new int[2*p[0]];  
+    for(k = 0; k < 2*p[0]; k++) wchBd[k] = 0;  // initialize entire vector
 
   double  *w = new double[dimZWG[3]];
 
@@ -127,6 +137,8 @@ void ugremlin(
     double  *tugug = new double[g];  // includes crossprod(residual) when !lambda
 
   double  *trace = new double[nG];
+
+  double  *newnu = new double[p[0]];
 
   double  *dnu = new double[p[0]];
 
@@ -767,37 +779,7 @@ if(v[0] > 3){
       }
       cc[1] += (sqrt(cc2 / cc2d) < cctol[1]);
         cc[4] += cc[1];
-      // 3 & 4 are only for optimzation algorithms which produce derivatives
-      if(algit[i] > 0){    // 0=EM, 1=AI
-        // Norm of gradient vector: wombt eqn. A.2
-//TODO Does this go here or maybe after AI
-//// Does this step happen for last AI matrix (i-1) or current (i)?
-        d = 0.0;
-        for(k = 0; k < p[0]; k++) d += dLdnu[k] * dLdnu[k];
-        cc[2] += (sqrt(d) < cctol[2]);
-          cc[4] += cc[2];
-        // Newton decrement: wombat eqn A.3 and Boyd & Vandenberghe 2004
-          //TODO
-          //  cc[4] += cc[3];
-      }  // end if AI
     }  // end convergence criteria if i>0
-
-
-
-
-if(v[0] > 3){
-  took = simple_toc(t);
-  Rprintf("\n    %6.4f sec.: cpp REML i=%i convergence crit. calc.", took, i);
-  simple_tic(t);
-}
-
-    // V=2 LEVEL of OUTPUT
-    if(v[0] > 1 && vitout == 0){ 
-      // output convergence criteria
-      Rprintf("\tConvergence crit:");
-        for(k = 0; k < 4; k++) Rprintf("%4i", cc[k]);
-        Rprintf("\n");
-    }  // end v > 1
 
 
 
@@ -806,122 +788,173 @@ if(v[0] > 3){
 
 
     ////////////////////////////////////////////////////////////////////////////
-    // 5d Determine next (co)variance parameters to evaluate: REML NOT CONVERGED
-    if(cc[4] < 3){
+    // 5d Determine next (co)variance parameters to evaluate:
 
-      /////////////////////////////
-      // Expectation Maximization
-      /////////////////////////////
-      if(algit[i] == 0){
-        if(v[0] > 1 && vitout == 0) Rprintf("\n\tEM to find next nu");
+    /////////////////////////////
+    // Expectation Maximization
+    /////////////////////////////
+    if(algit[i] == 0 && cc[4] < 2){
+      if(v[0] > 1 && vitout == 0) Rprintf("\n\tEM to find next nu");
 
-        if(!tugugFun(tugug, w, nG, rfxlvls,
+      if(!tugugFun(tugug, w, nG, rfxlvls,
 	    nffx, ndgeninv, geninv, BLUXs)){
-          error("\nUnsuccessful tugug calculation: EM algorithm in iteration %i", i);
-        }
+        error("\nUnsuccessful tugug calculation: EM algorithm in iteration %i", i);
+      }
 
-        if(!traceFun(trace, w, nG, rfxlvls,
+      if(!traceFun(trace, w, nG, rfxlvls,
 	    nffx, ndgeninv, geninv, BLUXs, Lc->L, sLc->pinv)){
-          error("\nUnsuccessful trace calculation: EM algorithm in iteration %i", i);
-        }
+        error("\nUnsuccessful trace calculation: EM algorithm in iteration %i", i);
+      }
 
-        // calculate EM for G (co)variances:
-        //// (tugug + trace ) / qi
-        for(g = 0; g < nG; g++) nu[g] = (tugug[g] + trace[g] ) / rfxlvls[g];
+      // calculate EM for G (co)variances:
+      //// (tugug + trace ) / qi
+      for(g = 0; g < nG; g++) nu[g] = (tugug[g] + trace[g] ) / rfxlvls[g];
 
-        // Calculate EM for residual:
-        //// crossprod(y, r) / nminffx
-        d = 0.0;
-        for(k = 0; k < ny[0]; k++) d += y[k] * res[k]; 
-        nu[nG] = d / nminffx[0];
-      }  // end EM
-      /////////////////////////////
-
-
+      // Calculate EM for residual:
+      //// crossprod(y, r) / nminffx
+      d = 0.0;
+      for(k = 0; k < ny[0]; k++) d += y[k] * res[k]; 
+      nu[nG] = d / nminffx[0];
+    }  // end EM
+    /////////////////////////////
 
 
-      /////////////////////////////
-      // Average Information
-      /////////////////////////////
-      if(algit[i] == 1){
-        if(v[0] > 1 && vitout == 0) Rprintf("\n\tAI to find next nu");
-        if(aiformed == 1) cs_spfree(AI);
 
-        if(!tugugFun(tugug, w, nG, rfxlvls,
+
+
+    /////////////////////////////
+    // Average Information
+    /////////////////////////////
+    if(algit[i] == 1){
+      if(v[0] > 1 && vitout == 0) Rprintf("\n\tAI to find next nu");
+      if(aiformed == 1) cs_spfree(AI);
+      if(hformed == 1) cs_spfree(H)
+
+      if(!tugugFun(tugug, w, nG, rfxlvls,
 	    nffx, ndgeninv, geninv, BLUXs)){
-          error("\nUnsuccessful tugug calculation: AI algorithm in iteration %i", i);
-        }
+        error("\nUnsuccessful tugug calculation: AI algorithm in iteration %i", i);
+      }
 if(v[0] > 3){
   took = simple_toc(t);
   Rprintf("\n\t    %6.6f sec.: calculate tugug(s)", took);
   simple_tic(t);
 }
 
-        if(!traceFun(trace, w, nG, rfxlvls,
+      if(!traceFun(trace, w, nG, rfxlvls,
 	    nffx, ndgeninv, geninv, BLUXs, Lc->L, sLc->pinv)){
-          error("\nUnsuccessful trace calculation: AI algorithm in iteration %i", i);
-        }
+        error("\nUnsuccessful trace calculation: AI algorithm in iteration %i", i);
+      }
 if(v[0] > 3){
   took = simple_toc(t);
   Rprintf("\n\t    %6.6f sec.: calculate trace(s)", took);
   simple_tic(t);
 }
 
-        if(lambda[0] == 1){
-          AI = cs_ai(BLUXs, Ginv, R, 0, 0,
+      if(lambda[0] == 1){
+        AI = cs_ai(BLUXs, Ginv, R, 0, 0,
 	      y, W, tW, ny[0], p[0], nG, rfxlvls, nffx, Lc->L, sLc->pinv,
 	      0, sigma2e);
-          if(AI == NULL) error("\nUnsuccessful AI algorithm in iteration %i", i);
+        if(AI == NULL){
+          error("\nUnsuccessful AI algorithm in iteration %i", i);
+        } else aiformed = 1;
 if(v[0] > 3){
   took = simple_toc(t);
   Rprintf("\n\t    %6.6f sec.: calculate AI matrix", took);
   simple_tic(t);
 }
 
-          if(!cs_gradFun(nu, dLdnu,
+        if(!cs_gradFun(nu, dLdnu,
 	      tugug, trace,
 	      ny[0], nG, rfxlvls, nffx,
               sigma2e,    // 1.0 if lambda=FALSE
 	      0, res)){      // 0 if lambda=TRUE
 	      
-            error("\nUnsuccessful gradient calculation in iteration %i", i);
-          }  // end if cs_gradFun
+          error("\nUnsuccessful gradient calculation in iteration %i", i);
+        }  // end if cs_gradFun
 if(v[0] > 3){
   took = simple_toc(t);
   Rprintf("\n\t    %6.4f sec.: calculate gradient", took);
   simple_tic(t);
 }
 
-        } else{
-          // when lambda = FALSE
-          AI = cs_ai(BLUXs, Ginv, R, KRinv, tWKRinv,
+      } else{
+        // when lambda = FALSE
+        AI = cs_ai(BLUXs, Ginv, R, KRinv, tWKRinv,
 	      res, W, tW, ny[0], p[0], nG, rfxlvls, nffx, Lc->L, sLc->pinv,
 	      nG, 1.0);
-          if(AI == NULL) error("\nUnsuccessful AI algorithm in iteration %i", i);
+        if(AI == NULL){
+          error("\nUnsuccessful AI algorithm in iteration %i", i);
+        } else aiformed = 1;
 if(v[0] > 3){
   took = simple_toc(t);
   Rprintf("\n\t    %6.6f sec.: calculate AI matrix", took);
   simple_tic(t);
 }
 
-          if(!cs_gradFun(nu, dLdnu,
+        if(!cs_gradFun(nu, dLdnu,
 	      tugug, trace,
 	      ny[0], nG, rfxlvls, nffx,
               1.0,    // 1.0 if lambda=FALSE
 	      nG, res)){      // 0 if lambda=TRUE
-            error("\nUnsuccessful gradient calculation in iteration %i", i);
-          }  // end if cs_gradFun
+          error("\nUnsuccessful gradient calculation in iteration %i", i);
+        }  // end if cs_gradFun
 if(v[0] > 3){
   took = simple_toc(t);
   Rprintf("\n\t    %6.4f sec.: calculate gradient", took);
   simple_tic(t);
 }
 
-
-        }  // end if/else lambda
-        //TODO do I need to check convergence criteria here (i.e., cc[3:4])
+      }  // end if/else lambda
 
 
+
+
+      // Check for fixed (co)variance parameters
+      //// remove them from AI and dLdnu
+      ////// (now called H for Hessian and grad for gradient)
+      conP = p[0]; 
+      for(k = 0; k < p[0]; k++){
+        if(conv[k] == 0){
+          wchBd[k] = 1;  // only reset elements about to use
+          conP--;
+        } else wchBd[k] = 0;
+      }
+      double  *grad = new double[conP];
+        si = 0;
+        for(k = 0; k < p[0]; k++){
+          if(conv[k] == 0) continue;
+          grad[si] = dLdnu[k];
+          newnu[si] = nu[k];
+          si++; 
+        }
+
+      H = cs_droprowcol(AI, wchBd);      
+
+      // CONVERGENCE CRITERIA 3 and 4
+      //// Appendix 2 of WOMBAT help manual for 4 criteria specified
+      // Norm of gradient vector: wombt eqn. A.2
+      d = 0.0;
+      for(k = 0; k < conP; k++) d += grad[k] * grad[k];
+      cc[2] += (sqrt(d) < cctol[2]);
+        cc[4] += cc[2];
+      // Newton decrement: wombat eqn A.3 and Boyd & Vandenberghe 2004
+      //TODO
+      //cc[4] += cc[3];
+
+
+      // V=2 LEVEL of OUTPUT
+      if(v[0] > 1 && vitout == 0){ 
+        // output convergence criteria
+        Rprintf("\tConvergence crit:");
+        for(k = 0; k < 4; k++) Rprintf("%4i", cc[k]);
+        Rprintf("\n");
+      }  // end v > 1
+
+
+
+
+      
+      if(cc[4] < 3){  //<-- if NOT converged
         // Find next set of parameters using a quasi-Newton method/algorithm
         //// Meyer 1989 pp. 326-327 describes quasi-Newton methods 
 //TODO see Meyer 1997 eqn 58 for Marquardt 1963: theta_t+1=theta_t - (H_t + k_t * I)^{-1} g_t 
@@ -931,7 +964,10 @@ if(v[0] > 3){
         //////(though gremlin uses `+` instead of J & T '95 `-` because
         ////// gremlin multiplies gradient by -0.5 in `gradFun()`)
 
-        //// Check/modify AI matrix to 'ensure' positive definiteness
+  
+ 
+
+        // Check/modify AI matrix to 'ensure' positive definiteness
         //// `fI` is factor to adjust AI matrix
         ////// (e.g., Meyer 1997 eqn 58 and WOMBAT manual A.5 strategy 3b)
 
@@ -946,20 +982,22 @@ Whate R's `eigen()` calls
 	//////// modified 'Hessian'
         H <- fI + AI
 */
-        // Check if AI can be inverted
-        if(aiformed == 1){
-          cs_sfree(sLai);  // each time in case AI pattern changes (fix components)
-          cs_nfree(Lai);
+
+
+        // Check if Hessian can be inverted
+        if(hformed == 1){
+          cs_sfree(sLh);  // each time in case H pattern changes (fix components)
+          cs_nfree(Lh);
         }
-        sLai = cs_schol(1, AI);
-        Lai = cs_chol(AI, sLai);
-        aiformed = 1;
-        if(Lai == NULL){
+        sLh = cs_schol(1, H);
+        Lh = cs_chol(H, sLh);
+        hformed = 1;
+        if(Lh == NULL){
           if(v[0] > 1){
-            Rprintf("\nAI cholesky decomposition failed:\n\t AI matrix may be singular - switching to an iteration of the EM algorithm");
+            Rprintf("\H cholesky decomposition failed:\n\t Hessian matrix may be singular - switching to an iteration of the EM algorithm");
           } // end if v>1
 
-          //// if AI cannot be inverted do EM
+          //// if H cannot be inverted do EM
           //////////////  TEMPORARY EM    /////////
           if(v[0] > 1 && vitout == 0) Rprintf("\n\t\tEM to find next nu");
 
@@ -974,53 +1012,198 @@ Whate R's `eigen()` calls
           nu[nG] = d / nminffx[0];
 
           algit[i] = 0;  // switch algorithm to EM so itMat of output is accurate
-        // end EM
-        } else{  //<-- end if AI cannot be inverted
+          // end EM
 
+        } else{  //<-- end if H cannot be inverted  
 
-          AIinv = cs_inv(AI);
-          //Hinv = cs_inv(H);
-//TODO need a check that not proposing negative/0 variance or |correlation|>1
-//// Require restraining naughty components
-          // fill `nu` with parameters proposed for next iteration
-          ////  cs_gaxpy is y = A*x+y where y=nu and x=dLdnu
-          cs_gaxpy(AIinv, dLdnu, nu);
-          // calculate change in nu parameters
-          stpVal = 1.0;
-          for(k = 0; k < p[0]; k++){
-          //change = proposed-values at current lL evaluation            
-            dnu[k] = nu[k] - itMat[itc-4-p[0]+k];
-            // Rule: if proposed values >80% change in any parameter
+            Hinv = cs_inv(H);
+            // fill `nu` with parameters proposed for next iteration
+            ////  cs_gaxpy is y = A*x+y where y=newnu and x=grad
+            cs_gaxpy(Hinv, grad, newnu);
+            // calculate `dnu` - proposed change in nu parameters (`Hinv %*% grad`)
+            // First, implement step-halving (if necessary)
+            //// Rule: if proposed values >200% change in any parameter
             //// Then implement step reduction (`step[0]` default) else do not
-            if(abs(dnu[k] / itMat[itc-4-p[0]+k]) > 0.8){
-              stpVal = step[0];
-            }
-          }  // end for k
-          if(stpVal == step[0]){
+            si = 0;
+            stpVal = 1.0;
             for(k = 0; k < p[0]; k++){
-              nu[k] = itMat[itc-4-p[0]+k] + dnu[k] * stpVal;
-
-            }
-          }  
-
-
-          for(g = 0; g < p[0]; g++){
-            //FIXME check variances and cov/corr separately
-            if(nu[g] < ezero[0]){
-              if(v[0] > 1){
-                Rprintf("\nVariance component %i fixed to zero", g+1);
+              if(conv[k] == 0) continue;
+              dnu[si] = newnu[si] - nu[k];
+              if(abs(dnu[si] / nu[k]) > 2.0){
+                stpVal = step[0];
               }
-              nu[g] = ezero[0];  //FIXME TODO!!!
-            }  // end if nu < ezero
-          }  // end for g
+              si++;
+            }  // end for k
+            if(stpVal == step[0]){  // if TRUE then implement step-reduction
+              si = 0;
+              for(k = 0; k < p[0]; k++){
+                if(conv[k] == 0) continue;
+                newnu[si] = nu[k] + dnu[si] * stpVal;
+                si++;
+              }
+            }  
 
-        }  //<-- end else AI can be inverted
-        cs_spfree(AIinv);
-      }  // end AI
-      /////////////////////////////
+            // Second, check for indecent proposals
+            si = 0; bd = 0;
+            for(k = 0; k < 2*p[0]; k++) wchBd[k] = 0;  // reset, esp. b/c used above
+            for(g = 0; g < p[0]; g++){
+              if(conv[g] == 0) continue;
+              if(newnu[si] <= bound[g]){
+                bd = 1;
+                wchBd[g] += 1;
+              }
+              if(newnu[si] >= bound[p[0] + g]){
+                bd = 1;
+                wchBd[p[0] + g] += 1;
+              }
+              si++;
+            }
+ 
+            // restrain naughty components that enacted indecent proposals
+            if(bd == 1){
+              if(v[0] > 1){
+                Rprintf("\n(co)variance component(s) in `thetav` vector (position:");
+                for(g = 0; g < p[0]; g++){
+                  if(wchBd[g] == 1 || wchBd[p[0] + g] == 1) Rprintf(" %i ", g);
+                }
+                Rprintf(") restrained inside boundaries\t");
+              }
+              si = 0;
+              for(g = 0; g < p[0]; g++){
+                if(conv[g] == 0) continue;
+                if(wchBd[g] == 1) newnu[si] = bound[g] + ezero[0];
+                if(wchBd[p[0] + g] == 1) newnu[si] = bound[p[0] + g] - ezero[0];
+                conv[g] = 3;  // rely on this step for 2 processes below!
+                si++;
+              }
+
+              //TODO create a check in case all non-fixed parameters are bad!
+              // Re-calculate parameter updates, CONDITIONAL on restrained values
+              //// Gilmour 2019 AI REML in Practice. J. Anim. Breed. Genet.
+            
+              // first subset H to just the un-restrained components (no fixed either)
+              //// actually work off of AI (may contain fixed parameters)
+              conP = p[0]
+              for(k = 0; k < p[0]; k++){
+                if(conv[k] == 0 || conv[k] == 3){
+                 wchBd[k] = 1;
+                 conP--;
+                } else wchBd[k] = 0;
+              }
+              H_uu = cs_droprowcol(AI, wchBd);
+ 
+              // Check if Hessian sub-matrix can be inverted
+              if(huuformed == 1){
+                cs_sfree(sLh_uu);  // each time - pattern may change (fix components)
+                cs_nfree(Lh_uu);
+              }
+              sLh_uu = cs_schol(1, H_uu);
+              Lh_uu = cs_chol(H_uu, sLh_uu);
+              huuformed = 1;
+              if(Lh_uu == NULL){
+                if(v[0] > 1){
+                  Rprintf("\H cholesky decomposition failed:\n\t Hessian sub-matrix may be singular - switching to an iteration of the EM algorithm");
+                } // end if v>1
+
+                //// if H_uu cannot be inverted do EM
+                //////////////  TEMPORARY EM    /////////
+                if(v[0] > 1 && vitout == 0) Rprintf("\n\t\tEM to find next nu");
+
+                // calculate EM for G (co)variances:
+                //// (tugug + trace ) / qi
+                for(g = 0; g < nG; g++) nu[g] = (tugug[g] + trace[g] ) / rfxlvls[g];
+
+                // Calculate EM for residual:
+                //// crossprod(y, r) / nminffx
+                d = 0.0;
+                for(k = 0; k < ny[0]; k++) d += y[k] * res[k]; 
+                nu[nG] = d / nminffx[0];
+
+                algit[i] = 0;  // algorithm to EM so itMat of output is accurate
+                // end EM
+
+              } else{  //<-- end if H_uu cannot be inverted  
+
+                  invH_uu = cs_inv(H_uu);
+                  /* fill `newnu` with parameters proposed for next iteration
+                     matrix multiplications "by hand" to pull out subsets
+                newnu[-bad] += invH_uu %*% (grad_u - H_uc %*% (newnu[bad]-nu[bad]))*/
+                 
+                  // re-purpose `dnu`
+                  for(k = 0; k < H->m; k++) dnu[k] = 0.0;
+                  // H_uc %*% (newnu[bad] - nu[bad])
+                  //// in practice: dnu += H_uc[, k] * (newnu[bad] - nu[bad])[k]
+                  for(g = 0; g < p[0]; g++){  // go through original AI
+                    if(conv[g] != 3) continue;  // only g for a boundary parameter
+                    si = g;  // used to index gth parameter of AI in newnu and dnu
+                    for(rw = 0; rw < g; rw++) if(conv[rw] == 0) si--;
+                    si2 = 0;  // used to index row of H_uc[, k] in dnu
+                    for(k = AI->p[g]; k < AI->p[g+1]; k++){
+                      if(wchBd[ AI->i[k] ] == 0){
+                        dnu[si2] += AI->x[k] * (newnu[si] - nu[g]);
+                        si2++;
+                      }
+                    }  //<-- end for k (rows of AI column (g) for boundary parameter) 
+                  }  //<-- end for g (columns of AI) 
+                
+                  // ... (grad_u - ...) operation
+                  // at the same time replace newnu[-bad] with nu[-c(bad, fixed)]
+                  si = 0;
+                  for(g = 0; g < p[0]; g++){
+                    if(conv[g] == 0) continue;    // assumes either fixed or boundary
+                    if(conv[g] != 3){
+                      dnu[si] = dLdnu[g] - dnu[si];
+                      newnu[si] = nu[g];
+                    }
+                    si++;
+                  }
+
+                  // invH_uu %*% (...)
+                  si = 0;  // for indexing newnu[-bad]
+                  rw = 0;  // for indexing the current row of invH_uu to work across
+                  for(g = 0; g < p[0]; g++){
+                    if(conv[g] == 0) continue;
+                    if(conv[g] == 3){
+                      si++;
+                    } else{
+                        // go across columns for row `rw`
+                        for(k = 0; k < invH_uu->n; k++){
+                          if(invH_uu->i[ invH_uu->p[k] + rw ] == rw){
+                            newnu[si] += invH_uu->x[ invH_uu->p[k] + rw] * dnu[k];
+                          }
+                        }
+                        rw++;
+                      }  // end if/else
+                    }  // end for g 
+
+                cs_spfree(invH_uu)
+
+              }  // end if/else H_uu cannot be inverted
 
 
-    }  // end if REML did not converge
+            }  //<-- end if bd/indecent proposals
+
+          cs_spfree(Hinv);
+
+        }  //<-- end if/else H can/cannot be inverted
+
+      }  // end if REML did not converge
+
+      // Cleanup: delete grad (for creation next AI) and unpack newnu into nu
+      delete [] grad;
+
+      for(k = 0; k < p[0]; k++){
+        if(conv[k] == 0) continue;
+        nu[k] = newnu[si];
+        si++; 
+      }
+
+    }  // end AI
+    ///////////////////////////////
+    ///////////////////////////////
+
+
+
 
 
 
@@ -1150,6 +1333,7 @@ if(v[0] > 3) simple_tic(t);
     cs_spfree(AI);
   }  // end if AI NOT NULL
 
+  if(CS_CSC(H)) cs_spfree(H);
 
   // return permutation matrix of symbolic Cholesky factorization of C
   for(k = 0; k < C->m; k++) sLcPinv[k] += sLc->pinv[k];
@@ -1182,9 +1366,9 @@ if(v[0] > 3) simple_tic(t);
   cs_sfree(sLc);
   cs_nfree(Lc);
 
-  if(aiformed == 1){
-    cs_sfree(sLai);
-    cs_nfree(Lai);
+  if(hformed == 1){
+    cs_sfree(sLh);
+    cs_nfree(Lh);
   }
 
 //
@@ -1198,10 +1382,12 @@ if(v[0] > 3) simple_tic(t);
   delete [] G; delete [] Ginv;
   delete [] KGinv;
 //
+  delete [] newnu;
   delete [] dnu;
   delete [] trace;
   delete [] tugug;
   delete [] w;
+  delete [] wchBd;
   delete [] cc;
   delete [] rfxlvls;
 

@@ -863,6 +863,9 @@ remlIt.default <- function(grMod, ...){
       return(remlIt.gremlinR(grMod))
     }
 
+  bound <- grMod$bound
+    bound[is.na(bound)] <- 0  # Replace NAs with 0
+
   Cout <- .C("ugremlin", PACKAGE = "gremlin",
 	as.double(grMod$modMats$y),
 	as.integer(grMod$modMats$ny),
@@ -887,6 +890,8 @@ remlIt.default <- function(grMod, ...){
 	as.integer(unlist(lapply(gnu, FUN = function(g) g@p))),	      #p GRs
 	as.integer(unlist(lapply(gnu, FUN = function(g) length(g@x)))), #no. non-zero GRs
 	as.double(unlist(lapply(gnu, FUN = function(g) g@x))),	#nu vector
+        as.integer(grMod$conv)-1,                       # constraint codes (F=0)
+        as.double(c(bound)),			#boundaries (1:p=LB | p+1:2p=UB
 	as.integer(length(grMod$Bpinv@x)),		#Bpinv (fixed fx prior inverse)
 	as.integer(grMod$Bpinv@i),
 	as.integer(grMod$Bpinv@p),
@@ -902,29 +907,30 @@ remlIt.default <- function(grMod, ...){
 	as.double(grMod$step),			#init./default step-halving value
 	as.double(grMod$cctol),				#convergence tol.
 	as.double(grMod$ezero),				#effective 0
+        as.double(grMod$einf),				#effective +/- max. values
 #uni?
 	as.integer(grMod$v),				#verbosity
 	as.integer(grMod$vit),				#when to output status
 	as.integer(rep(0, length(grMod$sln))))		#empty sLc->pinv
 
-  i <- Cout[[34]]  #<-- index from c++ always increments +1 at end of for `i`
+  i <- Cout[[36]]  #<-- index from c++ always increments +1 at end of for `i`
 
   grMod$nu[] <- vech2matlist(Cout[[22]], attr(grMod$thetav, "skel"))
-  grMod$dLdnu[] <- Cout[[27]]
-  if(all(Cout[[28]] == 0)) grMod$AI <- NULL else{
-    grMod$AI <- matrix(Cout[[28]], nrow = grMod$p, ncol = grMod$p, byrow = FALSE)
+  grMod$dLdnu[] <- Cout[[29]]
+  if(all(Cout[[30]] == 0)) grMod$AI <- NULL else{
+    grMod$AI <- matrix(Cout[[30]], nrow = grMod$p, ncol = grMod$p, byrow = FALSE)
       dimnames(grMod$AI) <- list(rownames(grMod$dLdnu), rownames(grMod$dLdnu))
   }
-  grMod$sln[] <- Cout[[29]]
-  grMod$Cinv_ii <- Cout[[30]] 
-  grMod$r[] <- Cout[[31]]
+  grMod$sln[] <- Cout[[31]]
+  grMod$Cinv_ii <- Cout[[32]] 
+  grMod$r[] <- Cout[[33]]
   #TODO Will definitely need R vs. c++ methods for `update.gremlin()`
   #### can directly use R's `grMod$sLc`, but will need to figure out how to give c++'s `cs_schol()` a pinv (need to reconstruct `sLc` in c++ around pinv (see old code on how I may have done this when I made sLc from sLm)
-  grMod$sLcPinv <- Cout[[39]]
+  grMod$sLcPinv <- Cout[[43]]
 
-  itMat <- matrix(Cout[[32]][1:(i*(grMod$p+5))], nrow = i, ncol = grMod$p+5,
+  itMat <- matrix(Cout[[34]][1:(i*(grMod$p+5))], nrow = i, ncol = grMod$p+5,
            byrow = TRUE)
-    dimnames(itMat) <- list(paste(seq(i), c("EM", "AI")[Cout[[33]][1:i] + 1],
+    dimnames(itMat) <- list(paste(seq(i), c("EM", "AI")[Cout[[35]][1:i] + 1],
                 sep = "-"),
 	    c(paste0(names(nuv), "_nu"), "sigma2e",
                "tyPy", "logDetC", "loglik", "itTime"))
@@ -1251,7 +1257,7 @@ if(nrow(theta[[thetaR]]) != 1){
               conv[bad] <- "B"  #<-- B for Bounded
               dLdnu_con[bad] <- 0.0  #<-- so convergence check 3 works correctly
               #TODO check in case all non-fixed parameters are bad!
-              Hinv_uu <- solve(H[-bad, -bad])  #<-- unconditional components
+              Hinv_uu <- solve(H[-bad, -bad])  #<-- un-restrained components
               H_uc <- H[, bad][-bad]
               dLdnu_u <- dLdnu_con[-bad, , drop = FALSE]
               nuvout[-c(fxdP, bad), ] <- nuv[-c(fxdP, bad)] +
@@ -1266,6 +1272,7 @@ if(nrow(theta[[thetaR]]) != 1){
               }
 
             # CONVERGENCE checks for AI
+            ## See Appendix 2 of WOMBAT help manual for convergence criteria
             # wombat 3 (eqn. A.2): Norm of the gradient vector
             cc[3] <- sqrt(sum(dLdnu_con * dLdnu_con)) < grMod$cctol[3]
             # wombat 4 (eqn A.3): Newton decrement
