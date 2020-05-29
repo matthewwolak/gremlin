@@ -1257,11 +1257,11 @@ if(nrow(theta[[thetaR]]) != 1){
               conv[bad] <- "B"  #<-- B for Bounded
               dLdnu_con[bad] <- 0.0  #<-- so convergence check 3 works correctly
               #TODO check in case all non-fixed parameters are bad!
-              Hinv_uu <- solve(H[-bad, -bad])  #<-- un-restrained components
-              H_uc <- H[, bad][-bad]
+              Hinv_uu <- solve(H[-bad, -bad, drop = FALSE])  #<-- un-restrained components
+              H_uc <- H[, bad, drop = FALSE][-bad, , drop = FALSE]
               dLdnu_u <- dLdnu_con[-bad, , drop = FALSE]
               nuvout[-c(fxdP, bad), ] <- nuv[-c(fxdP, bad)] +
-                  (Hinv_uu %*% matrix((dLdnu_u - H_uc * (nuvout[bad]-nuv[bad])),
+                  (Hinv_uu %*% matrix((dLdnu_u - H_uc %*% (nuvout[bad]-nuv[bad])),
                     ncol = 1))
             } else{
                 # Remove any boundary constraint codes from previous iterations
