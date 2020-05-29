@@ -829,9 +829,10 @@ if(v[0] > 3){
     /////////////////////////////
     if(algit[i] == 1){
       if(v[0] > 1 && vitout == 0) Rprintf("\n\tAI to find next nu");
-      if(aiformed == 1) cs_spfree(AI); aiformed = 0;
-      if(hformed == 1) cs_spfree(H); hformed = 0;
-      if(huuformed == 1) cs_spfree(H_uu); huuformed = 0;      
+      if(aiformed == 1) cs_spfree(AI);
+//      if(hformed == 1) cs_spfree(H);
+      if(huuformed == 1) cs_spfree(H_uu);
+
 
       if(!tugugFun(tugug, w, nG, rfxlvls,
 	    nffx, ndgeninv, geninv, BLUXs)){
@@ -857,9 +858,7 @@ if(v[0] > 3){
         AI = cs_ai(BLUXs, Ginv, R, 0, 0,
 	      y, W, tW, ny[0], p[0], nG, rfxlvls, nffx, Lc->L, sLc->pinv,
 	      0, sigma2e);
-        if(AI == NULL){
-          error("\nUnsuccessful AI algorithm in iteration %i", i);
-        } else aiformed = 1;
+        if(AI == NULL) error("\nUnsuccessful AI algorithm in iteration %i", i);
 if(v[0] > 3){
   took = simple_toc(t);
   Rprintf("\n\t    %6.6f sec.: calculate AI matrix", took);
@@ -885,9 +884,7 @@ if(v[0] > 3){
         AI = cs_ai(BLUXs, Ginv, R, KRinv, tWKRinv,
 	      res, W, tW, ny[0], p[0], nG, rfxlvls, nffx, Lc->L, sLc->pinv,
 	      nG, 1.0);
-        if(AI == NULL){
-          error("\nUnsuccessful AI algorithm in iteration %i", i);
-        } else aiformed = 1;
+        if(AI == NULL) error("\nUnsuccessful AI algorithm in iteration %i", i);
 if(v[0] > 3){
   took = simple_toc(t);
   Rprintf("\n\t    %6.6f sec.: calculate AI matrix", took);
@@ -933,8 +930,8 @@ if(v[0] > 3){
 
       if(p[0] == conP) H = AI;
         else H = cs_droprowcol(AI, wchBd);      
-      if(H != NULL) hformed = 1;
-
+      aiformed = 1;
+      hformed = 1;
 
       // CONVERGENCE CRITERIA 3 and 4
       //// Appendix 2 of WOMBAT help manual for 4 criteria specified
@@ -979,7 +976,7 @@ if(v[0] > 3){
 
 /*
 See `La_rs` defined around line 153 of "R/src/modules/lapack/Lapack.c"
-Whate R's `eigen()` calls
+What R's `eigen()` calls
         check if any small/zero eigenvalues of AI
         AIeigvals <- eigen(AI)$values
           d <- (3*10^-6) * AIeigvals[1]
@@ -1071,7 +1068,7 @@ Whate R's `eigen()` calls
               if(v[0] > 1){
                 Rprintf("\n(co)variance component(s) in `thetav` vector (position:");
                 for(g = 0; g < p[0]; g++){
-                  if(wchBd[g] == 1 || wchBd[p[0] + g] == 1) Rprintf(" %i ", g);
+                  if(wchBd[g] == 1 || wchBd[p[0] + g] == 1) Rprintf(" %i ", g+1);
                 }
                 Rprintf(") restrained inside boundaries\t");
               }
@@ -1080,7 +1077,8 @@ Whate R's `eigen()` calls
                 if(conv[g] == 0) continue;
                 if(wchBd[g] == 1) newnu[si] = bound[g] + ezero[0];
                 if(wchBd[p[0] + g] == 1) newnu[si] = bound[p[0] + g] - ezero[0];
-                conv[g] = 3;  // rely on this step for 2 processes below!
+                // rely on this step for 2 processes below!
+                if(wchBd[g] == 1 || wchBd[p[0] + g] == 1) conv[g] = 3;
                 si++;
               }
 
@@ -1099,12 +1097,11 @@ Whate R's `eigen()` calls
               }
 
               H_uu = cs_droprowcol(AI, wchBd);
-              if(H_uu != NULL) huuformed = 1;
+              huuformed = 1;
               // Check if Hessian sub-matrix can be inverted
               if(sHuuformed == 1){
                 cs_sfree(sLh_uu);  // each time - pattern may change (fix components)
                 cs_nfree(Lh_uu);
-                sHuuformed = 0;
               }
               sLh_uu = cs_schol(1, H_uu);
               Lh_uu = cs_chol(H_uu, sLh_uu);
@@ -1135,7 +1132,7 @@ Whate R's `eigen()` calls
 
                   invH_uu = cs_inv(H_uu);
                   /* fill `newnu` with parameters proposed for next iteration
-                     matrix multiplications "by hand" to pull out subsets
+                  matrix multiplications "by hand" to pull out subsets
                 newnu[-bad] += invH_uu %*% (grad_u - H_uc %*% (newnu[bad]-nu[bad]))*/
                  
                   // re-purpose `dnu`
@@ -1159,12 +1156,12 @@ Whate R's `eigen()` calls
                   // at the same time replace newnu[-bad] with nu[-c(bad, fixed)]
                   si = 0;
                   for(g = 0; g < p[0]; g++){
-                    if(conv[g] == 0) continue;    // assumes either fixed or boundary
+                    if(conv[g] == 0) continue;  // assumes either fixed or boundary
                     if(conv[g] != 3){
                       dnu[si] = dLdnu[g] - dnu[si];
-                      newnu[si] = nu[g];
+                      newnu[g] = nu[g];
+                      si++;
                     }
-                    si++;
                   }
 
                   // invH_uu %*% (...)
@@ -1172,18 +1169,17 @@ Whate R's `eigen()` calls
                   rw = 0;  // for indexing the current row of invH_uu to work across
                   for(g = 0; g < p[0]; g++){
                     if(conv[g] == 0) continue;
-                    if(conv[g] == 3){
-                      si++;
-                    } else{
-                        // go across columns for row `rw`
-                        for(k = 0; k < invH_uu->n; k++){
-                          if(invH_uu->i[ invH_uu->p[k] + rw ] == rw){
-                            newnu[si] += invH_uu->x[ invH_uu->p[k] + rw] * dnu[k];
-                          }
+                    if(conv[g] != 3){
+                      // go across columns for row `rw`
+                      for(k = 0; k < invH_uu->n; k++){
+                        if(invH_uu->i[ invH_uu->p[k] + rw ] == rw){
+                          newnu[si] += invH_uu->x[ invH_uu->p[k] + rw] * dnu[k];
                         }
-                        rw++;
-                      }  // end if/else
-                    }  // end for g 
+                      }  // end for k
+                      rw++;
+                    }  // end if NOT a boundary
+                      si++;
+                  }  // end for g 
 
                 cs_spfree(invH_uu);
 
@@ -1343,8 +1339,8 @@ if(v[0] > 3) simple_tic(t);
     cs_spfree(AI);
   }  // end if AI NOT NULL
 
-  if(hformed == 1) cs_spfree(H);
-  if(huuformed == 1) cs_spfree(H_uu);
+//  if(hformed == 1) cs_spfree(H);
+//  if(huuformed == 1) cs_spfree(H_uu);
 
 
   // return permutation matrix of symbolic Cholesky factorization of C
