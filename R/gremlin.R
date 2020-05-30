@@ -1348,15 +1348,11 @@ stop(cat("\nNot allowing `NR` right now"))
     if(grMod$v > 0 && vitout == 0){
       cat("\ttook ", round(itTime, 2), units(itTime), "\n")
       if(grMod$v > 2){#algit[i] == "AI" && 
-        sgd <- matrix(NA, nrow = p, ncol = p+4)  #<-- `sgd` is summary.gremlinDeriv 
+        sgd <- matrix(NA, nrow = p, ncol = p+2)  #<-- `sgd` is summary.gremlinDeriv 
           dimnames(sgd) <- list(row.names(dLdnu),
-            c("gradient", "", "AI", "", "AI-inv", rep("", p-1)))
+            c("gradient", "", "AI", rep("", p-1)))
         sgd[, 1] <- dLdnu
-        if(grMod$algit[i] == "EM") Hinv <- H <- AI
-        for(rc in 1:p){
-          sgd[rc, 3:(rc+2)] <- H[rc, 1:rc]
-          sgd[rc, (4+rc):(4+p)] <- Hinv[rc, rc:p]   
-        }
+        for(rc in 1:p) sgd[rc, 3:(p+2)] <- AI[rc, ]
         cat("\tstep", step, "\n")
         cat("\tAI modification", f, "\n")
         print(as.table(sgd), digits = 3, na.print = " | ", zero.print = ".")
