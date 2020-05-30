@@ -41,7 +41,7 @@ cs *cs_droprowcol(const cs *A, csi *drop)
 
   B->p[pr] = cnt;
 
- return(B);
+ return(cs_done(B, NULL, NULL, 1)) ;	/* success; free workspace, return B */
 }
 
 

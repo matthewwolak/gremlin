@@ -112,7 +112,7 @@ void ugremlin(
   double t[2], T[2], took, dsLc, tyRinvy, tyPy, logDetC, sigma2e, loglik, 
          d, cc2, cc2d, stpVal;
 
-  int 	 g, i, k, rw, si, si2, vitout,
+  int 	 g, i, k, rw, si, si2, vitout, r, c, cnt, cd, rd, pr,
 	 itc = 0,
          aiformed = 0,
          hformed = 0,
@@ -1077,12 +1077,39 @@ What R's `eigen()` calls
               } else wchBd[k] = 0;
             }
 
-            H_uu = cs_droprowcol(AI, wchBd);
+            /*
+            H_uu = cs_droprowcol(AI, wchBd); <--> XXX can't get this to work
+	      without memory issues for H_uu so copied code from droprowcol below 
+            */
+            pr = AI->n;     // number rows/columns for reduced matrix (B)
+            for(r = 0; r < AI->n; r++) if(wchBd[r] == 1) pr--;
+            H_uu = cs_spalloc(pr, pr, (pr * pr), true, false);
+            cnt = 0;    // initialize running count of non-zeroes for new matrix
+            cd = 0;     // initialize column decrement (number of dropped columns)
+            for(c = 0; c < AI->n; c++){    // columns of A
+              if(wchBd[c] == 1){
+              cd++;
+              continue;
+              }
+              H_uu->p[c - cd] = cnt;
+              rd = 0;   // initialize row decrement (record number dropped rows)
+              for(r = AI->p[c]; r < AI->p[c+1]; r++){  // rows within cols (of AI)
+                if(wchBd[AI->i[r]] == 0){
+                  H_uu->i[cnt] = AI->i[r] - rd;
+                  H_uu->x[cnt] = AI->x[r];
+                  cnt++;
+                } else rd++;
+              }  // end for r (rows within columns)
+            }  // end for c (columns)
+            H_uu->p[pr] = cnt;
             huuformed = 1;
+
+
             // Check if Hessian sub-matrix can be inverted
             if(sHuuformed == 1){
-              cs_sfree(sLh_uu);  // each time - pattern may change (fix components)
+              cs_sfree(sLh_uu);  // each time: pattern may change (fixed components)
               cs_nfree(Lh_uu);
+              sHuuformed = 0;
             }
             sLh_uu = cs_schol(1, H_uu);
             Lh_uu = cs_chol(H_uu, sLh_uu);
@@ -1340,7 +1367,7 @@ if(v[0] > 3) simple_tic(t);
   }  // end if AI NOT NULL
 
 //  if(hformed == 1) cs_spfree(H);
-//  if(huuformed == 1) cs_spfree(H_uu);
+  if(CS_CSC(H_uu)) cs_spfree(H_uu);
 
 
   // return permutation matrix of symbolic Cholesky factorization of C
@@ -1377,6 +1404,10 @@ if(v[0] > 3) simple_tic(t);
   if(sHformed == 1){
     cs_sfree(sLh);
     cs_nfree(Lh);
+  }
+  if(sHuuformed == 1){
+    cs_sfree(sLh_uu); 
+    cs_nfree(Lh_uu);
   }
 
 //
