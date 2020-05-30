@@ -14,12 +14,12 @@
 \usage{
 gremlin(formula, random = NULL, rcov = ~units, data = NULL,
   ginverse = NULL, Gstart = NULL, Rstart = NULL, Bp = NULL,
-  Gcon = NULL, Rcon = NULL, maxit = 20, algit = NULL, vit = 10,
+  Gcon = NULL, Rcon = NULL, maxit = 20, algit = NULL, vit = 1,
   v = 1, control = gremlinControl(), ...)
 
 gremlinR(formula, random = NULL, rcov = ~units, data = NULL,
   ginverse = NULL, Gstart = NULL, Rstart = NULL, Bp = NULL,
-  Gcon = NULL, Rcon = NULL, maxit = 20, algit = NULL, vit = 10,
+  Gcon = NULL, Rcon = NULL, maxit = 20, algit = NULL, vit = 1,
   v = 1, control = gremlinControl(), ...)
 
 \method{getCall}{gremlin}(x, ...)
@@ -28,7 +28,7 @@ update.gremlin(object, ...)
 
 gremlinSetup(formula, random = NULL, rcov = ~units, data = NULL,
   ginverse = NULL, Gstart = NULL, Rstart = NULL, Bp = NULL,
-  Gcon = NULL, Rcon = NULL, maxit = 20, algit = NULL, vit = 10,
+  Gcon = NULL, Rcon = NULL, maxit = 20, algit = NULL, vit = 1,
   v = 1, control = gremlinControl(), ...)
 
 \method{is}{gremlin}(x)
