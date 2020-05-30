@@ -1224,7 +1224,7 @@ if(nrow(theta[[thetaR]]) != 1){
 	          grMod$ezero
               nuvout[-fxdP][which(badUp)] <- bounds[-fxdP, "UB"][which(badUp)] -
                   grMod$ezero
-            }  #<-- end if bad proposals
+            }  #<-- end if bad proposals AND fixed parameters
 
           } else{  #<-- now do below if NO fixed parameters
               if(any(abs(dnu / nuvout) > 2.0)){
@@ -1247,7 +1247,7 @@ if(nrow(theta[[thetaR]]) != 1){
 	            grMod$ezero
                 nuvout[which(badUp), ] <- bounds[which(badUp), "UB"] -
                     grMod$ezero
-              }  #<-- end if bad proposals
+              }  #<-- end if bad proposals and NO fixed parameters
             }  #<-- end if/else fixed parameters
 
 
@@ -1269,7 +1269,7 @@ if(nrow(theta[[thetaR]]) != 1){
                 if(any(conv == "B")){
                   conv[which(conv == "B")] <- grMod$conv[which(conv == "B")]
                 }
-              }
+              }  #<-- end if/else indecent proposals
 
             # CONVERGENCE checks for AI
             ## See Appendix 2 of WOMBAT help manual for convergence criteria

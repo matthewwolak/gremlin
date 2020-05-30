@@ -933,266 +933,258 @@ if(v[0] > 3){
       aiformed = 1;
       hformed = 1;
 
-      // CONVERGENCE CRITERIA 3 and 4
-      //// Appendix 2 of WOMBAT help manual for 4 criteria specified
-      // Norm of gradient vector: wombt eqn. A.2
-      d = 0.0;
-      for(k = 0; k < conP; k++) d += grad[k] * grad[k];
-      cc[2] += (sqrt(d) < cctol[2]);
-        cc[4] += cc[2];
-      // Newton decrement: wombat eqn A.3 and Boyd & Vandenberghe 2004
-      //TODO
-      //cc[4] += cc[3];
-
-
-      // V=2 LEVEL of OUTPUT
-      if(v[0] > 1 && vitout == 0){ 
-        // output convergence criteria
-        Rprintf("\tConvergence crit:");
-        for(k = 0; k < 4; k++) Rprintf("%4i", cc[k]);
-        Rprintf("\n");
-      }  // end v > 1
-
-
 
 
       
-      if(cc[4] < 3){  //<-- if NOT converged
-        // Find next set of parameters using a quasi-Newton method/algorithm
-        //// Meyer 1989 pp. 326-327 describes quasi-Newton methods 
+      // Find next set of parameters using a quasi-Newton method/algorithm
+      //// Meyer 1989 pp. 326-327 describes quasi-Newton methods 
 //TODO see Meyer 1997 eqn 58 for Marquardt 1963: theta_t+1=theta_t - (H_t + k_t * I)^{-1} g_t 
 // What I do below is similar: except k_t=f
-        //// Mrode 2005 eqn 11.4
-        //// Johnson and Thompson 1995 eqn 12
-        //////(though gremlin uses `+` instead of J & T '95 `-` because
-        ////// gremlin multiplies gradient by -0.5 in `gradFun()`)
+      //// Mrode 2005 eqn 11.4
+      //// Johnson and Thompson 1995 eqn 12
+      //////(though gremlin uses `+` instead of J & T '95 `-` because
+      ////// gremlin multiplies gradient by -0.5 in `gradFun()`)
 
   
  
 
-        // Check/modify AI matrix to 'ensure' positive definiteness
-        //// `fI` is factor to adjust AI matrix
-        ////// (e.g., Meyer 1997 eqn 58 and WOMBAT manual A.5 strategy 3b)
+      // Check/modify AI matrix to 'ensure' positive definiteness
+      //// `fI` is factor to adjust AI matrix
+      ////// (e.g., Meyer 1997 eqn 58 and WOMBAT manual A.5 strategy 3b)
 
 /*
 See `La_rs` defined around line 153 of "R/src/modules/lapack/Lapack.c"
 What R's `eigen()` calls
-        check if any small/zero eigenvalues of AI
-        AIeigvals <- eigen(AI)$values
-          d <- (3*10^-6) * AIeigvals[1]
-          f <- max(0, d - AIeigvals[nrow(AI)])
-        fI <- f * diag(x = 1, nrow = nrow(AI))
-	//////// modified 'Hessian'
-        H <- fI + AI
+      check if any small/zero eigenvalues of AI
+      AIeigvals <- eigen(AI)$values
+        d <- (3*10^-6) * AIeigvals[1]
+        f <- max(0, d - AIeigvals[nrow(AI)])
+      fI <- f * diag(x = 1, nrow = nrow(AI))
+      //////// modified 'Hessian'
+      H <- fI + AI
 */
 
 
-        // Check if Hessian can be inverted
-        if(sHformed == 1){
-          cs_sfree(sLh);  // each time in case H pattern changes (fix components)
-          cs_nfree(Lh);
-          sHformed = 0;
-        }
-        sLh = cs_schol(1, H);
-        Lh = cs_chol(H, sLh);
-        sHformed = 1;
-        if(Lh == NULL){
-          if(v[0] > 1){
-            Rprintf("\nH cholesky decomposition failed:\n\t Hessian matrix may be singular - switching to an iteration of the EM algorithm");
-          } // end if v>1
+      // Check if Hessian can be inverted
+      if(sHformed == 1){
+        cs_sfree(sLh);  // each time in case H pattern changes (fix components)
+        cs_nfree(Lh);
+        sHformed = 0;
+      }
+      sLh = cs_schol(1, H);
+      Lh = cs_chol(H, sLh);
+      sHformed = 1;
+      if(Lh == NULL){
+        if(v[0] > 1){
+          Rprintf("\nH cholesky decomposition failed:\n\t Hessian matrix may be singular - switching to an iteration of the EM algorithm");
+        } // end if v>1
 
-          //// if H cannot be inverted do EM
-          //////////////  TEMPORARY EM    /////////
-          if(v[0] > 1 && vitout == 0) Rprintf("\n\t\tEM to find next nu");
+        //// if H cannot be inverted do EM
+        //////////////  TEMPORARY EM    /////////
+        if(v[0] > 1 && vitout == 0) Rprintf("\n\t\tEM to find next nu");
 
-          // calculate EM for G (co)variances:
-          //// (tugug + trace ) / qi
-          for(g = 0; g < nG; g++) nu[g] = (tugug[g] + trace[g] ) / rfxlvls[g];
+        // calculate EM for G (co)variances:
+        //// (tugug + trace ) / qi
+        for(g = 0; g < nG; g++) nu[g] = (tugug[g] + trace[g] ) / rfxlvls[g];
 
-          // Calculate EM for residual:
-          //// crossprod(y, r) / nminffx
-          d = 0.0;
-          for(k = 0; k < ny[0]; k++) d += y[k] * res[k]; 
-          nu[nG] = d / nminffx[0];
+        // Calculate EM for residual:
+        //// crossprod(y, r) / nminffx
+        d = 0.0;
+        for(k = 0; k < ny[0]; k++) d += y[k] * res[k]; 
+        nu[nG] = d / nminffx[0];
 
-          algit[i] = 0;  // switch algorithm to EM so itMat of output is accurate
-          // end EM
+        algit[i] = 0;  // switch algorithm to EM so itMat of output is accurate
+        // end EM
 
-        } else{  //<-- end if H cannot be inverted  
+      } else{  //<-- end if H cannot be inverted  
 
-            Hinv = cs_inv(H);
-            // fill `nu` with parameters proposed for next iteration
-            ////  cs_gaxpy is y = A*x+y where y=newnu and x=grad
-            cs_gaxpy(Hinv, grad, newnu);
-            // calculate `dnu` - proposed change in nu parameters (`Hinv %*% grad`)
-            // First, implement step-halving (if necessary)
-            //// Rule: if proposed values >200% change in any parameter
-            //// Then implement step reduction (`step[0]` default) else do not
+          Hinv = cs_inv(H);
+          // fill `nu` with parameters proposed for next iteration
+          ////  cs_gaxpy is y = A*x+y where y=newnu and x=grad
+          cs_gaxpy(Hinv, grad, newnu);
+          // calculate `dnu` - proposed change in nu parameters (`Hinv %*% grad`)
+          // First, implement step-halving (if necessary)
+          //// Rule: if proposed values >200% change in any parameter
+          //// Then implement step reduction (`step[0]` default) else do not
+          si = 0;
+          stpVal = 1.0;
+          for(k = 0; k < p[0]; k++){
+            if(conv[k] == 0) continue;
+            dnu[si] = newnu[si] - nu[k];
+            if(abs(dnu[si] / nu[k]) > 2.0){
+              stpVal = step[0];
+            }
+            si++;
+          }  // end for k
+          if(stpVal == step[0]){  // if TRUE then implement step-reduction
             si = 0;
-            stpVal = 1.0;
             for(k = 0; k < p[0]; k++){
               if(conv[k] == 0) continue;
-              dnu[si] = newnu[si] - nu[k];
-              if(abs(dnu[si] / nu[k]) > 2.0){
-                stpVal = step[0];
-              }
+              newnu[si] = nu[k] + dnu[si] * stpVal;
               si++;
-            }  // end for k
-            if(stpVal == step[0]){  // if TRUE then implement step-reduction
-              si = 0;
-              for(k = 0; k < p[0]; k++){
-                if(conv[k] == 0) continue;
-                newnu[si] = nu[k] + dnu[si] * stpVal;
-                si++;
-              }
-            }  
+            }
+          }  
 
-            // Second, check for indecent proposals
-            si = 0; bd = 0;
-            for(k = 0; k < 2*p[0]; k++) wchBd[k] = 0;  // reset, esp. b/c used above
+          // Second, check for indecent proposals
+          si = 0; bd = 0;
+          for(k = 0; k < 2*p[0]; k++) wchBd[k] = 0;  // reset, esp. b/c used above
+          for(g = 0; g < p[0]; g++){
+            if(conv[g] == 0) continue;
+            if(newnu[si] <= bound[g]){
+              bd = 1;
+              wchBd[g] += 1;
+            }
+            if(newnu[si] >= bound[p[0] + g]){
+              bd = 1;
+              wchBd[p[0] + g] += 1;
+            }
+            si++;
+          }
+ 
+          // restrain naughty components that enacted indecent proposals
+          if(bd == 1){
+            if(v[0] > 1){
+              Rprintf("\n(co)variance component(s) in `thetav` vector (position:");
+              for(g = 0; g < p[0]; g++){
+                if(wchBd[g] == 1 || wchBd[p[0] + g] == 1) Rprintf(" %i ", g+1);
+              }
+              Rprintf(") restrained inside boundaries\t");
+            }
+            si = 0;
             for(g = 0; g < p[0]; g++){
               if(conv[g] == 0) continue;
-              if(newnu[si] <= bound[g]){
-                bd = 1;
-                wchBd[g] += 1;
-              }
-              if(newnu[si] >= bound[p[0] + g]){
-                bd = 1;
-                wchBd[p[0] + g] += 1;
+              if(wchBd[g] == 1) newnu[si] = bound[g] + ezero[0];
+              if(wchBd[p[0] + g] == 1) newnu[si] = bound[p[0] + g] - ezero[0];
+              // rely on this step for 2 processes below!
+              if(wchBd[g] == 1 || wchBd[p[0] + g] == 1){
+                conv[g] = 3;
+                grad[si] = 0.0;  //<-- so convergence check 3 works correctly
               }
               si++;
             }
- 
-            // restrain naughty components that enacted indecent proposals
-            if(bd == 1){
-              if(v[0] > 1){
-                Rprintf("\n(co)variance component(s) in `thetav` vector (position:");
-                for(g = 0; g < p[0]; g++){
-                  if(wchBd[g] == 1 || wchBd[p[0] + g] == 1) Rprintf(" %i ", g+1);
-                }
-                Rprintf(") restrained inside boundaries\t");
-              }
-              si = 0;
-              for(g = 0; g < p[0]; g++){
-                if(conv[g] == 0) continue;
-                if(wchBd[g] == 1) newnu[si] = bound[g] + ezero[0];
-                if(wchBd[p[0] + g] == 1) newnu[si] = bound[p[0] + g] - ezero[0];
-                // rely on this step for 2 processes below!
-                if(wchBd[g] == 1 || wchBd[p[0] + g] == 1) conv[g] = 3;
-                si++;
-              }
 
-              //TODO create a check in case all non-fixed parameters are bad!
-              // Re-calculate parameter updates, CONDITIONAL on restrained values
-              //// Gilmour 2019 AI REML in Practice. J. Anim. Breed. Genet.
+            //TODO create a check in case all non-fixed parameters are bad!
+            // Re-calculate parameter updates, CONDITIONAL on restrained values
+            //// Gilmour 2019 AI REML in Practice. J. Anim. Breed. Genet.
             
-              // first subset H to just the un-restrained components (no fixed either)
-              //// actually work off of AI (may contain fixed parameters)
-              conP = p[0];
-              for(k = 0; k < p[0]; k++){
-                if(conv[k] == 0 || conv[k] == 3){
-                 wchBd[k] = 1;
-                 conP--;
-                } else wchBd[k] = 0;
-              }
+            // first subset H to just the un-restrained components (no fixed either)
+            //// actually work off of AI (may contain fixed parameters)
+            conP = p[0];
+            for(k = 0; k < p[0]; k++){
+              if(conv[k] == 0 || conv[k] == 3){
+               wchBd[k] = 1;
+               conP--;
+              } else wchBd[k] = 0;
+            }
 
-              H_uu = cs_droprowcol(AI, wchBd);
-              huuformed = 1;
-              // Check if Hessian sub-matrix can be inverted
-              if(sHuuformed == 1){
-                cs_sfree(sLh_uu);  // each time - pattern may change (fix components)
-                cs_nfree(Lh_uu);
-              }
-              sLh_uu = cs_schol(1, H_uu);
-              Lh_uu = cs_chol(H_uu, sLh_uu);
-              sHuuformed = 1;
-              if(Lh_uu == NULL){
-                if(v[0] > 1){
-                  Rprintf("\nH cholesky decomposition failed:\n\t Hessian sub-matrix may be singular - switching to an iteration of the EM algorithm");
-                } // end if v>1
+            H_uu = cs_droprowcol(AI, wchBd);
+            huuformed = 1;
+            // Check if Hessian sub-matrix can be inverted
+            if(sHuuformed == 1){
+              cs_sfree(sLh_uu);  // each time - pattern may change (fix components)
+              cs_nfree(Lh_uu);
+            }
+            sLh_uu = cs_schol(1, H_uu);
+            Lh_uu = cs_chol(H_uu, sLh_uu);
+            sHuuformed = 1;
+            if(Lh_uu == NULL){
+              if(v[0] > 1){
+                Rprintf("\nH cholesky decomposition failed:\n\t Hessian sub-matrix may be singular - switching to an iteration of the EM algorithm");
+              } // end if v>1
 
-                //// if H_uu cannot be inverted do EM
-                //////////////  TEMPORARY EM    /////////
-                if(v[0] > 1 && vitout == 0) Rprintf("\n\t\tEM to find next nu");
+              //// if H_uu cannot be inverted do EM
+              //////////////  TEMPORARY EM    /////////
+              if(v[0] > 1 && vitout == 0) Rprintf("\n\t\tEM to find next nu");
 
-                // calculate EM for G (co)variances:
-                //// (tugug + trace ) / qi
-                for(g = 0; g < nG; g++) nu[g] = (tugug[g] + trace[g] ) / rfxlvls[g];
+              // calculate EM for G (co)variances:
+              //// (tugug + trace ) / qi
+              for(g = 0; g < nG; g++) nu[g] = (tugug[g] + trace[g] ) / rfxlvls[g];
 
-                // Calculate EM for residual:
-                //// crossprod(y, r) / nminffx
-                d = 0.0;
-                for(k = 0; k < ny[0]; k++) d += y[k] * res[k]; 
-                nu[nG] = d / nminffx[0];
+              // Calculate EM for residual:
+              //// crossprod(y, r) / nminffx
+              d = 0.0;
+              for(k = 0; k < ny[0]; k++) d += y[k] * res[k]; 
+              nu[nG] = d / nminffx[0];
 
-                algit[i] = 0;  // algorithm to EM so itMat of output is accurate
-                // end EM
+              algit[i] = 0;  // algorithm to EM so itMat of output is accurate
+              // end EM
 
-              } else{  //<-- end if H_uu cannot be inverted  
+            } else{  //<-- end if H_uu cannot be inverted  
 
-                  invH_uu = cs_inv(H_uu);
-                  /* fill `newnu` with parameters proposed for next iteration
-                  matrix multiplications "by hand" to pull out subsets
+                invH_uu = cs_inv(H_uu);
+                /* fill `newnu` with parameters proposed for next iteration
+                matrix multiplications "by hand" to pull out subsets
                 newnu[-bad] += invH_uu %*% (grad_u - H_uc %*% (newnu[bad]-nu[bad]))*/
                  
-                  // re-purpose `dnu`
-                  for(k = 0; k < H->m; k++) dnu[k] = 0.0;
-                  // H_uc %*% (newnu[bad] - nu[bad])
-                  //// in practice: dnu += H_uc[, k] * (newnu[bad] - nu[bad])[k]
-                  for(g = 0; g < p[0]; g++){  // go through original AI
-                    if(conv[g] != 3) continue;  // only g for a boundary parameter
-                    si = g;  // used to index gth parameter of AI in newnu and dnu
-                    for(rw = 0; rw < g; rw++) if(conv[rw] == 0) si--;
-                    si2 = 0;  // used to index row of H_uc[, k] in dnu
-                    for(k = AI->p[g]; k < AI->p[g+1]; k++){
-                      if(wchBd[ AI->i[k] ] == 0){
-                        dnu[si2] += AI->x[k] * (newnu[si] - nu[g]);
-                        si2++;
-                      }
-                    }  //<-- end for k (rows of AI column (g) for boundary parameter) 
-                  }  //<-- end for g (columns of AI) 
-                
-                  // ... (grad_u - ...) operation
-                  // at the same time replace newnu[-bad] with nu[-c(bad, fixed)]
-                  si = 0;
-                  for(g = 0; g < p[0]; g++){
-                    if(conv[g] == 0) continue;  // assumes either fixed or boundary
-                    if(conv[g] != 3){
-                      dnu[si] = dLdnu[g] - dnu[si];
-                      newnu[g] = nu[g];
-                      si++;
+                // re-purpose `dnu`
+                for(k = 0; k < H->m; k++) dnu[k] = 0.0;
+                // H_uc %*% (newnu[bad] - nu[bad])
+                //// in practice: dnu += H_uc[, k] * (newnu[bad] - nu[bad])[k]
+                for(g = 0; g < p[0]; g++){  // go through original AI
+                  if(conv[g] != 3) continue;  // only g for a boundary parameter
+                  si = g;  // used to index gth parameter of AI in newnu and dnu
+                  for(rw = 0; rw < g; rw++) if(conv[rw] == 0) si--;
+                  si2 = 0;  // used to index row of H_uc[, k] in dnu
+                  for(k = AI->p[g]; k < AI->p[g+1]; k++){
+                    if(wchBd[ AI->i[k] ] == 0){
+                      dnu[si2] += AI->x[k] * (newnu[si] - nu[g]);
+                      si2++;
                     }
+                  }  //<-- end for k (rows of AI column (g) for boundary parameter) 
+                }  //<-- end for g (columns of AI) 
+              
+                // ... (grad_u - ...) operation
+                // at the same time replace newnu[-bad] with nu[-c(bad, fixed)]
+                si = 0;
+                for(g = 0; g < p[0]; g++){
+                  if(conv[g] == 0) continue;  // assumes either fixed or boundary
+                  if(conv[g] != 3){
+                    dnu[si] = dLdnu[g] - dnu[si];
+                    newnu[g] = nu[g];
+                    si++;
                   }
+                }
 
-                  // invH_uu %*% (...)
-                  si = 0;  // for indexing newnu[-bad]
-                  rw = 0;  // for indexing the current row of invH_uu to work across
-                  for(g = 0; g < p[0]; g++){
-                    if(conv[g] == 0) continue;
-                    if(conv[g] != 3){
-                      // go across columns for row `rw`
-                      for(k = 0; k < invH_uu->n; k++){
-                        if(invH_uu->i[ invH_uu->p[k] + rw ] == rw){
-                          newnu[si] += invH_uu->x[ invH_uu->p[k] + rw] * dnu[k];
-                        }
-                      }  // end for k
-                      rw++;
-                    }  // end if NOT a boundary
-                      si++;
-                  }  // end for g 
+                // invH_uu %*% (...)
+                si = 0;  // for indexing newnu[-bad]
+                rw = 0;  // for indexing the current row of invH_uu to work across
+                for(g = 0; g < p[0]; g++){
+                  if(conv[g] == 0) continue;
+                  if(conv[g] != 3){
+                    // go across columns for row `rw`
+                    for(k = 0; k < invH_uu->n; k++){
+                      if(invH_uu->i[ invH_uu->p[k] + rw ] == rw){
+                        newnu[si] += invH_uu->x[ invH_uu->p[k] + rw] * dnu[k];
+                      }
+                    }  // end for k
+                    rw++;
+                  }  // end if NOT a boundary
+                    si++;
+                }  // end for g 
 
-                cs_spfree(invH_uu);
+              cs_spfree(invH_uu);
 
-              }  // end if/else H_uu cannot be inverted
+            }  // end if/else H_uu cannot be inverted
 
 
-            }  //<-- end if bd/indecent proposals
+          }  //<-- end if bd/indecent proposals
 
-          cs_spfree(Hinv);
+        cs_spfree(Hinv);
 
-        }  //<-- end if/else H can/cannot be inverted
 
-      }  // end if REML did not converge
+        // CONVERGENCE CRITERIA 3 and 4
+        //// Appendix 2 of WOMBAT help manual for 4 criteria specified
+        // Norm of gradient vector: wombt eqn. A.2
+        d = 0.0;
+        for(k = 0; k < conP; k++) d += grad[k] * grad[k];
+        cc[2] += (sqrt(d) < cctol[2]);
+          cc[4] += cc[2];
+        // Newton decrement: wombat eqn A.3 and Boyd & Vandenberghe 2004
+        //TODO
+        //cc[4] += cc[3];
+
+
+      }  //<-- end if/else H can/cannot be inverted
 
       // Cleanup: delete grad (for creation in next AI) and unpack newnu into nu
       delete [] grad;
@@ -1212,6 +1204,14 @@ What R's `eigen()` calls
 
 
 
+
+    // V=2 LEVEL of OUTPUT
+    if(v[0] > 1 && vitout == 0){ 
+      // output convergence criteria
+      Rprintf("\tConvergence crit:");
+      for(k = 0; k < 4; k++) Rprintf("%4i", cc[k]);
+      Rprintf("\n");
+    }  // end v > 1
 
 
 
