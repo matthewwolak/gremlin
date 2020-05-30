@@ -246,7 +246,7 @@ gremlin <- function(formula, random = NULL, rcov = ~ units,
 		Gstart = NULL, Rstart = NULL, Bp = NULL,
 		Gcon = NULL, Rcon = NULL,
 		maxit = 20, algit = NULL,
-		vit = 10, v = 1,
+		vit = 1, v = 1,
 		control = gremlinControl(), ...){
 
   mc <- as.list(match.call())
@@ -283,7 +283,7 @@ gremlinR <- function(formula, random = NULL, rcov = ~ units,
 		Gstart = NULL, Rstart = NULL, Bp = NULL,
 		Gcon = NULL, Rcon = NULL,
 		maxit = 20, algit = NULL,
-		vit = 10, v = 1,
+		vit = 1, v = 1,
 		control = gremlinControl(), ...){
 
   mc <- as.list(match.call())
@@ -514,7 +514,7 @@ gremlinSetup <- function(formula, random = NULL, rcov = ~ units,
 		Gstart = NULL, Rstart = NULL, Bp = NULL,
 		Gcon = NULL, Rcon = NULL,
 		maxit = 20, algit = NULL,
-		vit = 10, v = 1,
+		vit = 1, v = 1,
 		control = gremlinControl(), ...){
 
   stopifnot({
