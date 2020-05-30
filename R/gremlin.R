@@ -1216,7 +1216,7 @@ if(nrow(theta[[thetaR]]) != 1){
                   FUN = function(x) nuvout[x,] >= bounds[x, "UB"])
             if(any(badLp) | any(badUp)){
               bad <- which((badUp + badLp) > 0)
-              if(grMod$v > 1){
+              if(grMod$v > 0){
                 cat("\n(co)variance component(s) in 'thetav' vector (position:",
                     bad, ") restrained inside boundaries\t")
               }

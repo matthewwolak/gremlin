@@ -1043,7 +1043,7 @@ What R's `eigen()` calls
  
           // restrain naughty components that enacted indecent proposals
           if(bd == 1){
-            if(v[0] > 1){
+            if(v[0] > 0){
               Rprintf("\n(co)variance component(s) in `thetav` vector (position:");
               for(g = 0; g < p[0]; g++){
                 if(wchBd[g] == 1 || wchBd[p[0] + g] == 1) Rprintf(" %i ", g+1);
