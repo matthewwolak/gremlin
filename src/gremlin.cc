@@ -431,7 +431,7 @@ if(v[0] > 3){
         }
         Rprintf("\n");
         // output variable values
-        for(g = 0; g < p[0]; g++) Rprintf("\t%6.4f", nu[g]);
+        for(g = 0; g < p[0]; g++) Rprintf("\t%6.4g", nu[g]);
         Rprintf("\n");
       }  // end v>1
     }  // end v>0
