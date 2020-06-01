@@ -5,6 +5,25 @@
     - also allows for a list of formulas or character expressions
         e.g., calculate all variance components as proportions of total variance
 
+  - Introduce `Gcon` and `Rcon` arguments to `gremlin()` for constraining parameters
+    - enables parameters to be fixed or otherwise constrained
+    - works in conjunction with the `Gstart` and `Rstart` arguments
+    - For example in a simple `sire` model, we could restrain the `sire` variance `=0.38`.
+```
+grSf <- gremlin(WWG11 ~ sex,
+	random= ~ sire,
+	data = Mrode11,
+	Gstart = list(matrix(0.38)),
+	Gcon = list("F"),
+	control = gremlinControl(lambda = FALSE))
+
+```
+
+  - Similar to above change (`Gcon`/`Rcon`), introduced steps to deal with parameters outside of the boundaries of their parameter space (e.g., variance < 0).
+    - restrain these parameters to near their boundaries (after trying step-reduction calculation)
+    - re-calculate Average Information, conditional on restrained parameters
+        - See Gilmour. 2019. J. Anim. Breed. Genet. for specifics
+
   - change version numbering to just 3 numbers (instead of 4)
     - just dropping last number
 
