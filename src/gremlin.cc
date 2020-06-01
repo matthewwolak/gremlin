@@ -1371,12 +1371,14 @@ if(v[0] > 3){
 }
 
   //// Average Information
-  if(aiformed == 1) cs_spfree(AI);
-  if(lambda[0] == 1){
-    AI = cs_ai(BLUXs, Ginv, R, 0, 0,
+  ////// only need to do if did NOT do AI (with AI do even if model has converged)
+  if(algit[i] != 1){  
+    if(aiformed == 1) cs_spfree(AI);
+    if(lambda[0] == 1){
+      AI = cs_ai(BLUXs, Ginv, R, 0, 0,
 	  y, W, tW, ny[0], p[0], nG, rfxlvls, nffx, Lc->L, sLc->pinv,
 	  0, sigma2e);
-    if(AI == NULL) error("Unsuccessful AI algorithm at convergence %i\n", i);
+      if(AI == NULL) error("Unsuccessful AI algorithm at convergence %i\n", i);
 if(v[0] > 3){
   took = simple_toc(t);
   Rprintf("\n\t    %6.4f sec.: calculate AI", took);
@@ -1384,19 +1386,19 @@ if(v[0] > 3){
 }
        
 
-  }else{
-    AI = cs_ai(BLUXs, Ginv, R, KRinv, tWKRinv,
+    }else{
+      AI = cs_ai(BLUXs, Ginv, R, KRinv, tWKRinv,
           res, W, tW, ny[0], p[0], nG, rfxlvls, nffx, Lc->L, sLc->pinv,
 	  nG, 1.0);
-    if(AI == NULL) error("Unsuccessful AI algorithm  at convergence %i\n", i);
+      if(AI == NULL) error("Unsuccessful AI algorithm  at convergence %i\n", i);
 if(v[0] > 3){
   took = simple_toc(t); 
   Rprintf("\n\t    %6.4f sec.: calculate AI", took);
   simple_tic(t); 
 }
 
-  }  // end if/else lambda
-
+    }  // end if/else lambda
+  }  // end if algit!=AI
 
 
 if(v[0] > 3) simple_tic(t);
