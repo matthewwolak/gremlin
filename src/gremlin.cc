@@ -839,7 +839,6 @@ if(v[0] > 3){
     if(algit[i] == 1){
       if(v[0] > 1 && vitout == 0) Rprintf("\n\tAI to find next nu");
       if(aiformed == 1) cs_spfree(AI);
-//      if(hformed == 1) cs_spfree(H);
       if(huuformed == 1) cs_spfree(H_uu);
 
 
@@ -1321,8 +1320,11 @@ What R's `eigen()` calls
 
    
     // Determine if model has converged
-    //FIXME: change number of parameters that must be true as add criteria
-    if(cc[4] > 2){ // FIXME: change number of parameters that must be true
+    //FIXME: change number of parameters that must be true as add criteria 4
+    //// (FIXME: also add "bump" give to cc[4] with EM algorithm)
+    // if EM algorithm add TRUE for number of extra criteria used in AI
+    if(algit[i] == 0) cc[4]++;  
+    if(cc[4] > 2){
       if(v[0] > 0) Rprintf("\n***  REML converged  ***\n\n"); 
       i++;     
       break;

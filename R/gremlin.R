@@ -1073,6 +1073,16 @@ remlIt.gremlinR <- function(grMod, ...){
       cat("\n")
     }
 
+
+
+    if(grMod$v > 0 && vitout == 0){
+      cat("\tlL:", format(round(itMat[i, "loglik"], 6), nsmall = 6))
+    }
+
+
+
+
+    #################################
     # 5c check convergence criteria
     ## Knight 2008 (ch. 6) says Searle et al. 1992 and Longford 1993 discuss diff types of converg. crit.
     ## See Appendix 2 of WOMBAT help manual for 4 convergence criteria used
@@ -1086,10 +1096,8 @@ remlIt.gremlinR <- function(grMod, ...){
 
 
 
-    if(grMod$v > 0 && vitout == 0){
-      cat("\tlL:", format(round(itMat[i, "loglik"], 6), nsmall = 6))
-    }
-
+    #################################
+    # 5d Determine next (co)variance parameters to evaluate:
 
     ############################
     #    EM
@@ -1296,6 +1304,8 @@ if(nrow(theta[[thetaR]]) != 1){
     }  #<-- end if algorithm is "AI"
 
 
+
+
     if(grMod$v > 0 && vitout == 0){
       if(grMod$v > 1) cat("\tConvergence crit:", cc, "\n")
     }
@@ -1370,6 +1380,10 @@ stop(cat("\nNot allowing `NR` right now"))
     }
     units(itTime) <- "secs"
     itMat[i, ncol(itMat)] <- round(itTime, 1)
+
+
+
+    # Determine if model has converged
     if(all(cc, na.rm = TRUE)){
       if(grMod$v > 0) cat("\n***  REML converged  ***\n\n")
       break
