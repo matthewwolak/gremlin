@@ -129,6 +129,9 @@ void ugremlin(
 
   int	 *cc = new int[5];
 
+  int    *con = new int[p[0]];
+    for(k = 0; k < p[0]; k++) con[k] = conv[k];  // to retain original values
+
   // first p[0]=Lwr. Bounds, second p[0]=Upr. Bounds
   int    *wchBd = new int[2*p[0]];  
     for(k = 0; k < 2*p[0]; k++) wchBd[k] = 0;  // initialize entire vector
@@ -798,7 +801,7 @@ if(v[0] > 3){
     if(algit[i] == 0 && cc[4] < 2){
       if(v[0] > 1 && vitout == 0) Rprintf("\n\tEM to find next nu");
 
-      if(!tugugFun(tugug, w, nG, rfxlvls, conv,
+      if(!tugugFun(tugug, w, nG, rfxlvls, con,
 	    nffx, ndgeninv, geninv, BLUXs)){
         error("\nUnsuccessful tugug calculation: EM algorithm in iteration %i", i);
       }
@@ -811,14 +814,14 @@ if(v[0] > 3){
       // calculate EM for G (co)variances:
       //// (tugug + trace ) / qi
       for(g = 0; g < nG; g++){
-        if(conv[g] == 0) continue;  // skip if parameter is fixed
+        if(con[g] == 0) continue;  // skip if parameter is fixed
         nu[g] = (tugug[g] + trace[g] ) / rfxlvls[g];
       }
 
       // Calculate EM for residual:
       //// crossprod(y, r) / nminffx
       // TODO/FIXME below when >1 Residual
-      if(conv[nG] != 0){  // only do if Residual is NOT fixed 
+      if(con[nG] != 0){  // only do if Residual is NOT fixed 
         d = 0.0;
         for(k = 0; k < ny[0]; k++) d += y[k] * res[k]; 
         nu[nG] = d / nminffx[0];
@@ -840,7 +843,7 @@ if(v[0] > 3){
       if(huuformed == 1) cs_spfree(H_uu);
 
 
-      if(!tugugFun(tugug, w, nG, rfxlvls, conv,
+      if(!tugugFun(tugug, w, nG, rfxlvls, con,
 	    nffx, ndgeninv, geninv, BLUXs)){
         error("\nUnsuccessful tugug calculation: AI algorithm in iteration %i", i);
       }
@@ -872,7 +875,7 @@ if(v[0] > 3){
 }
 
         if(!cs_gradFun(nu, dLdnu,
-	      tugug, trace, conv,
+	      tugug, trace, con,
 	      ny[0], nG, rfxlvls, nffx,
               sigma2e,    // 1.0 if lambda=FALSE
 	      0, res)){      // 0 if lambda=TRUE
@@ -898,7 +901,7 @@ if(v[0] > 3){
 }
 
         if(!cs_gradFun(nu, dLdnu,
-	      tugug, trace, conv,
+	      tugug, trace, con,
 	      ny[0], nG, rfxlvls, nffx,
               1.0,    // 1.0 if lambda=FALSE
 	      nG, res)){      // 0 if lambda=TRUE
@@ -920,7 +923,7 @@ if(v[0] > 3){
       ////// (now called H for Hessian and grad for gradient)
       conP = p[0]; 
       for(k = 0; k < p[0]; k++){
-        if(conv[k] == 0){
+        if(con[k] == 0){
           wchBd[k] = 1;  // only reset elements about to use
           conP--;
         } else wchBd[k] = 0;
@@ -928,7 +931,7 @@ if(v[0] > 3){
       double  *grad = new double[conP];
         si = 0;
         for(k = 0; k < p[0]; k++){
-          if(conv[k] == 0) continue;
+          if(con[k] == 0) continue;
           grad[si] = dLdnu[k];
           newnu[si] = nu[k];
           si++; 
@@ -992,14 +995,14 @@ What R's `eigen()` calls
         // calculate EM for G (co)variances:
         //// (tugug + trace ) / qi
         for(g = 0; g < nG; g++){
-          if(conv[g] == 0) continue;  // skip if parameter is fixed
+          if(con[g] == 0) continue;  // skip if parameter is fixed
           nu[g] = (tugug[g] + trace[g] ) / rfxlvls[g];
         }
 
         // Calculate EM for residual:
         //// crossprod(y, r) / nminffx
         // TODO/FIXME below when >1 Residual
-        if(conv[nG] != 0){  // only do if Residual is NOT fixed 
+        if(con[nG] != 0){  // only do if Residual is NOT fixed 
           d = 0.0;
           for(k = 0; k < ny[0]; k++) d += y[k] * res[k]; 
           nu[nG] = d / nminffx[0];
@@ -1021,7 +1024,7 @@ What R's `eigen()` calls
           si = 0;
           stpVal = 1.0;
           for(k = 0; k < p[0]; k++){
-            if(conv[k] == 0) continue;
+            if(con[k] == 0) continue;
             dnu[si] = newnu[si] - nu[k];
             if(abs(dnu[si] / nu[k]) > 2.0){
               stpVal = step[0];
@@ -1031,7 +1034,7 @@ What R's `eigen()` calls
           if(stpVal == step[0]){  // if TRUE then implement step-reduction
             si = 0;
             for(k = 0; k < p[0]; k++){
-              if(conv[k] == 0) continue;
+              if(con[k] == 0) continue;
               newnu[si] = nu[k] + dnu[si] * stpVal;
               si++;
             }
@@ -1041,7 +1044,7 @@ What R's `eigen()` calls
           si = 0; bd = 0;
           for(k = 0; k < 2*p[0]; k++) wchBd[k] = 0;  // reset, esp. b/c used above
           for(g = 0; g < p[0]; g++){
-            if(conv[g] == 0) continue;
+            if(con[g] == 0) continue;
             if(newnu[si] <= bound[g]){
               bd = 1;
               wchBd[g] += 1;
@@ -1064,12 +1067,12 @@ What R's `eigen()` calls
             }
             si = 0;
             for(g = 0; g < p[0]; g++){
-              if(conv[g] == 0) continue;
+              if(con[g] == 0) continue;
               if(wchBd[g] == 1) newnu[si] = bound[g] + ezero[0];
               if(wchBd[p[0] + g] == 1) newnu[si] = bound[p[0] + g] - ezero[0];
-              // rely on this step for 2 processes below!
+              // rely on following step for 2 processes below!
               if(wchBd[g] == 1 || wchBd[p[0] + g] == 1){
-                conv[g] = 3;
+                con[g] = 3;
                 grad[si] = 0.0;  //<-- so convergence check 3 works correctly
               }
               si++;
@@ -1083,7 +1086,7 @@ What R's `eigen()` calls
             //// actually work off of AI (may contain fixed parameters)
             conP = p[0];
             for(k = 0; k < p[0]; k++){
-              if(conv[k] == 0 || conv[k] == 3){
+              if(con[k] == 0 || con[k] == 3){
                wchBd[k] = 1;
                conP--;
               } else wchBd[k] = 0;
@@ -1138,14 +1141,14 @@ What R's `eigen()` calls
               // calculate EM for G (co)variances:
               //// (tugug + trace ) / qi
               for(g = 0; g < nG; g++){
-                if(conv[g] == 0) continue;  // skip if parameter is fixed
+                if(con[g] == 0) continue;  // skip if parameter is fixed
                 nu[g] = (tugug[g] + trace[g] ) / rfxlvls[g];
               }
 
               // Calculate EM for residual:
               //// crossprod(y, r) / nminffx
               // TODO/FIXME below when >1 Residual
-              if(conv[nG] != 0){  // only do if Residual is NOT fixed 
+              if(con[nG] != 0){  // only do if Residual is NOT fixed 
                 d = 0.0;
                 for(k = 0; k < ny[0]; k++) d += y[k] * res[k]; 
                 nu[nG] = d / nminffx[0];
@@ -1166,9 +1169,9 @@ What R's `eigen()` calls
                 // H_uc %*% (newnu[bad] - nu[bad])
                 //// in practice: dnu += H_uc[, k] * (newnu[bad] - nu[bad])[k]
                 for(g = 0; g < p[0]; g++){  // go through original AI
-                  if(conv[g] != 3) continue;  // only g for a boundary parameter
+                  if(con[g] != 3) continue;  // only g for a boundary parameter
                   si = g;  // used to index gth parameter of AI in newnu and dnu
-                  for(rw = 0; rw < g; rw++) if(conv[rw] == 0) si--;
+                  for(rw = 0; rw < g; rw++) if(con[rw] == 0) si--;
                   si2 = 0;  // used to index row of H_uc[, k] in dnu
                   for(k = AI->p[g]; k < AI->p[g+1]; k++){
                     if(wchBd[ AI->i[k] ] == 0){
@@ -1179,23 +1182,26 @@ What R's `eigen()` calls
                 }  //<-- end for g (columns of AI) 
               
                 // ... (grad_u - ...) operation
-                // at the same time replace newnu[-bad] with nu[-c(bad, fixed)]
-                si = 0;
+                // at same time replace newnu[-c(fixed,bad)] with nu[-c(fixed,bad)]
+                //// dnu has elements 0:(No. non-fixed & non-boundary
+                //// newnu has elements 0:(No. non-fixed)
+                si = 0; si2 = 0;
                 for(g = 0; g < p[0]; g++){
-                  if(conv[g] == 0) continue;  // assumes either fixed or boundary
-                  if(conv[g] != 3){
+                  if(con[g] == 0) continue;  // assumes either fixed or boundary
+                  if(con[g] != 3){
                     dnu[si] = dLdnu[g] - dnu[si];
-                    newnu[g] = nu[g];
+                    newnu[si2] = nu[g];  // don't replace boundary (already set above)
                     si++;
                   }
+                  si2++;
                 }
 
                 // invH_uu %*% (...)
-                si = 0;  // for indexing newnu[-bad]
                 rw = 0;  // for indexing the current row of invH_uu to work across
+                si = 0;  // index newnu (only contiains non-fixed parameters)
                 for(g = 0; g < p[0]; g++){
-                  if(conv[g] == 0) continue;
-                  if(conv[g] != 3){
+                  if(con[g] == 0) continue;
+                  if(con[g] != 3){
                     // go across columns for row `rw`
                     for(k = 0; k < invH_uu->n; k++){
                       if(invH_uu->i[ invH_uu->p[k] + rw ] == rw){
@@ -1204,7 +1210,7 @@ What R's `eigen()` calls
                     }  // end for k
                     rw++;
                   }  // end if NOT a boundary
-                    si++;
+                  si++;
                 }  // end for g 
 
               cs_spfree(invH_uu);
@@ -1212,8 +1218,12 @@ What R's `eigen()` calls
             }  // end if/else H_uu cannot be inverted
 
 
-          }  //<-- end if bd/indecent proposals
-
+          } else{
+              // Remove any boundary constraint codes from previous iterations
+              //// restore to original code
+              for(g = 0; g < p[0]; g++) if(con[g] == 3) con[g] = conv[g];
+            }  //<-- end if bd/indecent proposals
+       
         cs_spfree(Hinv);
 
 
@@ -1236,9 +1246,9 @@ What R's `eigen()` calls
 
       si = 0;
       for(k = 0; k < p[0]; k++){
-        if(conv[k] == 0) continue;
+        if(con[k] == 0) continue;
         nu[k] = newnu[si];
-        si++; 
+        si++;
       }
 
     }  // end AI
@@ -1387,6 +1397,9 @@ if(v[0] > 3) simple_tic(t);
 //  if(hformed == 1) cs_spfree(H);
   if(CS_CSC(H_uu)) cs_spfree(H_uu);
 
+  // return constraint codes from final iteration
+  for(k = 0; k < p[0]; k++) conv[k] = con[k];  // to retain original values
+
 
   // return permutation matrix of symbolic Cholesky factorization of C
   for(k = 0; k < C->m; k++) sLcPinv[k] += sLc->pinv[k];
@@ -1445,6 +1458,7 @@ if(v[0] > 3) simple_tic(t);
   delete [] tugug;
   delete [] w;
   delete [] wchBd;
+  delete [] con;
   delete [] cc;
   delete [] rfxlvls;
 

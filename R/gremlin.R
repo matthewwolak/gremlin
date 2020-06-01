@@ -1216,14 +1216,16 @@ if(nrow(theta[[thetaR]]) != 1){
                   FUN = function(x) nuvout[x,] >= bounds[x, "UB"])
             if(any(badLp) | any(badUp)){
               bad <- which((badUp + badLp) > 0)
+              fxdPbadInd <- seq(p)[-fxdP][bad]
               if(grMod$v > 0){
                 cat("\n(co)variance component(s) in 'thetav' vector (position:",
-                    bad, ") restrained inside boundaries\t")
+                    fxdPbadInd, ") restrained inside boundaries\t")
               }
               nuvout[-fxdP][which(badLp)] <- bounds[-fxdP, "LB"][which(badLp)] +
 	          grMod$ezero
               nuvout[-fxdP][which(badUp)] <- bounds[-fxdP, "UB"][which(badUp)] -
                   grMod$ezero
+              conv[fxdPbadInd] <- "B"  #<-- B for Bounded
             }  #<-- end if bad proposals AND fixed parameters
 
           } else{  #<-- now do below if NO fixed parameters
@@ -1247,6 +1249,7 @@ if(nrow(theta[[thetaR]]) != 1){
 	            grMod$ezero
                 nuvout[which(badUp), ] <- bounds[which(badUp), "UB"] -
                     grMod$ezero
+                conv[bad] <- "B"  #<-- B for Bounded
               }  #<-- end if bad proposals and NO fixed parameters
             }  #<-- end if/else fixed parameters
 
@@ -1254,15 +1257,21 @@ if(nrow(theta[[thetaR]]) != 1){
             ## Re-calculate parameter updates, CONDITIONAL on restrained values
             ### Gilmour 2019 AI REML in Practice. J. Anim. Breed. Genet.
             if(any(badLp) | any(badUp)){
-              conv[bad] <- "B"  #<-- B for Bounded
               dLdnu_con[bad] <- 0.0  #<-- so convergence check 3 works correctly
               #TODO check in case all non-fixed parameters are bad!
               Hinv_uu <- solve(H[-bad, -bad, drop = FALSE])  #<-- un-restrained components
               H_uc <- H[, bad, drop = FALSE][-bad, , drop = FALSE]
               dLdnu_u <- dLdnu_con[-bad, , drop = FALSE]
-              nuvout[-c(fxdP, bad), ] <- nuv[-c(fxdP, bad)] +
-                  (Hinv_uu %*% matrix((dLdnu_u - H_uc %*% (nuvout[bad]-nuv[bad])),
+              if(length(fxdP) > 0){
+                nuvout[-c(fxdP, fxdPbadInd), ] <- nuv[-c(fxdP, fxdPbadInd)] +
+                  (Hinv_uu %*% matrix((dLdnu_u - H_uc %*%
+					(nuvout[fxdPbadInd]-nuv[fxdPbadInd])),
                     ncol = 1))
+              } else{
+                  nuvout[-bad, ] <- nuv[-bad] +
+                    (Hinv_uu %*% matrix((dLdnu_u - H_uc %*% (nuvout[bad]-nuv[bad])),
+                      ncol = 1))
+                }
             } else{
                 # Remove any boundary constraint codes from previous iterations
                 ## restore to original code

@@ -259,7 +259,7 @@ em <- function(nuvin, thetaG, thetaR, conv,
     }  #<-- end `for g`
   }  #<-- end if no variance components besides residuals
 
-  nuvin[thetaR] <- crossprod(modMats$y, r) / nminffx
+  if(conv[thetaR] != "F") nuvin[thetaR] <- crossprod(modMats$y, r) / nminffx
 
  return(list(nuv = nuvin, Cinv_ii = Cinv_ii))
 }  #<-- end `em()`
