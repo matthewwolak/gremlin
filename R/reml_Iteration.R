@@ -390,16 +390,16 @@ if(nrow(theta[[thetaR]]) != 1){
       rcondAI <- rcond(AI_con)
       if(rcondAI < grMod$ezero){
         if(grMod$v > 2){
-          cat("\nReciprocal condition number of AI matrix is",
+          cat("\n\tReciprocal condition number of H matrix is",
 	    signif(rcondAI , 2), 
-	    "\n\tAI matrix may be singular - modifying diagonals")
+	    "\n\t   H matrix may be singular - modifying diagonals")
         }  #<-- end `if v>2`
       }  #<-- end if AI singular
       ### Check/modify AI matrix to 'ensure' positive definiteness
       ### `fI` is factor to adjust AI matrix
       #### (e.g., Meyer 1997 eqn 58 and WOMBAT manual A.5 strategy 3b)
       AIeigvals <- eigen(AI_con, symmetric = TRUE, only.values = TRUE)$values
-        d <- (3*10^-6) * AIeigvals[1]
+        d <- (3e-6) * AIeigvals[1]
         f <- max(0, d - AIeigvals[nrow(AI_con)])
       fI <- f * diag(x = 1, nrow = nrow(AI_con))
       ##### modified 'Hessian'
@@ -409,9 +409,9 @@ if(nrow(theta[[thetaR]]) != 1){
       ## if H cannot be inverted do EM
       if(rcondH < grMod$ezero){
         if(grMod$v > 1){
-          cat("\nReciprocal condition number of modified Hessian is",
+          cat("\n\tReciprocal condition number of modified Hessian is",
 	    signif(rcondH , 2), 
-	    "\n\tHessian may be singular - switching to the EM algorithm")
+	    "\n\t   Hessian may be singular - switching to EM algorithm")
         }  #<-- end `if v>1`
         if(grMod$v > 1 && vitout == 0) cat("\n\tEM to find next nu")
           emOut <- em(nuv, thetaG, thetaR, conv,
@@ -521,9 +521,7 @@ if(nrow(theta[[thetaR]]) != 1){
 
 
 
-    if(grMod$v > 0 && vitout == 0){
-      if(grMod$v > 1) cat("\tConvergence crit:", cc, "\n")
-    }
+    if(grMod$v > 1 && vitout == 0) cat("\n\tConvergence crit:", cc, "\n")
 
 
 
@@ -580,18 +578,18 @@ stop(cat("\nNot allowing `NR` right now"))
     nu <- sapply(nuout, FUN = stTrans)
     itTime <- Sys.time() - stItTime
     if(grMod$v > 0 && vitout == 0){
-      cat("\ttook ", round(itTime, 2), units(itTime), "\n")
-      if(grMod$v > 2){#algit[i] == "AI" && 
+      if(grMod$v > 2 && grMod$algit[i] == "AI"){
         sgd <- matrix(NA, nrow = p, ncol = p+2)  #<-- `sgd` is summary.gremlinDeriv 
           dimnames(sgd) <- list(row.names(dLdnu),
             c("gradient", "", "AI", rep("", p-1)))
         sgd[, 1] <- dLdnu
         for(rc in 1:p) sgd[rc, 3:(p+2)] <- AI[rc, ]
         cat("\tstep", step, "\n")
-        cat("\tAI modification", f, "\n")
+        cat("\tH modification", round(f, 3), "\n")
         print(as.table(sgd), digits = 3, na.print = " | ", zero.print = ".")
         cat("\n")
-      }  
+      } 
+      cat("\t\ttook ", round(itTime, 2), units(itTime), "\n")
     }
     units(itTime) <- "secs"
     itMat[i, ncol(itMat)] <- round(itTime, 1)

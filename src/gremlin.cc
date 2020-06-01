@@ -110,7 +110,7 @@ void ugremlin(
   cs* 	 *KGinv = new cs*[nG];
 
   double t[2], T[2], took, dsLc, tyRinvy, tyPy, logDetC, sigma2e, loglik, 
-         d, cc2, cc2d, stpVal;
+         d, cc2, cc2d, f, stpVal;
 
   int 	 g, i, k, rw, si, si2, vitout, r, c, cnt, cd, rd, pr,
 	 itc = 0,
@@ -840,6 +840,7 @@ if(v[0] > 3){
       if(v[0] > 1 && vitout == 0) Rprintf("\n\tAI to find next nu");
       if(aiformed == 1) cs_spfree(AI);
       if(huuformed == 1) cs_spfree(H_uu);
+      f = 0.0;  // initialize to a default/no alteration of Hessian
 
 
       if(!tugugFun(tugug, w, nG, rfxlvls, con,
@@ -917,6 +918,16 @@ if(v[0] > 3){
 
 
 
+      // Find next set of parameters using a quasi-Newton method/algorithm
+      //// Meyer 1989 pp. 326-327 describes quasi-Newton methods 
+//TODO see Meyer 1997 eqn 58 for Marquardt 1963: theta_t+1=theta_t - (H_t + k_t * I)^{-1} g_t 
+// What I do below is similar: except k_t=f
+      //// Mrode 2005 eqn 11.4
+      //// Johnson and Thompson 1995 eqn 12
+      //////(though gremlin uses `+` instead of J & T '95 `-` because
+      ////// gremlin multiplies gradient by -0.5 in `gradFun()`)
+
+ 
       // Check for fixed (co)variance parameters
       //// remove them from AI and dLdnu
       ////// (now called H for Hessian and grad for gradient)
@@ -944,36 +955,7 @@ if(v[0] > 3){
 
 
       
-      // Find next set of parameters using a quasi-Newton method/algorithm
-      //// Meyer 1989 pp. 326-327 describes quasi-Newton methods 
-//TODO see Meyer 1997 eqn 58 for Marquardt 1963: theta_t+1=theta_t - (H_t + k_t * I)^{-1} g_t 
-// What I do below is similar: except k_t=f
-      //// Mrode 2005 eqn 11.4
-      //// Johnson and Thompson 1995 eqn 12
-      //////(though gremlin uses `+` instead of J & T '95 `-` because
-      ////// gremlin multiplies gradient by -0.5 in `gradFun()`)
-
-  
- 
-
-      // Check/modify AI matrix to 'ensure' positive definiteness
-      //// `fI` is factor to adjust AI matrix
-      ////// (e.g., Meyer 1997 eqn 58 and WOMBAT manual A.5 strategy 3b)
-
-/*
-See `La_rs` defined around line 153 of "R/src/modules/lapack/Lapack.c"
-What R's `eigen()` calls
-      check if any small/zero eigenvalues of AI
-      AIeigvals <- eigen(AI)$values
-        d <- (3*10^-6) * AIeigvals[1]
-        f <- max(0, d - AIeigvals[nrow(AI)])
-      fI <- f * diag(x = 1, nrow = nrow(AI))
-      //////// modified 'Hessian'
-      H <- fI + AI
-*/
-
-
-      // Check if Hessian can be inverted
+       // Check if Hessian can be inverted
       if(sHformed == 1){
         cs_sfree(sLh);  // each time in case H pattern changes (fix components)
         cs_nfree(Lh);
@@ -984,7 +966,45 @@ What R's `eigen()` calls
       sHformed = 1;
       if(Lh == NULL){
         if(v[0] > 1){
-          Rprintf("\nH cholesky decomposition failed:\n\t Hessian matrix may be singular - switching to an iteration of the EM algorithm");
+          Rprintf("\n\tH cholesky decomposition failed:\n\t   Hessian matrix may be singular - modifying diagonals and re-trying");
+        } // end if v>1
+        
+        f = 3e-5; 
+      }  // end if Lh=NULL
+
+      // Check/modify H matrix to 'ensure' positive definiteness
+      /* `f` is factor to adjust H matrix
+         (e.g., based off Meyer 1997 eqn 58 and WOMBAT manual A.5 strategy 3b)
+         HOWEVER, differs from above in that I do not use eigenvalues here,
+         rather the diagonals of the Cholesky factorization are inspected
+           see `remlIt.gremlinR()` for approach like Meyer (with eigenvalues) */
+/*
+See `La_rs` defined around line 153 of "R/src/modules/lapack/Lapack.c"
+What R's `eigen()` calls
+ */
+      // check if any small/zero diagonals on Cholesky of H (Lh)
+      if(Lh != NULL){
+        for(g = 0; g < Lh->L->n; g++){
+          d = Lh->L->x[ Lh->L->p[g] ];
+          if(d < ezero[0]) f = 3e-5; 
+        }
+      }
+
+      //////// If any diagonals of Lh < 0 modify H by adding f to diagonals
+      ////XXX ASSUME H is full matrix so p[g]+g = diagonal XXX
+      for(g = 0; g < H->n; g++) H->x[ H->p[g] + g ] += f;
+
+
+      // Now check if Hessian can be inverted
+      cs_sfree(sLh);  // each time in case H pattern changes (fix components)
+      cs_nfree(Lh);
+      sHformed = 0;
+      sLh = cs_schol(1, H);
+      Lh = cs_chol(H, sLh);
+      sHformed = 1;
+      if(Lh == NULL){
+        if(v[0] > 1){
+          Rprintf("\n\tH cholesky decomposition failed:\n\t   Hessian matrix may be singular - switching to 1 iteration of EM algorithm");
         } // end if v>1
 
         //// if H cannot be inverted do EM
@@ -1130,7 +1150,7 @@ What R's `eigen()` calls
             sHuuformed = 1;
             if(Lh_uu == NULL){
               if(v[0] > 1){
-                Rprintf("\nH cholesky decomposition failed:\n\t Hessian sub-matrix may be singular - switching to an iteration of the EM algorithm");
+                Rprintf("\n\tH cholesky decomposition failed:\n\t   Hessian sub-matrix may be singular - switching to 1 iteration of EM algorithm");
               } // end if v>1
 
               //// if H_uu cannot be inverted do EM
@@ -1262,7 +1282,7 @@ What R's `eigen()` calls
     // V=2 LEVEL of OUTPUT
     if(v[0] > 1 && vitout == 0){ 
       // output convergence criteria
-      Rprintf("\tConvergence crit:");
+      Rprintf("\n\tConvergence crit:");
       for(k = 0; k < 4; k++) Rprintf("%4i", cc[k]);
       Rprintf("\n");
     }  // end v > 1
@@ -1290,7 +1310,8 @@ What R's `eigen()` calls
         if(v[0] > 2){
           if(algit[i] == 1){
             // output step-size modification
-            Rprintf("\n\tstep: %6.4f\n", stpVal);
+            Rprintf("\n\tstep: %6.4f", stpVal);
+            Rprintf("\n\tH modification: %6.3g\n", f);
             Rprintf("\tgradient | AI\n");
             Rprintf("\t-------- |--------\n");
             for(g = 0; g < p[0]; g++){
