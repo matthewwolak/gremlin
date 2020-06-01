@@ -28,7 +28,7 @@ cs *cs_ai(const cs *BLUXs, cs **Ginv,
      dLdnu overwritten with output
      Cinv_ii overwritten with diag(Cinv) */
 csi cs_gradFun(double *nu, double *dLdnu, 
-        double *tugug, double *trace,
+        double *tugug, double *trace, csi *con,
 	csi n, csi nG, csi *rfxlvls, csi nb,
 	double sigma2e,    // 1.0 if lambda=FALSE
 	csi thetaR, double *r);      // 0 if lambda=TRUE
@@ -51,15 +51,15 @@ csi cs_chol2inv_ii(const cs *L, const csi *Pinv, double *Cinv_ii, int r);
        					 
    `tugug` = t(u_gg) %*% geninv_gg %*% u_gg
 */
-csi tugugFun(double *tugug, double *w, csi nG, csi *rfxlvls, 
+csi tugugFun(double *tugug, double *w, csi nG, csi *rfxlvls, csi *con,
         csi nb, csi *ndgeninv, cs **geninv, const cs *BLUXs);
 
 /* return 1 if successful else returns 0
        trace overwritten with output
 */
-csi traceFun(double *trace, double *w, csi nG, csi *rfxlvls,
-	csi nb, csi *ndgeninv, cs **geninv, const cs *BLUXs,
-	const cs *Lc, const csi *Pinv);
+csi traceFun(double *trace, double *w,
+	csi nG, csi *rfxlvls, csi nb, csi *ndgeninv, cs **geninv,
+	const cs *BLUXs, const cs *Lc, const csi *Pinv);
 
 /* B  returned = the reduced matrix of A according to drop */
 cs *cs_droprowcol(const cs *A, csi *drop);

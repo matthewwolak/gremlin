@@ -16,7 +16,7 @@
        					 
    `tugug` = t(u_gg) %*% geninv_gg %*% u_gg
 */
-csi tugugFun(double *tugug, double *w, csi nG, csi *rfxlvls, 
+csi tugugFun(double *tugug, double *w, csi nG, csi *rfxlvls, csi *con,
         csi nb, csi *ndgeninv, cs **geninv, const cs *BLUXs
 ){
 
@@ -27,12 +27,10 @@ csi tugugFun(double *tugug, double *w, csi nG, csi *rfxlvls,
 //double	t[2], took;
 //simple_tic(t);
 
-
   if(!CS_CSC (BLUXs) || !nb) return (0);    // check arguments
 
   Bx = BLUXs->x;
   si = nb;
-
 
   //// `g` is the gth component of the G-structure to model
   //// `geninv` is the generalized inverse
@@ -41,6 +39,11 @@ csi tugugFun(double *tugug, double *w, csi nG, csi *rfxlvls,
     tugug[g] = 0.0;
     qi = rfxlvls[g];
     ei = si - 1 + qi;
+    // skip parameter if it is fixed in the model (must do after calculate ei above)
+    if(con[g] == 0){
+      si = ei + 1;  // need to advance si first
+      continue;  
+    }
 
 //TODO XXX for using covariance matrices, see Johnson & Thompson 1995 eqn 11a
     // Johnson & Thompson 1995 equations 9 & 10
@@ -64,8 +67,6 @@ csi tugugFun(double *tugug, double *w, csi nG, csi *rfxlvls,
       }  // end if/else geninv is non-diagonal
     si = ei + 1;
 
-
-
 // print timing
 /*
 took = simple_toc(t);
@@ -73,9 +74,7 @@ Rprintf("\n\t\t    %6.6f sec.: gradFun calculate tugug for %i of %i term", took,
 simple_tic(t);
 */
 
-
   }  // end for g in nG
-
 
   return(1);
 }
@@ -121,7 +120,6 @@ simple_tic(t);
   Lp = Lc->p; Li = Lc->i; Lx = Lc->x;
   si = nb;
 
-
   // `trace` = trace(Cinv_gg %*% geninv_gg])
   //// `g` is the gth component of the G-structure to model
   //// `geninv` is the generalized inverse
@@ -130,14 +128,14 @@ simple_tic(t);
     trace[g] = 0.0;
     qi = rfxlvls[g];
     ei = si - 1 + qi;
-
+    // DO NOT skip parameter if it is fixed in the model
+    //// trace of all components is necessary to calculate gradient of residual
 
     // trace(geninv[g] %*% Cinv[si:ei, si:ei]) ...
     //// geninv[g] %*% Cinv[si:ei, si:ei]
     ////// each k column of Lc, create Cinv[si:ei, si:ei] elements
     //////// forward solve with Identity[, k] then backsolve
     for(k = si; k <= ei; k++){
-
 
 // timing
 /*
@@ -148,10 +146,8 @@ if((k == si) | (k ==ei-1)){
 }
 */
 
-
       // use w as working vector: first create Identity[, k]
       for(i = 0; i < nsln; i++) w[i] = 0.0;  // clear w
-
 
 // print timing
 /*
@@ -162,10 +158,9 @@ if((k == si) | (k ==ei-1)){
 }
 */
 
-
       //// Lc is permuted, use t(P) %*% I[, k]
       w[Pinv[k]] += 1.0;              /* essentially `cs_ipvec` */
-//      gr_cs_lltsolve(Lc, w, Pinv[k]); /* x = L\x then x = L'\x  */
+      // gr_cs_lltsolve(Lc, w, Pinv[k]); /* x = L\x then x = L'\x  */
       // forward solve (e.g., cs_lsolve)
       for(j = Pinv[k]; j < nsln; j++){
         if(w[j] != 0.0){
@@ -177,7 +172,6 @@ if((k == si) | (k ==ei-1)){
         }  // end if NOT 0
       }
 
-
 // print timing AND CHECK
 /*
 if((k == si) | (k ==ei-1)){
@@ -186,8 +180,6 @@ if((k == si) | (k ==ei-1)){
   simple_tic(t);
 }
 */
-
-
 
        // if Diagonal generalized inverse associated
        if(ndgeninv[g] == 0){
@@ -243,7 +235,6 @@ if((k == si) | (k ==ei-1)){
       }  // end if/else non-diagonal geninv trace calculation
     }  // end for k
     si = ei + 1;
-
 
 // print timing
 /*

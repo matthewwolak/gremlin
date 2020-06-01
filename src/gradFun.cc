@@ -11,7 +11,7 @@ XXX eqn. 2.44 is the score/gradient! for a varcomp
        dLdnu overwritten with output
        					 */
 csi cs_gradFun(double *nu, double *dLdnu, 
-        double *tugug, double *trace,
+        double *tugug, double *trace, csi *con,
 	csi n, csi nG, csi *rfxlvls, csi nb,
 	double sigma2e,    // 1.0 if lambda=FALSE
 	csi thetaR, double *r      // 0 if lambda=TRUE
@@ -32,7 +32,7 @@ csi cs_gradFun(double *nu, double *dLdnu,
   //// see `-2` on left-hand side of Johnson & Thompson eqn 3
   // Johnson and Thompson 1995: base to Appendix 2 eqn B3 and eqn 9a and 10a
   for(g = 0; g < nG; g++){
-    dLdnu[g] = (rfxlvls[g] / nu[g]);
+    dLdnu[g] = (con[g] == 0) ? 0.0 : (rfxlvls[g] / nu[g]);
   }  // end for g
 
   if(lambda == 1){
@@ -58,6 +58,10 @@ csi cs_gradFun(double *nu, double *dLdnu,
     dLdnu[thetaR] *= -0.5;
   }  // end when NOT lambda scale
 
+  // set any gradients for fixed parameters = 0.0
+  for(g = 0; g < nG; g++) if(con[g] == 0) dLdnu[g] = 0.0;
+//FIXME change `[thetaR]` below to be number of residual (co)variances
+  if(con[thetaR] == 0) dLdnu[thetaR] = 0.0;
 
   return(1);
 }

@@ -798,7 +798,7 @@ if(v[0] > 3){
     if(algit[i] == 0 && cc[4] < 2){
       if(v[0] > 1 && vitout == 0) Rprintf("\n\tEM to find next nu");
 
-      if(!tugugFun(tugug, w, nG, rfxlvls,
+      if(!tugugFun(tugug, w, nG, rfxlvls, conv,
 	    nffx, ndgeninv, geninv, BLUXs)){
         error("\nUnsuccessful tugug calculation: EM algorithm in iteration %i", i);
       }
@@ -810,13 +810,19 @@ if(v[0] > 3){
 
       // calculate EM for G (co)variances:
       //// (tugug + trace ) / qi
-      for(g = 0; g < nG; g++) nu[g] = (tugug[g] + trace[g] ) / rfxlvls[g];
+      for(g = 0; g < nG; g++){
+        if(conv[g] == 0) continue;  // skip if parameter is fixed
+        nu[g] = (tugug[g] + trace[g] ) / rfxlvls[g];
+      }
 
       // Calculate EM for residual:
       //// crossprod(y, r) / nminffx
-      d = 0.0;
-      for(k = 0; k < ny[0]; k++) d += y[k] * res[k]; 
-      nu[nG] = d / nminffx[0];
+      // TODO/FIXME below when >1 Residual
+      if(conv[nG] != 0){  // only do if Residual is NOT fixed 
+        d = 0.0;
+        for(k = 0; k < ny[0]; k++) d += y[k] * res[k]; 
+        nu[nG] = d / nminffx[0];
+      }
     }  // end EM
     /////////////////////////////
 
@@ -834,7 +840,7 @@ if(v[0] > 3){
       if(huuformed == 1) cs_spfree(H_uu);
 
 
-      if(!tugugFun(tugug, w, nG, rfxlvls,
+      if(!tugugFun(tugug, w, nG, rfxlvls, conv,
 	    nffx, ndgeninv, geninv, BLUXs)){
         error("\nUnsuccessful tugug calculation: AI algorithm in iteration %i", i);
       }
@@ -866,7 +872,7 @@ if(v[0] > 3){
 }
 
         if(!cs_gradFun(nu, dLdnu,
-	      tugug, trace,
+	      tugug, trace, conv,
 	      ny[0], nG, rfxlvls, nffx,
               sigma2e,    // 1.0 if lambda=FALSE
 	      0, res)){      // 0 if lambda=TRUE
@@ -892,7 +898,7 @@ if(v[0] > 3){
 }
 
         if(!cs_gradFun(nu, dLdnu,
-	      tugug, trace,
+	      tugug, trace, conv,
 	      ny[0], nG, rfxlvls, nffx,
               1.0,    // 1.0 if lambda=FALSE
 	      nG, res)){      // 0 if lambda=TRUE
@@ -985,13 +991,19 @@ What R's `eigen()` calls
 
         // calculate EM for G (co)variances:
         //// (tugug + trace ) / qi
-        for(g = 0; g < nG; g++) nu[g] = (tugug[g] + trace[g] ) / rfxlvls[g];
+        for(g = 0; g < nG; g++){
+          if(conv[g] == 0) continue;  // skip if parameter is fixed
+          nu[g] = (tugug[g] + trace[g] ) / rfxlvls[g];
+        }
 
         // Calculate EM for residual:
         //// crossprod(y, r) / nminffx
-        d = 0.0;
-        for(k = 0; k < ny[0]; k++) d += y[k] * res[k]; 
-        nu[nG] = d / nminffx[0];
+        // TODO/FIXME below when >1 Residual
+        if(conv[nG] != 0){  // only do if Residual is NOT fixed 
+          d = 0.0;
+          for(k = 0; k < ny[0]; k++) d += y[k] * res[k]; 
+          nu[nG] = d / nminffx[0];
+        }
 
         algit[i] = 0;  // switch algorithm to EM so itMat of output is accurate
         // end EM
@@ -1125,13 +1137,19 @@ What R's `eigen()` calls
 
               // calculate EM for G (co)variances:
               //// (tugug + trace ) / qi
-              for(g = 0; g < nG; g++) nu[g] = (tugug[g] + trace[g] ) / rfxlvls[g];
+              for(g = 0; g < nG; g++){
+                if(conv[g] == 0) continue;  // skip if parameter is fixed
+                nu[g] = (tugug[g] + trace[g] ) / rfxlvls[g];
+              }
 
               // Calculate EM for residual:
               //// crossprod(y, r) / nminffx
-              d = 0.0;
-              for(k = 0; k < ny[0]; k++) d += y[k] * res[k]; 
-              nu[nG] = d / nminffx[0];
+              // TODO/FIXME below when >1 Residual
+              if(conv[nG] != 0){  // only do if Residual is NOT fixed 
+                d = 0.0;
+                for(k = 0; k < ny[0]; k++) d += y[k] * res[k]; 
+                nu[nG] = d / nminffx[0];
+              }
 
               algit[i] = 0;  // algorithm to EM so itMat of output is accurate
               // end EM
