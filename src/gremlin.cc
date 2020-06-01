@@ -1320,7 +1320,7 @@ What R's `eigen()` calls
               for(k = 0; k < p[0]; k++){
                 for(si = AI->p[k]; si < AI->p[k+1]; si++){
                   // prints AI[g, k]
-                  if(AI->i[si] == g) Rprintf(" %6.4f", AI->x[si]);
+                  if(AI->i[si] == g) Rprintf(" %6.4g", AI->x[si]);
                 }  // end for si (rows of AI column)
               }  // end for k (column of AI)
               Rprintf("\n");  // start next row of output/AI
