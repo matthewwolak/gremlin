@@ -136,6 +136,8 @@ remlIt.default <- function(grMod, ...){
     grMod$AI <- matrix(Cout[[30]], nrow = grMod$p, ncol = grMod$p, byrow = FALSE)
       dimnames(grMod$AI) <- list(rownames(grMod$dLdnu), rownames(grMod$dLdnu))
   }
+
+  grMod$conv[] <- levels(grMod$conv)[ Cout[[23]] + 1 ]
   grMod$sln[] <- Cout[[31]]
   grMod$Cinv_ii <- Cout[[32]] 
   grMod$r[] <- Cout[[33]]
