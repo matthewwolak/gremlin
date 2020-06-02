@@ -381,6 +381,15 @@ summary.gremlin <- function(object, ...){
         varcompSampCor <- matrix(NA, nrow = nvc, ncol = nvc)
           dimnames(varcompSampCor) <- list(dimnames(varcompSummary)[[1L]], dimnames(varcompSummary)[[1L]])
       }
+    # Remove SEs of fixed or boundary parameters
+    if(any(FBparams <- object$grMod$conv %in% c("F", "B"))){
+      varcompSummary[which(FBparams), "Std. Error"] <- NA
+      conCol <- rep("", nrow(varcompSummary))
+        conCol[which(FBparams)] <- sapply(as.character(object$grMod$conv[FBparams]),
+              FUN = switch, "F" = "Fixed", "B" = "Boundary")
+      varcompSummary <- as.data.frame(varcompSummary)
+      varcompSummary$Constraint <- conCol
+     }
 
   ########
   coefVarScale <- ifelse(object$grMod$lambda, object$grMod$sigma2e, 1.0)
