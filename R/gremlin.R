@@ -529,6 +529,7 @@ gremlinSetup <- function(formula, random = NULL, rcov = ~ units,
   mMmc <- as.call(c(quote(mkModMats), mc[m]))
   modMats <- eval(mMmc, parent.frame())
 
+  if(missing(rcov)) mc$rcov <- as.list(formals(eval(mc[[1L]])))[["rcov"]]
   #algChoices <- c("EM", "AI", "bobyqa", "NR", control$algorithm)
   algChoices <- c("EM", "AI", "bobyqa", "NR")  #<-- ignore control$algorithm
     if(!is.null(control$algorithm)){

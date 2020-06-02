@@ -363,7 +363,8 @@ summary.gremlin <- function(object, ...){
   nvc <- object$grMod$p      # No. of (co)variance parameters
   formulae <- list(fn = object$grMod$call[[1L]],
 	fxd = object$grMod$call[["formula"]],
-	random = object$grMod$call[["random"]]) #FIXME need to include R (or combine with G)
+	random = object$grMod$call[["random"]],
+        rcov = object$grMod$call[["rcov"]])
 
   ########
   residQuants <- quantile(residuals(object, "response", scaled = TRUE), na.rm=TRUE)
@@ -446,6 +447,7 @@ print.summary.gremlin <- function(x,
     print(resids, digits = digits, ...)
 
   cat("\n (co)variance parameters:", paste(as.expression(x$formulae$random)), "\n")
+  cat("\t\t    rcov:", paste(as.expression(x$formulae$rcov)), "\n")
     print(as.data.frame(x$varcompSummary), digits = digits, ...)
 
   cat("\n (co)variance parameter sampling correlations:\n")
