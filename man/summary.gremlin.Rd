@@ -35,7 +35,11 @@ A \code{list} of class \code{summary.gremlin} or a printed value
       model residuals.}
     \item{varcompSummary }{Table of variance components and approximate
       standard errors (calculated from the inverse of the average information
-      matrix).}
+      matrix). If a (co)variance component is fixed or at the boundary of
+      its parameter space then an \code{NA} is returned for the standard error
+      and a column with constraint types is added to the table. Alternative
+      methods (e.g., profile likelihood CIs) should be pursued for obtaining
+      uncertainties associated with fixed or boundary parameters.}
     \item{varcompSampCor }{A \code{matrix} containing the sampling correlations
       of the (co)variance components. Note this is on the underlying \code{nu}
       scale that the model is fitting.}
