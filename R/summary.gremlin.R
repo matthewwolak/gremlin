@@ -32,10 +32,11 @@
 #' @importFrom stats logLik
 logLik.gremlin <- function(object, ...){
   val <- object$itMat[nrow(object$itMat), "loglik"]
-  #TODO attr(val, "nall") <- object$
-  attr(val, "df") <- object$grMod$modMats$nb + object$grMod$p
-  class(val) <- "logLik"
- val
+  structure(val,
+	    nobs = nobs.gremlin(object),
+#	    nall = nobs.gremlin(object),  #<-- as in `lme4::logLik.merMod()`
+  	    df = object$grMod$modMats$nb + object$grMod$p,
+            class = "logLik")
 }
 
 
