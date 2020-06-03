@@ -135,7 +135,12 @@ larger values increase the amount of information printed on the screen.}
 regarding the model fitting process. A value of zero gives no details and
 larger values increase the amount of information printed on the screen.}
 
+\item{control}{A \code{list} returned by \code{gremlinControl} containing
+specific named values from that function. See \code{\link{gremlinControl}}.}
+
 \item{\dots}{Additional arguments to be passed to control the model fitting.}
+
+\item{x, object}{An object of class \code{gremlin}.}
 
 \item{subset}{An expression for the subset of \code{data} to use.}
 

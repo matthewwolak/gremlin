@@ -27,7 +27,7 @@ A \code{list} of class \code{summary.gremlin} or a printed value
       formulae.}
     \item{runtime }{A \code{numeric} of class \sQuote{difftime} containing
       the length of time to run the model. See how this is handled in
-      \code{\link{[gremlin]update}}.}
+      \code{\link{update.gremlin}}.}
     \item{lambda }{A \code{logical} indicating if the model was transformed
       to the variance ratio, or \code{lambda} scale.}
     \item{residQuants }{A named \code{vector} listing summary output for the

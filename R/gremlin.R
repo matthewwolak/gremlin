@@ -104,11 +104,14 @@
 #' @param v An \code{integer} value specifying the verbosity of screen output
 #'   regarding the model fitting process. A value of zero gives no details and
 #'   larger values increase the amount of information printed on the screen.
+#' @param control A \code{list} returned by \code{gremlinControl} containing
+#'   specific named values from that function. See \code{\link{gremlinControl}}.
 #' @param na.action What to do with NAs.
 #' @param offset Should an offset be specified.
 #' @param contrasts Specify the type of contrasts for the fixed effects.
 #' @param Xsparse Should sparse matrices be used for the fixed effects design
 #'   matrix.
+#' @param x,object An object of class \code{gremlin}.
 #' @param \dots Additional arguments to be passed to control the model fitting.
 #'
 #' @return A \code{list} containing an object of class \code{grMod} and, if a 
