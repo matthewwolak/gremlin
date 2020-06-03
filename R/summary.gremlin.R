@@ -170,7 +170,7 @@ runtime <- function(object, ...){
 #' @author \email{matthewwolak@@gmail.com}
 #' @examples
 #' mod11 <- gremlin(WWG11 ~ sex - 1,
-#'	random = ~ calf,
+#'	random = ~ sire,
 #'	data = Mrode11)
 #' mod11red <- gremlinR(WWG11 ~ sex - 1, data = Mrode11)
 #' anova(mod11, mod11red)
