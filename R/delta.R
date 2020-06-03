@@ -50,7 +50,7 @@
 #'     deltaSE("V1 + V2", grS)  #<-- alternative
 #'
 #'   # Calculate standard deviations (with standard errors) from variances
-#'     ## Uses a `list` as the first argument
+#'     ## Uses a `list` as the first (`calc`) argument
 #'     ### All 3 below: different formats to calculate the same values
 #'     deltaSE(list(SD1 ~ sqrt(V1), SDresid ~ sqrt(V2)), grS)  #<-- formulas
 #'     deltaSE(list(SD1 ~ sqrt(G.sire), SDresid ~ sqrt(ResVar1)), grS) 
@@ -58,6 +58,7 @@
 #'
 #'   # Additive Genetic Variance calculated from observed Sire Variance
 #'     ## First simulate Full-sib data
+#'     set.seed(359)
 #'     noff <- 5     #<-- number of offspring in each full-sib family
 #'     ns <- 100     #<-- number of sires/full-sib families
 #'     VA <- 1       #<-- additive genetic variance
@@ -73,7 +74,7 @@
 #'     datFS$r <- rnorm(nrow(datFS), 0, sqrt(VR))  #<-- residual deviation
 #'     datFS$pheno <- rowSums(datFS[, c("BV", "r")]) 
 #'     # Analyze with a sire model
-#'     grFS <- gremlin(pheno ~ 1, random = ~ sire, data = datFS)
+#'     grFS <- gremlin(pheno ~ 1, random = ~ sire, data = datFS,v=3)
 #'     # calculate VA as 2 times the full-sib/sire variance
 #'     deltaSE(VAest ~ 2*V1, grFS)
 #'     # compare to expected value and simulated value

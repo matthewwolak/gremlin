@@ -33,11 +33,9 @@
 #'   (co)variance components), and Akaike's Information Criterion.
 #' @author \email{matthewwolak@@gmail.com}
 #' @examples
-#' mod11 <- gremlin(WWG11 ~ sex - 1,
-#'	random = ~ calf,
-#'	data = Mrode11)
-#' logLik(mod11)
-#' AIC(mod11)
+#' grS <- gremlin(WWG11 ~ sex - 1, random = ~ sire, data = Mrode11)
+#' logLik(grS)
+#' AIC(grS)
 #' @export
 #' @importFrom stats logLik
 logLik.gremlin <- function(object, ...){
@@ -114,10 +112,8 @@ AIC.gremlin <- function(object, ..., k = 2, fxdDf = FALSE){
 #' @return A single number, usually an \code{integer}, but can be \code{NA}.
 #' @author \email{matthewwolak@@gmail.com}
 #' @examples
-#' mod11 <- gremlin(WWG11 ~ sex - 1,
-#'	random = ~ calf,
-#'	data = Mrode11)
-#' nobs(mod11)
+#' grS <- gremlin(WWG11 ~ sex - 1, random = ~ sire, data = Mrode11)
+#' nobs(grS)
 #' @export
 #' @importFrom stats nobs
 #TODO check that calculates correct value if NAs are dropped: see `modMats()`
@@ -298,10 +294,8 @@ anova.gremlin <- function(object, ..., model.names = NULL){
 #' @return A \code{numeric} vector of residuals.
 #' @author \email{matthewwolak@@gmail.com}
 #' @examples
-#' mod11 <- gremlin(WWG11 ~ sex - 1,
-#'	random = ~ calf,
-#'	data = Mrode11)
-#' residuals(mod11)
+#' grS <- gremlin(WWG11 ~ sex - 1, random = ~ sire, data = Mrode11)
+#' residuals(grS)
 #' @export
 #' @importFrom stats naresid residuals
 # type = c("working", "response", "deviance", "pearson", "partial")
@@ -376,10 +370,8 @@ residuals.gremlin <- function(object,
 #' @author \email{matthewwolak@@gmail.com}
 #' @seealso \code{\link{gremlin}}
 #' @examples
-#' mod11 <- gremlin(WWG11 ~ sex - 1,
-#'	random = ~ calf,
-#'	data = Mrode11)
-#' summary(mod11)
+#' grS <- gremlin(WWG11 ~ sex - 1, random = ~ sire, data = Mrode11)
+#' summary(grS)
 #' @export
 #' @importFrom stats quantile
 #' @method summary gremlin

@@ -17,10 +17,8 @@
 #'
 #' @author \email{matthewwolak@@gmail.com}
 #' @examples
-#'   mod11setp <- gremlinSetup(WWG11 ~ sex - 1,
-#'   	random = ~ calf,
-#'   	data = Mrode11)
-#'   mod11 <- remlIt(mod11setp)
+#'   grSsetp <- gremlinSetup(WWG11 ~ sex - 1, random = ~ sire, data = Mrode11)
+#'   grS <- remlIt(grSsetp)
 #'
 #' @export
 ###########
