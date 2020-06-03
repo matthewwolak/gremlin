@@ -49,7 +49,7 @@ remlIt.default <- function(grMod, ...){
     ## Check that all are implemented in cpp (currently only AI or EM)
     if(any(is.na(intfacalgit))){
       stop(cat("Algorithm", grMod$algit[which(is.na(intfacalgit))],
-	"not implemented in c++, try", sQuote(`gremlinR()`), "\n"))
+	"not implemented in c++, try", sQuote('gremlinR()'), "\n"))
     }
 
   nnzWG <- with(grMod, c(length(W@x),		# No. nonzero W

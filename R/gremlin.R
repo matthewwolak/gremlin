@@ -338,6 +338,7 @@ getCall.gremlin <- function(x, ...) x$grMod$call
 #' @method update gremlin
 #' @rdname gremlin
 #' @export
+#' @importFrom stats formula as.formula update.formula
 update.gremlin <- function(object, ...){
 
   call <- getCall(object)

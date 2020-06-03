@@ -89,6 +89,7 @@
 #'     stopifnot(abs(dOut[, "Std. Error"] - sqrt(aiFnOut)) < 1e-10)
 #'
 #' @export
+#' @importFrom stats as.formula
 deltaSE <- function(expr, object, scale = c("theta", "nu")){
   UseMethod("deltaSE", expr)
 }
