@@ -6,7 +6,19 @@
 #'
 #' Extracts the log-likelihood or AIC from a gremlin model fit.
 #' 
-#' @aliases logLik.gremlin AIC.gremlin
+#' Function \code{npar.gremlin} returns an object with attributes \code{n.fxd}
+#' and \code{n.bndry} which give additional information about the parameters
+#' estimated and contributing to the overall \code{df} of the model. \code{n.fxd}
+#' returns the total number of parameters (No. fixed effects + No. (co)variance
+#' comonents) minus the number of parameters constrained to a certain value. Thus,
+#' \code{n.fxd} represents the number of parameters that can vary and, as a 
+#' consequence, affect the log-likelihood.
+#'
+#' The attribute \code{n.bndry} reports the number of parameters that were
+#' restrained to stay inside the boundaries of allowable parameter space (e.g.,
+#' a variance that was not allowed to be negative).
+#'
+#' @aliases logLik.gremlin npar.gremlin AIC.gremlin
 #' @param object An object of \code{class} \sQuote{gremlin}.
 #' @param \dots Additional arguments.
 #' @param k A numeric value for the penalty per parameter. Default is 2, as in
@@ -16,9 +28,9 @@
 #'   these must always be the same and so become a constant. Hence, the default
 #'   is \code{FALSE}.
 #'
-#' @return A \code{numeric} value for either the log-likelihood and the number of
+#' @return \code{numeric} values for the log-likelihood, the number of
 #'   parameters estimated by the model (sum of fixed effects and random effect
-#'   (co)variance components) or Akaike's Information Criterion.
+#'   (co)variance components), and Akaike's Information Criterion.
 #' @author \email{matthewwolak@@gmail.com}
 #' @examples
 #' mod11 <- gremlinR(WWG11 ~ sex - 1,
@@ -35,9 +47,26 @@ logLik.gremlin <- function(object, ...){
   structure(val,
 	    nobs = nobs.gremlin(object),
 #	    nall = nobs.gremlin(object),  #<-- as in `lme4::logLik.merMod()`
-  	    df = object$grMod$modMats$nb + object$grMod$p,
+  	    df = npar.gremlin(object),
             class = "logLik")
 }
+
+
+######  Number of parameters estimated ######
+#' @rdname logLik.gremlin
+#' @export
+npar.gremlin <- function(object){
+  n <- object$grMod$modMats$nb + object$grMod$p
+  con <- object$grMod$conv
+  fxd <- sum(con == "F")  #<-- number of parameters fixed in the model
+  bndry <- sum(con == "B")  #<-- number of parameters restrained to a boundary
+
+  structure(n,                    # number of parameters of the model
+	    n.fxd = n - fxd,      # number of 'free' parameters
+            n.bndry = bndry)      # DIFFERENT: number of parameters at a boundary
+}
+
+
 
 
 ######   AIC   ######
