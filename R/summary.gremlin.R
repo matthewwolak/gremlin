@@ -244,9 +244,11 @@ anova.gremlin <- function(object, ..., model.names = NULL){
     row.names = names(mods), check.names = FALSE)
   class(tabout) <- c("anova", class(tabout))
   forms <- lapply(lapply(calls, FUN = "[[", "random"), FUN = deparse)
+  rcovForms <- lapply(lapply(calls, FUN = "[[", "rcov"), FUN = deparse)
   structure(tabout,
     heading = c(header, "Models:",
-      paste(rep.int(names(mods), lengths(forms)), unlist(forms), sep = ": ")))
+      paste(paste(rep.int(names(mods), lengths(forms)), unlist(forms), sep = ": "),
+        unlist(rcovForms), sep = " + [ rcov ] ")))
  
 }
 
