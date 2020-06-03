@@ -562,10 +562,11 @@ gremlinSetup <- function(formula, random = NULL, rcov = ~ units,
 
   #TODO check dimensions G/Rstart
 #FIXME assumes univariate
-  if(is.null(mc$Gstart)) Gstart <- as.list(rep(0.1*var(modMats$y), modMats$nG))
+  if(modMats$nG > 8) fra <- 0.9 / modMats$nG else fra <- 0.1
+  if(is.null(mc$Gstart)) Gstart <- as.list(rep(fra*var(modMats$y), modMats$nG))
     else Gstart <- eval(mc$Gstart)
 #FIXME assumes univariate
-  if(is.null(mc$Rstart)) Rstart <- matrix(0.5*var(modMats$y))
+  if(is.null(mc$Rstart)) Rstart <- matrix(0.1*var(modMats$y))
     else Rstart <- eval(mc$Rstart)
 #FIXME assumes univariate
   if(is.null(mc$Gcon)) Gcon <- as.list(rep("P", modMats$nG))
