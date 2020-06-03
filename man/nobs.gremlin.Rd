@@ -21,10 +21,8 @@ A single number, usually an \code{integer}, but can be \code{NA}.
 Extract the number of 'observations' in a gremlin model fit.
 }
 \examples{
-mod11 <- gremlin(WWG11 ~ sex - 1,
-random = ~ calf,
-data = Mrode11)
-nobs(mod11)
+grS <- gremlin(WWG11 ~ sex - 1, random = ~ sire, data = Mrode11)
+nobs(grS)
 }
 \author{
 \email{matthewwolak@gmail.com}

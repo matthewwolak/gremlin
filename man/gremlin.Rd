@@ -286,6 +286,30 @@ Fit and setup functions for linear mixed-effect model (Gaussian responses).
   grOut <- remlIt(grSetup)
   summary(grOut)
 
+\dontrun{
+  # Following the example from Mrode 2005, chapter 11.
+  library(nadiv)  #<-- to construct inverse of the numerator relatedness matrix
+  Ainv <- makeAinv(Mrode11[, 1:3])$Ainv
+
+  gr11lmm <- gremlin(WWG11 ~ sex - 1,
+random = ~ calf,
+data = Mrode11,
+ginverse = list(calf = Ainv),
+Gstart = matrix(0.2), Rstart = matrix(0.4),  #<-- specify starting values
+maxit = 15,    #<-- maximum iterations
+     v = 2, vit = 1,  #<-- moderate screen output (`v`) every iteration (`vit`)
+     algit = "AI")  #<-- only use Average Information algorithm iterations
+  summary(gr11lmm)
+
+  # Compare the model to a Linear Model with no random effects
+  ## Use `update()` to update the model
+  gr11lm <- update(gr11lmm, random = ~ 1)  #<-- `~1`=drop all random effects
+  summary(gr11lm)
+
+  # Do analysis of variance between the two models
+  ## See AIC or evaluate likelihood ratio against a Chi-squared distribution
+  anova(gr11lm, gr11lmm)
+}
 }
 \references{
 Meyer.

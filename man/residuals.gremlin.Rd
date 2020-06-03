@@ -25,10 +25,8 @@ A \code{numeric} vector of residuals.
 Residuals of \code{class} \sQuote{gremlin}.
 }
 \examples{
-mod11 <- gremlin(WWG11 ~ sex - 1,
-random = ~ calf,
-data = Mrode11)
-residuals(mod11)
+grS <- gremlin(WWG11 ~ sex - 1, random = ~ sire, data = Mrode11)
+residuals(grS)
 }
 \author{
 \email{matthewwolak@gmail.com}

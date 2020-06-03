@@ -48,11 +48,9 @@ restrained to stay inside the boundaries of allowable parameter space (e.g.,
 a variance that was not allowed to be negative).
 }
 \examples{
-mod11 <- gremlin(WWG11 ~ sex - 1,
-random = ~ calf,
-data = Mrode11)
-logLik(mod11)
-AIC(mod11)
+grS <- gremlin(WWG11 ~ sex - 1, random = ~ sire, data = Mrode11)
+logLik(grS)
+AIC(grS)
 }
 \author{
 \email{matthewwolak@gmail.com}
