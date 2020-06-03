@@ -17,6 +17,6 @@ Description: Fit linear mixed-effects models using restricted (or residual)
     to fit quantitative genetic mixed models, often referred to as 'animal models'.
     Implements the average information algorithm as the main tool to maximize the
     restricted likelihood, but with other algorithms available.
-License: file LICENSE
+License: GPL-3 | file LICENSE
 Encoding: UTF-8
 RoxygenNote: 7.1.0
