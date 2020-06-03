@@ -30,7 +30,7 @@ random = ~ calf,
 data = Mrode11,
 ginverse = list(calf = Ainv),
 Gstart = matrix(0.2), Rstart = matrix(0.4),  #<-- specify starting values
-maxit = 10,    #<-- maximum iterations
+maxit = 15,    #<-- maximum iterations
      v = 2, vit = 1,  #<-- moderate screen output (`v`) every iteration (`vit`)
      algit = "AI")  #<-- only use Average Information algorithm iterations
   summary(grOut11)

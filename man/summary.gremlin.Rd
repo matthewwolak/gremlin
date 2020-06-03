@@ -51,6 +51,12 @@ A \code{list} of class \code{summary.gremlin} or a printed value
 \description{
 Summarize and print results of linear mixed model fitted with gremlin.
 }
+\examples{
+mod11 <- gremlin(WWG11 ~ sex - 1,
+random = ~ calf,
+data = Mrode11)
+summary(mod11)
+}
 \seealso{
 \code{\link{gremlin}}
 }

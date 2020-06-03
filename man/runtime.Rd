@@ -19,9 +19,9 @@ A numeric of class \code{\sQuote{difftime}} with an attribute of units
 Extract the length of time to fit the model.
 }
 \examples{
-mod11 <- gremlinR(WWG11 ~ sex - 1,
+mod11 <- gremlin(WWG11 ~ sex - 1,
 random = ~ calf,
-data = Mrode11, algit = "EM")
+data = Mrode11)
 gremlin:::runtime(mod11)
 }
 \author{

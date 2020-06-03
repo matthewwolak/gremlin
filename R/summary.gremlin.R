@@ -33,11 +33,9 @@
 #'   (co)variance components), and Akaike's Information Criterion.
 #' @author \email{matthewwolak@@gmail.com}
 #' @examples
-#' mod11 <- gremlinR(WWG11 ~ sex - 1,
+#' mod11 <- gremlin(WWG11 ~ sex - 1,
 #'	random = ~ calf,
-#'	data = Mrode11,
-#'	Gstart = matrix(0.1), Rstart = matrix(0.4),
-#'	maxit = 50, v = 2, algit = "EM")
+#'	data = Mrode11)
 #' logLik(mod11)
 #' AIC(mod11)
 #' @export
@@ -116,11 +114,9 @@ AIC.gremlin <- function(object, ..., k = 2, fxdDf = FALSE){
 #' @return A single number, usually an \code{integer}, but can be \code{NA}.
 #' @author \email{matthewwolak@@gmail.com}
 #' @examples
-#' mod11 <- gremlinR(WWG11 ~ sex - 1,
+#' mod11 <- gremlin(WWG11 ~ sex - 1,
 #'	random = ~ calf,
-#'	data = Mrode11,
-#'	Gstart = matrix(0.1), Rstart = matrix(0.4),
-#'	maxit = 50, v = 2, algit = "EM")
+#'	data = Mrode11)
 #' nobs(mod11)
 #' @export
 #' @importFrom stats nobs
@@ -149,9 +145,9 @@ nobs.gremlin <- function(object, use.fallback = FALSE, ...){
 #' (e.g., seconds or minutes).
 #' @author \email{matthewwolak@@gmail.com}
 #' @examples
-#' mod11 <- gremlinR(WWG11 ~ sex - 1,
+#' mod11 <- gremlin(WWG11 ~ sex - 1,
 #'	random = ~ calf,
-#'	data = Mrode11, algit = "EM")
+#'	data = Mrode11)
 #' gremlin:::runtime(mod11)
 runtime <- function(object, ...){
   attr(object, "endTime") - attr(object, "startTime")
@@ -178,12 +174,11 @@ runtime <- function(object, ...){
 #'   \code{object}s via a REML likelihood ratio test.
 #' @author \email{matthewwolak@@gmail.com}
 #' @examples
-#' mod11 <- gremlinR(WWG11 ~ sex - 1,
+#' mod11 <- gremlin(WWG11 ~ sex - 1,
 #'	random = ~ calf,
-#'	data = Mrode11,
-#'	Gstart = matrix(0.1), Rstart = matrix(0.4),
-#'	maxit = 50, v = 2, algit = "EM")
-#' logLik(mod11)
+#'	data = Mrode11)
+#' mod11red <- gremlinR(WWG11 ~ sex - 1, data = Mrode11)
+#' anova(mod11, mod11red)
 #' @export
 #' @importFrom stats anova getCall pchisq
 #adapted from `lme4::anovaLmer()`
@@ -308,11 +303,9 @@ anova.gremlin <- function(object, ..., model.names = NULL){
 #' @return A \code{numeric} vector of residuals.
 #' @author \email{matthewwolak@@gmail.com}
 #' @examples
-#' mod11 <- gremlinR(WWG11 ~ sex - 1,
+#' mod11 <- gremlin(WWG11 ~ sex - 1,
 #'	random = ~ calf,
-#'	data = Mrode11,
-#'	Gstart = matrix(0.1), Rstart = matrix(0.4),
-#'	maxit = 50, v = 2, algit = "EM")
+#'	data = Mrode11)
 #' residuals(mod11)
 #' @export
 #' @importFrom stats naresid residuals
@@ -387,6 +380,11 @@ residuals.gremlin <- function(object,
 #'
 #' @author \email{matthewwolak@@gmail.com}
 #' @seealso \code{\link{gremlin}}
+#' @examples
+#' mod11 <- gremlin(WWG11 ~ sex - 1,
+#'	random = ~ calf,
+#'	data = Mrode11)
+#' summary(mod11)
 #' @export
 #' @importFrom stats quantile
 #' @method summary gremlin

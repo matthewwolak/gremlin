@@ -22,12 +22,11 @@ A \code{data.frame} containing the nested comparison of model
 REML Likelihood Ratio Tests for gremlin models using anova()
 }
 \examples{
-mod11 <- gremlinR(WWG11 ~ sex - 1,
+mod11 <- gremlin(WWG11 ~ sex - 1,
 random = ~ calf,
-data = Mrode11,
-Gstart = matrix(0.1), Rstart = matrix(0.4),
-maxit = 50, v = 2, algit = "EM")
-logLik(mod11)
+data = Mrode11)
+mod11red <- gremlinR(WWG11 ~ sex - 1, data = Mrode11)
+anova(mod11, mod11red)
 }
 \author{
 \email{matthewwolak@gmail.com}

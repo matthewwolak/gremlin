@@ -34,7 +34,7 @@
 #'	data = Mrode11,
 #'	ginverse = list(calf = Ainv),
 #'	Gstart = matrix(0.2), Rstart = matrix(0.4),  #<-- specify starting values
-#'	maxit = 10,    #<-- maximum iterations
+#'	maxit = 15,    #<-- maximum iterations
 #'      v = 2, vit = 1,  #<-- moderate screen output (`v`) every iteration (`vit`)
 #'      algit = "AI")  #<-- only use Average Information algorithm iterations
 #'   summary(grOut11)
@@ -177,7 +177,8 @@
 #'     \item{sln }{A one column \code{matrix} of solutions in the mixed model
 #'       equations.}
 #'     \item{Cinv_ii }{A one column \code{matrix} of variances for the solutions
-#'       to the mixed model equations. These are obtained from the diagonal of #'       the inverse Coefficient matrix in the mixed model equations. If lambda
+#'       to the mixed model equations. These are obtained from the diagonal of
+#'       the inverse Coefficient matrix in the mixed model equations. If lambda
 #'       is \code{TRUE} then these are on the lambda scale and must be
 #'       multiplied by \code{sigma2e} to be converted to the original data scale.}
 #'     \item{r }{A one column \code{matrix} of residual deviations, response minus

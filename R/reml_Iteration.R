@@ -17,13 +17,10 @@
 #'
 #' @author \email{matthewwolak@@gmail.com}
 #' @examples
-#'  TODO XXX XXX Make example of each modular component working with next
-#'   mod11 <- gremlinSetup(WWG11 ~ sex - 1,
+#'   mod11setp <- gremlinSetup(WWG11 ~ sex - 1,
 #'   	random = ~ calf,
-#'   	data = Mrode11,
-#'   	Gstart = matrix(0.2), Rstart = matrix(0.4),
-#'   	maxit = 10, v = 2)
-#'   REMLout <- remlIt(mod11)
+#'   	data = Mrode11)
+#'   mod11 <- remlIt(mod11setp)
 #'
 #' @export
 ###########
