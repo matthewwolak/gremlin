@@ -93,7 +93,7 @@ Though \code{deltaSE} can calculate standard errors for non-linear functions
     datFS$r <- rnorm(nrow(datFS), 0, sqrt(VR))  #<-- residual deviation
     datFS$pheno <- rowSums(datFS[, c("BV", "r")]) 
     # Analyze with a sire model
-    grFS <- gremlin(pheno ~ 1, random = ~ sire, data = datFS,v=3)
+    grFS <- gremlin(pheno ~ 1, random = ~ sire, data = datFS)
     # calculate VA as 2 times the full-sib/sire variance
     deltaSE(VAest ~ 2*V1, grFS)
     # compare to expected value and simulated value
