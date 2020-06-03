@@ -68,8 +68,9 @@ remlIt.default <- function(grMod, ...){
   } else{
       dimZWG <- c(dimZWG, 0)
       geninv_i <- geninv_p <- geninv_x <- 0
-    warning(cat("\n\ngremlin's c++ code is far too sophisticated for such a simple model.\n",
-       "\tRe-fitting with the", sQuote('gremlinR()'), "function instead\n\n"))
+    cat("\n\n\t\t\t **NOTE:**",
+       "\ngremlin's c++ code is far too sophisticated for such a simple model.\n",
+       "\tRe-fitting with the", sQuote('gremlinR()'), "function instead\n\n")
       return(remlIt.gremlinR(grMod))
     }
 
