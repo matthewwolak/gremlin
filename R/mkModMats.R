@@ -1,31 +1,3 @@
-#FIXME: Make decision about how to convert into factors (do this in function passing data frame to `mkModMats()`).
-#FIXME: previous to `mkModMats()` NEED to make all rand effects/intercepts factors in data!
-## Somehow do this in the data.frame associated with the model.frame in gf?
-
-## For example, leave variables 'as is' in fixed effects part
-## Convert all variables in certain parts of random effects formulas to factors
-### Apparently, lme4 does this automatically - see R-sig-ME thread 5 October 2016 
-#### Subject: manage person identifier variable
-#### XXX Note the caution about leading zeroes! (can `as.factor(as.character())` solve this?)
-## For example, year in both fxd and rfx (covariate as fixed effect, but factor as rfx)
-
-
-####	start function		########
-  # Strip out function so most of checking and cleaning done elsewhere
-  # see "./gremlin_parent/modelFittingInR" for general strategy of model.frame and model.matrix
-  # check for:
-    # multivariate/univariate
-    # sorting of data frame (multivariate or by interactions of random effects)   
-    # if levels of fixed/random effects in their interaction are all present (e.g., MCMCglmm does this)
-  #Have "units" added to data.frame in a previous function so it is already in "data="object
-  #Perhaps remove some of arguments below that are more checking, constructing data
-
-#TODO: `mkModMats()` that accepts lme4 model terms (e.g., "|" for rand fx)
-# Below is the MCMCglmm kind of way
-
-
-
-
 #XXX RANDOM EFFECTS MUST ALREADY BE FACTORS IN DATA!!!!
 ################################################################################
 #' @describeIn gremlin Generates model matrices. 
