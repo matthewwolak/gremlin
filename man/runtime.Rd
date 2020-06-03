@@ -12,7 +12,7 @@ runtime(object, ...)
 \item{\dots}{Further arguments to be passed to the methods.}
 }
 \value{
-A numeric of class \code{\sQuote{difftime}} with an attribute of units
+A numeric of class \sQuote{difftime} with an attribute of units
 (e.g., seconds or minutes).
 }
 \description{

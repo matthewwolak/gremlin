@@ -141,7 +141,7 @@ nobs.gremlin <- function(object, use.fallback = FALSE, ...){
 #' @param object An object of \code{class} \sQuote{gremlin}.
 #' @param \dots Further arguments to be passed to the methods.
 #'
-#' @return A numeric of class \code{\sQuote{difftime}} with an attribute of units
+#' @return A numeric of class \sQuote{difftime} with an attribute of units
 #' (e.g., seconds or minutes).
 #' @author \email{matthewwolak@@gmail.com}
 runtime <- function(object, ...){

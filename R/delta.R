@@ -31,10 +31,10 @@
 #'   of (co)variance component for which to calculate standard errors.
 #' @param object A fitted model object of \code{class} \sQuote{gremlin}.
 #' @param scale A \code{character} indicating whether to calculate the function
-#'   and standard error on the original data scale (\code{\dQuote{theta}}) or
+#'   and standard error on the original data scale (\dQuote{theta}) or
 #'   on the underlying scale to which (co)variance components are transformed
 #'   for the model fitting calculations (\code{dQuote{nu}}). Defaults to
-#'   \code{\dQuote{theta}} if not specified.
+#'   \dQuote{theta} if not specified.
 #' @return A \code{data.frame} containing the \dQuote{Estimate} and
 #'   \dQuote{Std. Error} for the mathematical function(s) of (co)variance
 #'   components.

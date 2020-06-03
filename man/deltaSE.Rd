@@ -19,10 +19,10 @@ deltaSE(expr, object, scale = c("theta", "nu"))
 \item{object}{A fitted model object of \code{class} \sQuote{gremlin}.}
 
 \item{scale}{A \code{character} indicating whether to calculate the function
-and standard error on the original data scale (\code{\dQuote{theta}}) or
+and standard error on the original data scale (\dQuote{theta}) or
 on the underlying scale to which (co)variance components are transformed
 for the model fitting calculations (\code{dQuote{nu}}). Defaults to
-\code{\dQuote{theta}} if not specified.}
+\dQuote{theta} if not specified.}
 
 \item{fmla, expr, lst}{A character \code{expression}, \code{formula}, or list (of
 \code{formula} or \code{expression}) expressing the mathematical function
