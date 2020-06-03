@@ -55,6 +55,6 @@ Mrode. 2005.
 \code{\link[MCMCglmm:MCMCglmm-package]{MCMCglmm}}
 }
 \author{
-\strong{Maintainer}: Matthew Wolak \email{matthewwolak@gmail.com} (0000-0002-7962-0071)
+\strong{Maintainer}: Matthew Wolak \email{matthewwolak@gmail.com} (\href{https://orcid.org/0000-0002-7962-0071}{ORCID})
 
 }

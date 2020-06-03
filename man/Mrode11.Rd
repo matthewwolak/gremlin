@@ -4,7 +4,9 @@
 \name{Mrode11}
 \alias{Mrode11}
 \title{Weight gain data.}
-\format{An object of class \code{data.frame} with 5 rows and 5 columns.}
+\format{
+An object of class \code{data.frame} with 5 rows and 5 columns.
+}
 \source{
 Mrode. 2005.
 }

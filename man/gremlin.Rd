@@ -12,32 +12,84 @@
 \alias{is.grMod}
 \title{Mixed-effect modeling functions.}
 \usage{
-gremlin(formula, random = NULL, rcov = ~units, data = NULL,
-  ginverse = NULL, Gstart = NULL, Rstart = NULL, Bp = NULL,
-  Gcon = NULL, Rcon = NULL, maxit = 20, algit = NULL, vit = 1,
-  v = 1, control = gremlinControl(), ...)
+gremlin(
+  formula,
+  random = NULL,
+  rcov = ~units,
+  data = NULL,
+  ginverse = NULL,
+  Gstart = NULL,
+  Rstart = NULL,
+  Bp = NULL,
+  Gcon = NULL,
+  Rcon = NULL,
+  maxit = 20,
+  algit = NULL,
+  vit = 1,
+  v = 1,
+  control = gremlinControl(),
+  ...
+)
 
-gremlinR(formula, random = NULL, rcov = ~units, data = NULL,
-  ginverse = NULL, Gstart = NULL, Rstart = NULL, Bp = NULL,
-  Gcon = NULL, Rcon = NULL, maxit = 20, algit = NULL, vit = 1,
-  v = 1, control = gremlinControl(), ...)
+gremlinR(
+  formula,
+  random = NULL,
+  rcov = ~units,
+  data = NULL,
+  ginverse = NULL,
+  Gstart = NULL,
+  Rstart = NULL,
+  Bp = NULL,
+  Gcon = NULL,
+  Rcon = NULL,
+  maxit = 20,
+  algit = NULL,
+  vit = 1,
+  v = 1,
+  control = gremlinControl(),
+  ...
+)
 
 \method{getCall}{gremlin}(x, ...)
 
 update.gremlin(object, ...)
 
-gremlinSetup(formula, random = NULL, rcov = ~units, data = NULL,
-  ginverse = NULL, Gstart = NULL, Rstart = NULL, Bp = NULL,
-  Gcon = NULL, Rcon = NULL, maxit = 20, algit = NULL, vit = 1,
-  v = 1, control = gremlinControl(), ...)
+gremlinSetup(
+  formula,
+  random = NULL,
+  rcov = ~units,
+  data = NULL,
+  ginverse = NULL,
+  Gstart = NULL,
+  Rstart = NULL,
+  Bp = NULL,
+  Gcon = NULL,
+  Rcon = NULL,
+  maxit = 20,
+  algit = NULL,
+  vit = 1,
+  v = 1,
+  control = gremlinControl(),
+  ...
+)
 
 \method{is}{gremlin}(x)
 
 \method{is}{grMod}(x)
 
-mkModMats(formula, random = NULL, rcov = ~units, data = NULL,
-  subset = NULL, ginverse = NULL, na.action = na.pass,
-  offset = NULL, contrasts = NULL, Xsparse = TRUE, ...)
+mkModMats(
+  formula,
+  random = NULL,
+  rcov = ~units,
+  data = NULL,
+  subset = NULL,
+  ginverse = NULL,
+  na.action = na.pass,
+  offset = NULL,
+  contrasts = NULL,
+  Xsparse = TRUE,
+  ...
+)
 }
 \arguments{
 \item{formula}{A \code{formula} for the response variable(s) and fixed effects.}

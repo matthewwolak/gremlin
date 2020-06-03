@@ -103,7 +103,6 @@ csi traceFun(double *trace, double *w,
 	const cs *BLUXs, const cs *Lc, const csi *Pinv
 ){
 
-  int     lambda, nminfrfx;
   double  *Bx, *Lx;
   csi     g, i, j, k, nsln, si, qi, ei, *Lp, *Li, minginviPerm;
 

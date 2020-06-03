@@ -19,4 +19,4 @@ Description: Fit linear mixed-effects models using restricted (or residual)
     restricted likelihood, but with other algorithms available.
 License: file LICENSE
 Encoding: UTF-8
-RoxygenNote: 6.1.1
+RoxygenNote: 7.1.0

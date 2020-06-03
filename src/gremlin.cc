@@ -115,7 +115,6 @@ void ugremlin(
   int 	 g, i, k, rw, si, si2, vitout, r, c, cnt, cd, rd, pr,
 	 itc = 0,
          aiformed = 0,
-         hformed = 0,
 	 sHformed = 0,
          huuformed = 0,
          sHuuformed = 0,
@@ -950,7 +949,6 @@ if(v[0] > 3){
       if(p[0] == conP) H = AI;
         else H = cs_droprowcol(AI, wchBd);      
       aiformed = 1;
-      hformed = 1;
 
 
 
@@ -1419,7 +1417,6 @@ if(v[0] > 3) simple_tic(t);
     cs_spfree(AI);
   }  // end if AI NOT NULL
 
-//  if(hformed == 1) cs_spfree(H);
   if(CS_CSC(H_uu)) cs_spfree(H_uu);
 
   // return constraint codes from final iteration

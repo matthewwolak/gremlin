@@ -7,16 +7,37 @@
 \alias{gradFun}
 \title{REML optimization algorithms for mixed-effect models.}
 \usage{
-reml(nu, skel, thetaG, sLc, modMats, W, Bpinv, nminffx, nminfrfx, rfxlvls,
-  rfxIncContrib2loglik, thetaR = NULL, tWW = NULL, RHS = NULL)
+reml(
+  nu,
+  skel,
+  thetaG,
+  sLc,
+  modMats,
+  W,
+  Bpinv,
+  nminffx,
+  nminfrfx,
+  rfxlvls,
+  rfxIncContrib2loglik,
+  thetaR = NULL,
+  tWW = NULL,
+  RHS = NULL
+)
 
 em(nuvin, thetaG, thetaR, conv, modMats, nminffx, sLc, ndgeninv, sln, r)
 
-ai(nuvin, skel, thetaG, modMats, W, sLc, sln, r, thetaR = NULL,
-  sigma2e = NULL)
+ai(nuvin, skel, thetaG, modMats, W, sLc, sln, r, thetaR = NULL, sigma2e = NULL)
 
-gradFun(nuvin, thetaG, modMats, Cinv, sln, sigma2e = NULL, r = NULL,
-  nminfrfx = NULL)
+gradFun(
+  nuvin,
+  thetaG,
+  modMats,
+  Cinv,
+  sln,
+  sigma2e = NULL,
+  r = NULL,
+  nminfrfx = NULL
+)
 }
 \arguments{
 \item{nu, nuvin}{A \code{list} or \code{vector} of (co)variance parameters to
