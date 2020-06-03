@@ -335,6 +335,7 @@ getCall.gremlin <- function(x, ...) x$grMod$call
 ###########
 # gremlin
 ###########
+#' @method update gremlin
 #' @rdname gremlin
 #' @export
 update.gremlin <- function(object, ...){

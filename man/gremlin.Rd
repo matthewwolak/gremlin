@@ -52,7 +52,7 @@ gremlinR(
 
 \method{getCall}{gremlin}(x, ...)
 
-update.gremlin(object, ...)
+\method{update}{gremlin}(object, ...)
 
 gremlinSetup(
   formula,
