@@ -7,15 +7,19 @@
 \alias{deltaSE.list}
 \title{Delta Method to Calculate Standard Errors for Functions of (Co)variances.}
 \usage{
-deltaSE(expr, object, scale = c("theta", "nu"))
+deltaSE(calc, object, scale = c("theta", "nu"))
 
-\method{deltaSE}{default}(expr, object, scale = c("theta", "nu"))
+\method{deltaSE}{default}(calc, object, scale = c("theta", "nu"))
 
-\method{deltaSE}{formula}(fmla, object, scale = c("theta", "nu"))
+\method{deltaSE}{formula}(calc, object, scale = c("theta", "nu"))
 
-\method{deltaSE}{list}(lst, object, scale = c("theta", "nu"))
+\method{deltaSE}{list}(calc, object, scale = c("theta", "nu"))
 }
 \arguments{
+\item{calc}{A character \code{expression}, \code{formula}, or list (of
+\code{formula} or \code{expression}) expressing the mathematical function
+of (co)variance component for which to calculate standard errors.}
+
 \item{object}{A fitted model object of \code{class} \sQuote{gremlin}.}
 
 \item{scale}{A \code{character} indicating whether to calculate the function
@@ -23,10 +27,6 @@ and standard error on the original data scale (\dQuote{theta}) or
 on the underlying scale to which (co)variance components are transformed
 for the model fitting calculations (\code{dQuote{nu}}). Defaults to
 \dQuote{theta} if not specified.}
-
-\item{fmla, expr, lst}{A character \code{expression}, \code{formula}, or list (of
-\code{formula} or \code{expression}) expressing the mathematical function
-of (co)variance component for which to calculate standard errors.}
 }
 \value{
 A \code{data.frame} containing the \dQuote{Estimate} and
@@ -64,7 +64,7 @@ Though \code{deltaSE} can calculate standard errors for non-linear functions
 
 \examples{
   # Calculate the sum of the variance components 
-    grS <- gremlin(WWG11 ~ sex, random = ~ sire, data = Mrode11)
+    grS <- gremlin(WWG11 ~ sex - 1, random = ~ sire, data = Mrode11)
     deltaSE(Vsum ~ V1 + V2, grS)
     deltaSE("V1 + V2", grS)  #<-- alternative
 

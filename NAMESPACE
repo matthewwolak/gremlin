@@ -2,6 +2,9 @@
 
 S3method(AIC,gremlin)
 S3method(anova,gremlin)
+S3method(deltaSE,default)
+S3method(deltaSE,formula)
+S3method(deltaSE,list)
 S3method(getCall,gremlin)
 S3method(is,grMod)
 S3method(is,gremlin)

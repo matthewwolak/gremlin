@@ -26,7 +26,7 @@
 #'   \code{\link[stats]{deriv}} for more information.
 #'
 #' @aliases deltaSE deltaSE.default deltaSE.formula deltaSE.list
-#' @param fmla,expr,lst A character \code{expression}, \code{formula}, or list (of
+#' @param calc A character \code{expression}, \code{formula}, or list (of
 #'   \code{formula} or \code{expression}) expressing the mathematical function
 #'   of (co)variance component for which to calculate standard errors.
 #' @param object A fitted model object of \code{class} \sQuote{gremlin}.
@@ -45,7 +45,7 @@
 #' @importFrom stats deriv
 #' @examples
 #'   # Calculate the sum of the variance components 
-#'     grS <- gremlin(WWG11 ~ sex, random = ~ sire, data = Mrode11)
+#'     grS <- gremlin(WWG11 ~ sex - 1, random = ~ sire, data = Mrode11)
 #'     deltaSE(Vsum ~ V1 + V2, grS)
 #'     deltaSE("V1 + V2", grS)  #<-- alternative
 #'
@@ -89,9 +89,8 @@
 #'     stopifnot(abs(dOut[, "Std. Error"] - sqrt(aiFnOut)) < 1e-10)
 #'
 #' @export
-#' @importFrom stats as.formula
-deltaSE <- function(expr, object, scale = c("theta", "nu")){
-  UseMethod("deltaSE", expr)
+deltaSE <- function(calc, object, scale = c("theta", "nu")){
+  UseMethod("deltaSE", calc)
 }
 
 
@@ -100,19 +99,21 @@ deltaSE <- function(expr, object, scale = c("theta", "nu")){
 # Default
 ##############
 #' @describeIn deltaSE Default method
-deltaSE.default <- function(expr, object, scale = c("theta", "nu")){
+#' @export
+#' @importFrom stats as.formula
+deltaSE.default <- function(calc, object, scale = c("theta", "nu")){
 
   if(!inherits(object, "gremlin")){
     stop(cat("Must supply an object of class", dQuote(gremlin), "\n"))
   }
 
   cl <- match.call()
-  cl_expr <- cl[[match("expr", names(cl))]]
-  if(inherits(cl_expr, "character")){
-    fmla <- as.formula(paste("~", eval(expr)))
+  cl_calc <- cl[[match("calc", names(cl))]]
+  if(inherits(cl_calc, "character")){
+    fmla <- as.formula(paste("~", eval(calc)))
   } else{
-      warning("expr must be a character expression")
-      fmla <- as.formula(paste("~", eval(cl_expr)))
+      warning("calc must be a character expression")
+      fmla <- as.formula(paste("~", eval(cl_calc)))
     }
 
  deltaSE.formula(fmla, object, scale)
@@ -126,13 +127,15 @@ deltaSE.default <- function(expr, object, scale = c("theta", "nu")){
 # Formula
 ##############
 #' @describeIn deltaSE Formula method
-deltaSE.formula <- function(fmla, object, scale = c("theta", "nu")){
+#' @export
+#' @importFrom stats deriv
+deltaSE.formula <- function(calc, object, scale = c("theta", "nu")){
 
   if(!inherits(object, "gremlin")){
     stop(cat("Must supply an object of class", dQuote(gremlin), "\n"))
   }
 
-  RHS <- fmla[[length(fmla)]]
+  RHS <- calc[[length(calc)]]
 
   # determine if theta or nu scale calculations to be performed
   if(missing(scale)) sc <- "theta" else sc <- match.arg(scale)
@@ -155,11 +158,11 @@ deltaSE.formula <- function(fmla, object, scale = c("theta", "nu")){
   onames <- any(names(covlist) %in% all.vars(RHS))
   vnames <- any(covlistVnms %in% all.vars(RHS))
   if(!onames && !vnames){
-    stop(cat("Variables in expr/fmla are not names from object or V1 -",
+    stop(cat("Variables in calc are not names from object or V1 -",
 	paste0("V", length(covlist)), "\n"))
   }
   if(onames & vnames){
-    warning(cat("Variables in expr/fmla are mix of names from object and V1 -",
+    warning(cat("Variables in calc are mix of names from object and V1 -",
 	paste0("V", length(covlist)),
       "\n\tconverting to all V1 -", paste0("V", length(covlist)), "\n"))
     onames <- !onames  #<-- will cause next if statement to give correct names
@@ -167,11 +170,11 @@ deltaSE.formula <- function(fmla, object, scale = c("theta", "nu")){
   if(!onames & vnames) names(covlist) <- covlistVnms
 
 
-  LHSresult <- eval(stats::deriv(RHS, names(covlist)),
+  LHSresult <- eval(deriv(RHS, names(covlist)),
                  covlist)
   gradVec <- matrix(as.vector(attr(LHSresult, "gradient")), ncol=1)
   LHSse <- as.vector(sqrt(crossprod(gradVec, invAI) %*% gradVec))
-  LHSresultNm <- if(length(fmla) == 3) fmla[[2]] else deparse(RHS)
+  LHSresultNm <- if(length(calc) == 3) calc[[2]] else deparse(RHS)
 
   varcompFunSummary <- data.frame(Estimate = LHSresult, SE = LHSse)
     dimnames(varcompFunSummary) <- list(LHSresultNm, c("Estimate", "Std. Error"))
@@ -188,36 +191,38 @@ deltaSE.formula <- function(fmla, object, scale = c("theta", "nu")){
 # List
 ##############
 #' @describeIn deltaSE List method
-deltaSE.list <- function(lst, object, scale = c("theta", "nu")){
+#' @export
+#' @importFrom stats as.formula
+deltaSE.list <- function(calc, object, scale = c("theta", "nu")){
 
   if(!inherits(object, "gremlin")){
     stop(cat("Must supply an object of class", dQuote(gremlin), "\n"))
   }
 
   cl <- match.call()
-  cl_lst <- cl[[match("lst", names(cl))]]
-  allFmla <- try(sapply(lst, FUN = inherits, what = "formula"), silent = TRUE)
+  cl_calc <- cl[[match("calc", names(cl))]]
+  allFmla <- try(sapply(calc, FUN = inherits, what = "formula"), silent = TRUE)
   if(inherits(allFmla, what = "try-error")){
-    warning("expr must be a character expression")
-    fmla_lst <- sapply(cl_lst[-1], FUN = function(x){
+    warning("calc must be a character expression")
+    fmla_lst <- sapply(cl_calc[-1], FUN = function(x){
       as.formula(paste("~", as.expression(x)))})
   } else{
-      if(!all(sapply(lst, FUN = inherits, what = "formula"))){
-        if(any(sapply(lst, FUN = inherits, what = "formula"))){
-          stop("lst must be either all formulas or all expressions")
+      if(!all(sapply(calc, FUN = inherits, what = "formula"))){
+        if(any(sapply(calc, FUN = inherits, what = "formula"))){
+          stop("calc must be either all formulas or all expressions")
         }
-        fmla_lst <- sapply(lst, FUN = function(x){
+        fmla_lst <- sapply(calc, FUN = function(x){
           as.formula(paste("~", eval(x)))})
       }
 
-      if(all(sapply(lst, FUN = inherits, what = "formula"))){
-        fmla_lst <- lst
+      if(all(sapply(calc, FUN = inherits, what = "formula"))){
+        fmla_lst <- calc
       } 
     }  #<-- end if/else error in `allFmla`
 
     # Last check
     if(any(noForm <- !sapply(fmla_lst, FUN = inherits, what = "formula"))){
-      stop(cat("object(s):", which(noForm), "in lst were either not formulas or could not be coerced to formulas\n")) 
+      stop(cat("object(s):", which(noForm), "in calc were either not formulas or could not be coerced to formulas\n")) 
     }
 
   lst_out <- lapply(fmla_lst, FUN = deltaSE.formula, object, scale)
