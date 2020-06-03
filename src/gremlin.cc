@@ -806,7 +806,7 @@ if(v[0] > 3){
       }
 
       if(!traceFun(trace, w, nG, rfxlvls,
-	    nffx, ndgeninv, geninv, BLUXs, Lc->L, sLc->pinv)){
+	    nffx, ndgeninv, geninv, BLUXs->m, Lc->L, sLc->pinv)){
         error("\nUnsuccessful trace calculation: EM algorithm in iteration %i", i);
       }
 
@@ -853,7 +853,7 @@ if(v[0] > 3){
 }
 
       if(!traceFun(trace, w, nG, rfxlvls,
-	    nffx, ndgeninv, geninv, BLUXs, Lc->L, sLc->pinv)){
+	    nffx, ndgeninv, geninv, BLUXs->m, Lc->L, sLc->pinv)){
         error("\nUnsuccessful trace calculation: AI algorithm in iteration %i", i);
       }
 if(v[0] > 3){

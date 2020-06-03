@@ -100,11 +100,11 @@ XXX TODO see Knight 2008 thesis eqns 2.36 & 2.42 (and intermediates) for more ge
 */
 csi traceFun(double *trace, double *w,
 	csi nG, csi *rfxlvls, csi nb, csi *ndgeninv, cs **geninv,
-	const cs *BLUXs, const cs *Lc, const csi *Pinv
+	csi nsln, const cs *Lc, const csi *Pinv
 ){
 
-  double  *Bx, *Lx;
-  csi     g, i, j, k, nsln, si, qi, ei, *Lp, *Li, minginviPerm;
+  double  *Lx;
+  csi     g, i, j, k, si, qi, ei, *Lp, *Li, minginviPerm;
 
 // for printing timings within
 /*
@@ -112,10 +112,8 @@ double	t[2], took;
 simple_tic(t);
 */
 
-  if(!CS_CSC (BLUXs) || !nb) return (0);    // check arguments
+  if(!nb) return (0);    // check arguments
 
-  nsln = BLUXs->m;
-  Bx = BLUXs->x;
   Lp = Lc->p; Li = Lc->i; Lx = Lc->x;
   si = nb;
 
@@ -165,7 +163,7 @@ if((k == si) | (k ==ei-1)){
         if(w[j] != 0.0){
           w[j] /= Lx[Lp[j]];  // set diagonal (1 / L[k,k])
           // for loop to determine off-diagonal contributions
-          for(i = Lp[j]+1; i < Lp[j+1]; i++){
+          for(i = Lp[j] + 1; i < Lp[j + 1]; i++){
             w[Li[i]] -= Lx[i] * w[j];
           }
         }  // end if NOT 0
@@ -183,8 +181,8 @@ if((k == si) | (k ==ei-1)){
        // if Diagonal generalized inverse associated
        if(ndgeninv[g] == 0){
          // only need to find diagonal element for Cinv_ii[k] to calculate trace
-         for(j = nsln-1; j >= Pinv[k]; j--){
-           for(i = Lp[j]+1; i < Lp[j+1]; i++){
+         for(j = nsln - 1; j >= Pinv[k]; j--){
+           for(i = Lp[j] + 1; i < Lp[j + 1]; i++){
              w[j] -= Lx[i] * w[Li[i]];
            }
            w[j] /= Lx[Lp[j]];
@@ -193,16 +191,16 @@ if((k == si) | (k ==ei-1)){
 
            // calculate minimum row of geninverse[g][, k] after permuting it
            minginviPerm = nsln;
-           for(i = geninv[g]->p[k-si]; i < geninv[g]->p[k-si+1]; i++){
-             j = Pinv[geninv[g]->i[i]+si];
+           for(i = geninv[g]->p[k - si]; i < geninv[g]->p[k - si + 1]; i++){
+             j = Pinv[geninv[g]->i[i] + si];
              if(j < minginviPerm) minginviPerm = j;
            }
 
            // if non-diagonal generalized inverse
            //// need entire "column" of Cinv
            ////// until worked up to first row of non-zero in geninv[g][, k]
-           for(j = nsln-1; j >= minginviPerm; j--){
-             for(i = Lp[j]+1; i < Lp[j+1]; i++){
+           for(j = nsln - 1; j >= minginviPerm; j--){
+             for(i = Lp[j] + 1; i < Lp[j + 1]; i++){
                w[j] -= Lx[i] * w[Li[i]];
              }
              w[j] /= Lx[Lp[j]];
@@ -228,8 +226,8 @@ if((k == si) | (k ==ei-1)){
         // Contribution to the trace: calculate diagonal of matrix product
         //(geninv[g]%*%Cinv[si:ei, si:ei])[k,k] = geninv[g][k,]%*%Cinv[si:ei,k]
         //// trace (numerator of 2nd) term in the equation
-        for(i = geninv[g]->p[k-si]; i < geninv[g]->p[k-si+1]; i++){
-          trace[g] += geninv[g]->x[i] * w[Pinv[geninv[g]->i[i]+si]];
+        for(i = geninv[g]->p[k - si]; i < geninv[g]->p[k - si + 1]; i++){
+          trace[g] += geninv[g]->x[i] * w[Pinv[geninv[g]->i[i] + si]];
         }  // end for i
       }  // end if/else non-diagonal geninv trace calculation
     }  // end for k
