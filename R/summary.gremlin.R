@@ -144,11 +144,6 @@ nobs.gremlin <- function(object, use.fallback = FALSE, ...){
 #' @return A numeric of class \code{\sQuote{difftime}} with an attribute of units
 #' (e.g., seconds or minutes).
 #' @author \email{matthewwolak@@gmail.com}
-#' @examples
-#' mod11 <- gremlin(WWG11 ~ sex - 1,
-#'	random = ~ calf,
-#'	data = Mrode11)
-#' gremlin:::runtime(mod11)
 runtime <- function(object, ...){
   attr(object, "endTime") - attr(object, "startTime")
 }
@@ -437,7 +432,7 @@ summary.gremlin <- function(object, ...){
 
  return(structure(list(logLik = logLik(object),
 		formulae = formulae,
-		runtime = gremlin:::runtime(object),
+		runtime = runtime(object),
 		lambda = object$grMod$lambda,
 		residQuants = residQuants,
 		varcompSummary = varcompSummary,

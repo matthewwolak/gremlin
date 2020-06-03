@@ -166,7 +166,7 @@ deltaSE.formula <- function(fmla, object, scale = c("theta", "nu")){
   if(!onames & vnames) names(covlist) <- covlistVnms
 
 
-  LHSresult <- eval(stats:::deriv(RHS, names(covlist)),
+  LHSresult <- eval(stats::deriv(RHS, names(covlist)),
                  covlist)
   gradVec <- matrix(as.vector(attr(LHSresult, "gradient")), ncol=1)
   LHSse <- as.vector(sqrt(crossprod(gradVec, invAI) %*% gradVec))
