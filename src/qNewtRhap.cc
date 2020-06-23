@@ -66,6 +66,7 @@ csi qNewtRhap(double *nu, double *newnu, double *dLdnu, const cs *A,
   if(Lh == NULL){
     if(v > 1){
       Rprintf("\n\tH cholesky decomposition failed:\n\t   Hessian matrix may be singular - modifying diagonals and re-trying");
+        if(v > 2) Rprintf("\n\tH modification: %6.3g\n", f);
     } // end if v>1
         
     f = 3e-5; 
@@ -89,7 +90,11 @@ What R's `eigen()` calls
   if(Lh != NULL){
     for(g = 0; g < Lh->L->n; g++){
       d = Lh->L->x[ Lh->L->p[g] ];
-      if(d < ezero[0]) f = 3e-5; 
+      if(d < ezero[0]){
+        f = 3e-5;
+        if(v > 2) Rprintf("\n\tSmall diagonal on Cholesky of H: adding %6.3g\n", f);
+
+      }
     }
   }
   ////XXX ASSUME H is full matrix so H->p[g] + g = diagonal
@@ -103,7 +108,7 @@ What R's `eigen()` calls
   Lh = cs_chol(H, sLh);
   if(Lh == NULL){
     if(v > 1){
-      Rprintf("\n\tH cholesky decomposition failed:\n\t   Hessian matrix may be singular - switching to 1 iteration of EM algorithm");
+      Rprintf("\n\tH cholesky decomposition failed:\n\t   Hessian matrix may be singular");
     } // end if v>1
 
     cs_sfree(sLh);

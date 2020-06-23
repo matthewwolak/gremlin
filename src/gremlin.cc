@@ -926,6 +926,7 @@ Rprintf("\n before step-RED. newnu[%i]=%6.9f", si, newnu[si]);
         }  // end for k
  
         if(stpVal == step[0]){  // if TRUE then implement step-reduction
+          if(v[0] > 2) Rprintf("\n\tstep reduction: %6.4f", stpVal);
           si = 0;
           for(k = 0; k < p[0]; k++){
             if(con[k] == 0 || con[k] == 3) continue;
@@ -1014,7 +1015,6 @@ Rprintf("\n After Restraints newnu[%i]=%6.8f", si, newnu[si]);
         si = 0;
         for(k = 0; k < p[0]; k++){
           if(con[k] == 0) continue;
-Rprintf("\n After conditional AI newnu[%i]=%6.8f", si, newnu[si]);
           nu[k] = newnu[si];
           si++;
         }
@@ -1115,8 +1115,6 @@ Rprintf("\n After conditional AI newnu[%i]=%6.8f", si, newnu[si]);
         if(v[0] > 2){
           if(algit[i] == 1){
             // output step-size modification
-            Rprintf("\n\tstep reduction: %6.4f", stpVal);
-            Rprintf("\n\tH modification: %6.3g\n", f);
             Rprintf("\tgradient | AI\n");
             Rprintf("\t-------- |--------\n");
             for(g = 0; g < p[0]; g++){
