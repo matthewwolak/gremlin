@@ -420,7 +420,7 @@ if(nrow(theta[[thetaR]]) != 1){
       } else{  #<-- end if Hessian cannot be inverted
           Hinv <- solve(H)
           dnu <- Hinv %*% dLdnu_con   #<-- proposed change in nu parameters
-          # First, implement step-halving (if necessary)
+          # First, implement step-reduction (if necessary)
  	  ## Rule: if `dnu` proposed greater than 200% change in any parameter 
           ### Then implement step reduction (`grMod$step` default) else do not
           nuvout <- matrix(nuv, ncol = 1)
@@ -582,7 +582,7 @@ stop(cat("\nNot allowing `NR` right now"))
             c("gradient", "", "AI", rep("", p-1)))
         sgd[, 1] <- dLdnu
         for(rc in 1:p) sgd[rc, 3:(p+2)] <- AI[rc, ]
-        cat("\tstep", step, "\n")
+        cat("\tstep reduction:", step, "\n")
         cat("\tH modification", round(f, 3), "\n")
         print(as.table(sgd), digits = 3, na.print = " | ", zero.print = ".")
         cat("\n")

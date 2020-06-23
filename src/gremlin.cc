@@ -1115,7 +1115,7 @@ Rprintf("\n After conditional AI newnu[%i]=%6.8f", si, newnu[si]);
         if(v[0] > 2){
           if(algit[i] == 1){
             // output step-size modification
-            Rprintf("\n\tstep: %6.4f", stpVal);
+            Rprintf("\n\tstep reduction: %6.4f", stpVal);
             Rprintf("\n\tH modification: %6.3g\n", f);
             Rprintf("\tgradient | AI\n");
             Rprintf("\t-------- |--------\n");
