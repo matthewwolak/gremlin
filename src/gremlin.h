@@ -12,8 +12,8 @@ extern "C" {
 
 
 /* Average Information Algorithm:
-     H->x replaced */
-void cs_ai(const cs *H, const cs *BLUXs, cs **Ginv,
+    returns 1 if successful, 0 if not:  H->x replaced */
+csi cs_ai(const cs *H, const cs *BLUXs, cs **Ginv,
         const cs *R, const cs *KRinv, const cs *tWKRinv,
         double *rory,  // residuals if lambda=FALSE else y if lambda=TRUE
         const cs *W, const cs *tW, csi n, csi p, csi nG, csi *rfxlvls, csi nb,

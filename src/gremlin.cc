@@ -830,10 +830,11 @@ if(v[0] > 3){
 }
 
       if(lambda[0] == 1){
-        cs_ai(AI, BLUXs, Ginv, R, 0, 0,
+        if(cs_ai(AI, BLUXs, Ginv, R, 0, 0,
 	      y, W, tW, ny[0], p[0], nG, rfxlvls, nffx, Lc->L, sLc->pinv,
-	      0, sigma2e);
-        if(AI == NULL) error("\nUnsuccessful AI algorithm in iteration %i", i);
+	      0, sigma2e) == 0){
+          error("\nUnsuccessful AI algorithm in iteration %i", i);
+        }
 if(v[0] > 3){
   took = simple_toc(t);
   Rprintf("\n\t    %6.6f sec.: calculate AI matrix", took);
@@ -856,10 +857,11 @@ if(v[0] > 3){
 
       } else{
         // when lambda = FALSE
-        cs_ai(AI, BLUXs, Ginv, R, KRinv, tWKRinv,
+        if(cs_ai(AI, BLUXs, Ginv, R, KRinv, tWKRinv,
 	      res, W, tW, ny[0], p[0], nG, rfxlvls, nffx, Lc->L, sLc->pinv,
-	      nG, 1.0);
-        if(AI == NULL) error("\nUnsuccessful AI algorithm in iteration %i", i);
+	      nG, 1.0) == 0){
+          error("\nUnsuccessful AI algorithm in iteration %i", i);
+        }
 if(v[0] > 3){
   took = simple_toc(t);
   Rprintf("\n\t    %6.6f sec.: calculate AI matrix", took);
@@ -1177,10 +1179,11 @@ if(v[0] > 3){
   ////// only need to do if did NOT do AI (with AI do even if model has converged)
   if(algit[i] != 1){  
     if(lambda[0] == 1){
-      cs_ai(AI, BLUXs, Ginv, R, 0, 0,
+      if(cs_ai(AI, BLUXs, Ginv, R, 0, 0,
 	  y, W, tW, ny[0], p[0], nG, rfxlvls, nffx, Lc->L, sLc->pinv,
-	  0, sigma2e);
-      if(AI == NULL) error("Unsuccessful AI algorithm at convergence %i\n", i);
+	  0, sigma2e) == 0){
+        error("Unsuccessful AI algorithm at convergence %i\n", i);
+      }
 if(v[0] > 3){
   took = simple_toc(t);
   Rprintf("\n\t    %6.4f sec.: calculate AI", took);
@@ -1189,10 +1192,11 @@ if(v[0] > 3){
        
 
     }else{
-      cs_ai(AI, BLUXs, Ginv, R, KRinv, tWKRinv,
+      if(cs_ai(AI, BLUXs, Ginv, R, KRinv, tWKRinv,
           res, W, tW, ny[0], p[0], nG, rfxlvls, nffx, Lc->L, sLc->pinv,
-	  nG, 1.0);
-      if(AI == NULL) error("Unsuccessful AI algorithm  at convergence %i\n", i);
+	  nG, 1.0) == 0){
+        error("Unsuccessful AI algorithm  at convergence %i\n", i);
+      }
 if(v[0] > 3){
   took = simple_toc(t); 
   Rprintf("\n\t    %6.4f sec.: calculate AI", took);

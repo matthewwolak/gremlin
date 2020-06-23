@@ -1,8 +1,8 @@
 #include "gremlin.h"
 
 
-/* H->x replaced */
-void cs_ai(const cs *H, const cs *BLUXs, cs **Ginv,
+/* returns 1 if successful, 0 if not:    H->x replaced */
+csi cs_ai(const cs *H, const cs *BLUXs, cs **Ginv,
         const cs *R, const cs *KRinv, const cs *tWKRinv,
         double *rory,  // residuals if lambda=FALSE else y if lambda=TRUE
         const cs *W, const cs *tW, csi n, csi p, csi nG, csi *rfxlvls, csi nb,
@@ -17,11 +17,15 @@ void cs_ai(const cs *H, const cs *BLUXs, cs **Ginv,
 	  *S, *tS, *tSBRHS;
   csi     g, i, k, cnt, si, qi, ei, *Sp;
 
-  if(!CS_CSC(BLUXs)) return;
+  if(!CS_CSC(BLUXs)) return (0);
 
   double  *p_sln = new double[BLUXs->m];
   double  *Scol = new double[BLUXs->m];
-  if(!p_sln || !Scol) return;
+  if(!p_sln || !Scol){
+    delete [] p_sln;
+    delete [] Scol;
+    return (0);
+  }
  
   if(thetaR != 0 && fabs(sigma2e - 1.00) < DBL_EPSILON) lambda = 0; else lambda = 1;
 
@@ -175,7 +179,7 @@ void cs_ai(const cs *H, const cs *BLUXs, cs **Ginv,
   delete [] p_sln;
   delete [] Scol;
 
- return;
+ return (1);
 }
 
 
