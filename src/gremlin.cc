@@ -118,7 +118,7 @@ void ugremlin(
 	 nr = dimZWG[1],
 	 nffx,
 	 nminfrfx,
-	 bd;
+	 bd;  
 
   int	 *rfxlvls = new int[nG];
 
@@ -887,7 +887,7 @@ if(v[0] > 3){
       // Find next set of parameters using a quasi-Newton method/algorithm
       //// Meyer 1989 pp. 326-327 describes quasi-Newton methods 
 //TODO see Meyer 1997 eqn 58 for Marquardt 1963: theta_t+1=theta_t - (H_t + k_t * I)^{-1} g_t 
-// What I do below is similar: except k_t=f
+      // What I do below is similar: except k_t=f
       //// Mrode 2005 eqn 11.4
       //// Johnson and Thompson 1995 eqn 12
       //////(though gremlin uses `+` instead of J & T '95 `-` because
@@ -898,101 +898,102 @@ if(v[0] > 3){
       if(!qNewtRhap(nu, newnu, dLdnu, AI,
 		p[0], con, wchBd, f, ezero, v[0])){
         // AI algorithm failed: do EM
-        if(v[0] > 1 && vitout == 0) Rprintf("\n\t\tEM to find next nu");
+        if(v[0] > 1 && vitout == 0) Rprintf("\n\t\tAI failed, switching to EM");
         algit[i] = 0;  // switch algorithm to EM
-      } else{
+      } 
 
 
+      // if AI working so far
+      // calculate `dnu` - proposed change in nu parameters (`Hinv %*% grad`)
+      // First, implement step-reduction (if necessary)
+      //// Rule: if proposed values >200% change in any parameter
+      //// then implement step reduction (`step[0]` default) else do not
 
-
-
-//TODO insert while or some control statement here (part of it be whether algit[i]=1 ?)
-//// keep looping through step-halving and then boundary algorithm
-
-          // OTHERWISE, if AI working so far
-          // calculate `dnu` - proposed change in nu parameters (`Hinv %*% grad`)
-          // First, implement step-reduction (if necessary)
-          //// Rule: if proposed values >200% change in any parameter
-          //// Then implement step reduction (`step[0]` default) else do not
+      si2 = 0;  // Keep track (avoid infinite loops): 
+                //// get as many tries as numbers of parameters
+      bd = 1;  // initialize so enters while loop
+      while(algit[i] == 1 && bd == 1 && si2 < p[0]){
+        si = 0;
+        stpVal = 1.0;
+        for(k = 0; k < p[0]; k++){
+          if(con[k] == 0 || con[k] == 3) continue;
+          dnu[si] = newnu[si] - nu[k];
+Rprintf("\n before step-RED. newnu[%i]=%6.9f", si, newnu[si]);
+          if(abs(dnu[si] / nu[k]) > 2.0){
+            stpVal = step[0];
+          }
+          si++;
+        }  // end for k
+ 
+        if(stpVal == step[0]){  // if TRUE then implement step-reduction
           si = 0;
-          stpVal = 1.0;
           for(k = 0; k < p[0]; k++){
             if(con[k] == 0 || con[k] == 3) continue;
-            dnu[si] = newnu[si] - nu[k];
-Rprintf("\n before step-RED. newnu[%i]=%6.9f", si, newnu[si]);
-            if(abs(dnu[si] / nu[k]) > 2.0){
-              stpVal = step[0];
-            }
-            si++;
-          }  // end for k
- 
-          if(stpVal == step[0]){  // if TRUE then implement step-reduction
-            si = 0;
-            for(k = 0; k < p[0]; k++){
-              if(con[k] == 0 || con[k] == 3) continue;
-              newnu[si] = nu[k] + dnu[si] * stpVal;
-              si++;
-            }
-          }  
-    
-          // Second, check for indecent proposals
-          si = 0; bd = 0;
-          for(k = 0; k < 2*p[0]; k++) wchBd[k] = 0;  // reset, esp. b/c was used above
-          for(g = 0; g < p[0]; g++){
-            if(con[g] == 0) continue;
-Rprintf("\n after step-RED. newnu[%i]=%6.9f", si, newnu[si]);
-            if(newnu[si] <= bound[g]){
-              bd = 1;
-              wchBd[g] += 1;
-            }
-            if(newnu[si] >= bound[p[0] + g]){
-              bd = 1;
-              wchBd[p[0] + g] += 1;
-            }
+            newnu[si] = nu[k] + dnu[si] * stpVal;
             si++;
           }
+        }  
+    
+        // Second, check for indecent proposals
+        si = 0; bd = 0;
+        for(k = 0; k < 2*p[0]; k++) wchBd[k] = 0;  // reset, esp. b/c was used above
+        for(g = 0; g < p[0]; g++){
+          if(con[g] == 0) continue;
+Rprintf("\n after step-RED. newnu[%i]=%6.9f", si, newnu[si]);
+          if(newnu[si] <= bound[g]){
+            bd = 1;
+            wchBd[g] += 1;
+          }
+          if(newnu[si] >= bound[p[0] + g]){
+            bd = 1;
+            wchBd[p[0] + g] += 1;
+          }
+          si++;
+        }
  
-          // restrain naughty components that enacted indecent proposals
-          if(bd == 1){
-            if(v[0] > 0){
-              Rprintf("\n(co)variance component(s) in `thetav` vector (position:");
-              for(g = 0; g < p[0]; g++){
-                if(wchBd[g] == 1 || wchBd[p[0] + g] == 1) Rprintf(" %i ", g+1);
-              }
-              Rprintf(") restrained inside boundaries\t");
-            }
-            si = 0;
+        // restrain naughty components that enacted indecent proposals
+        if(bd == 1){
+          if(v[0] > 0){
+            Rprintf("\n(co)variance component(s) in `thetav` vector (position:");
             for(g = 0; g < p[0]; g++){
-              if(con[g] == 0) continue;
-              if(wchBd[g] == 1){
-                newnu[si] = bound[g] + ezero[0];
-                con[g] = 3;
-              }
-              if(wchBd[p[0] + g] == 1){
-                newnu[si] = bound[p[0] + g] - ezero[0];
-                con[g] = 3;
-              }
-Rprintf("\n After Restraints newnu[%i]=%6.8f", si, newnu[si]);
-              si++;
+              if(wchBd[g] == 1 || wchBd[p[0] + g] == 1) Rprintf(" %i ", g+1);
             }
+            Rprintf(") restrained inside boundaries\t");
+          }
+          si = 0;
+          for(g = 0; g < p[0]; g++){
+            if(con[g] == 0) continue;
+            if(wchBd[g] == 1){
+              newnu[si] = bound[g] + ezero[0];
+              con[g] = 3;
+            }
+            if(wchBd[p[0] + g] == 1){
+              newnu[si] = bound[p[0] + g] - ezero[0];
+              con[g] = 3;
+            }
+Rprintf("\n After Restraints newnu[%i]=%6.8f", si, newnu[si]);
+            si++;
+          }
     
 
-      //TODO create a check in case all non-fixed parameters are bad!
-      // Re-calculate parameter updates, CONDITIONAL on restrained values
-      //// Gilmour 2019 AI REML in Practice. J. Anim. Breed. Genet.
-
-
-          // TODO send back to beginning (BUT DON'T clear newnu XXX XXX !!!!!!
+          // Re-calculate parameter updates, CONDITIONAL on restrained values
+          //// Gilmour 2019 AI REML in Practice. J. Anim. Breed. Genet.
           if(!qNewtRhap(nu, newnu, dLdnu, AI,
-		p[0], con, wchBd, f, ezero, v[0])){  //XXX TEMPORARY XXX
-           // AI algorithm failed: do EM
-            if(v[0] > 1 && vitout == 0) Rprintf("\n\t\tEM to find next nu");
-Rprintf("\nTEMPORARY qNewtRhap sending to EM");
+     		        p[0], con, wchBd, f, ezero, v[0])){ 
+            // AI algorithm failed: do EM
+            if(v[0] > 1 && vitout == 0) Rprintf("\n\t\tAI failed, switching to EM");
             algit[i] = 0;  // switch algorithm to EM
           } 
-  
+
+ 
         }  // end if bd/indecent proposals
 
+        si2++;
+
+      }  // end while AI and bd
+
+
+      if(algit[i] == 1){
         // CONVERGENCE CRITERIA 3 and 4
         //// Appendix 2 of WOMBAT help manual for 4 criteria specified
         // Norm of gradient vector: wombt eqn. A.2
@@ -1018,13 +1019,13 @@ Rprintf("\n After conditional AI newnu[%i]=%6.8f", si, newnu[si]);
           si++;
         }
 
-      }  // end if/else for FIRST AI failded/DO EM
+
+      }  // end if AI did NOT fail
 
 
       // Remove any boundary constraint codes from previous iterations
       //// restore to original coded value
       for(g = 0; g < p[0]; g++) if(con[g] == 3) con[g] = conv[g];
-
 
 
 
