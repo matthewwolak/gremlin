@@ -1,8 +1,8 @@
 #include "gremlin.h"
 
 
-/* AI returned */
-cs *cs_ai(const cs *BLUXs, cs **Ginv,
+/* H->x replaced */
+void cs_ai(const cs *H, const cs *BLUXs, cs **Ginv,
         const cs *R, const cs *KRinv, const cs *tWKRinv,
         double *rory,  // residuals if lambda=FALSE else y if lambda=TRUE
         const cs *W, const cs *tW, csi n, csi p, csi nG, csi *rfxlvls, csi nb,
@@ -17,11 +17,11 @@ cs *cs_ai(const cs *BLUXs, cs **Ginv,
 	  *S, *tS, *tSBRHS;
   csi     g, i, k, cnt, si, qi, ei, *Sp;
 
-  if(!CS_CSC(BLUXs)) return(0);
+  if(!CS_CSC(BLUXs)) return;
 
   double  *p_sln = new double[BLUXs->m];
   double  *Scol = new double[BLUXs->m];
-  if(!p_sln || !Scol) return(0);
+  if(!p_sln || !Scol) return;
  
   if(thetaR != 0 && fabs(sigma2e - 1.00) < DBL_EPSILON) lambda = 0; else lambda = 1;
 
@@ -159,7 +159,8 @@ cs *cs_ai(const cs *BLUXs, cs **Ginv,
   for(i = 0; i < AI->p[AI->n]; i++) AI->x[i] *= 0.5;
   if(lambda == 1) for(i = 0; i < AI->p[AI->n]; i++) AI->x[i] /= sigma2e;
   //////////////////////////////////////////////////////////////////////////////
-
+  // Unpack result (AI->x) into `H`
+  for(i = 0; i < AI->p[ AI->n ]; i++) H->x[i] = AI->x[i];
 
   cs_spfree(tSBRHS);
   cs_spfree(tBRinvB);  
@@ -169,11 +170,12 @@ cs *cs_ai(const cs *BLUXs, cs **Ginv,
   cs_spfree(tB);
   cs_spfree(B);
   cs_spfree(Rinv);
+  cs_spfree(AI);
 
   delete [] p_sln;
   delete [] Scol;
 
- return(AI);
+ return;
 }
 
 

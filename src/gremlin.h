@@ -12,8 +12,8 @@ extern "C" {
 
 
 /* Average Information Algorithm:
-     returns AI */
-cs *cs_ai(const cs *BLUXs, cs **Ginv,
+     H->x replaced */
+void cs_ai(const cs *H, const cs *BLUXs, cs **Ginv,
         const cs *R, const cs *KRinv, const cs *tWKRinv,
         double *rory,  // residuals if lambda=FALSE else y if lambda=TRUE
         const cs *W, const cs *tW, csi n, csi p, csi nG, csi *rfxlvls, csi nb,
@@ -63,6 +63,13 @@ csi traceFun(double *trace, double *w,
 
 /* B  returned = the reduced matrix of A according to drop */
 cs *cs_droprowcol(const cs *A, csi *drop);
+
+
+/* 1 returned if successful, else NULL
+   `newnu` replaced with next set of nu parameters   */
+csi qNewtRhap(double *nu, double *newnu, double *dLdnu, const cs *A,
+	      csi p, csi *con, csi *wchBd, double f, double *ezero, csi v);
+
 
 /*******************************************************************/
 /* Below are functions from MCMCglmm-2.25 by Jarrod Hadfield       */
