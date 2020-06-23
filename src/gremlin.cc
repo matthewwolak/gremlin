@@ -802,44 +802,6 @@ if(v[0] > 3){
     // 5d Determine next (co)variance parameters to evaluate:
 
     /////////////////////////////
-    // Expectation Maximization
-    /////////////////////////////
-    if(algit[i] == 0 && cc[4] < 2){
-      if(v[0] > 1 && vitout == 0) Rprintf("\n\tEM to find next nu");
-
-      if(!tugugFun(tugug, w, nG, rfxlvls, con,
-	    nffx, ndgeninv, geninv, BLUXs)){
-        error("\nUnsuccessful tugug calculation: EM algorithm in iteration %i", i);
-      }
-
-      if(!traceFun(trace, w, nG, rfxlvls,
-	    nffx, ndgeninv, geninv, BLUXs->m, Lc->L, sLc->pinv)){
-        error("\nUnsuccessful trace calculation: EM algorithm in iteration %i", i);
-      }
-
-      // calculate EM for G (co)variances:
-      //// (tugug + trace ) / qi
-      for(g = 0; g < nG; g++){
-        if(con[g] == 0) continue;  // skip if parameter is fixed
-        nu[g] = (tugug[g] + trace[g] ) / rfxlvls[g];
-      }
-
-      // Calculate EM for residual:
-      //// crossprod(y, r) / nminffx
-      // TODO/FIXME below when >1 Residual
-      if(con[nG] != 0){  // only do if Residual is NOT fixed 
-        d = 0.0;
-        for(k = 0; k < ny[0]; k++) d += y[k] * res[k]; 
-        nu[nG] = d / nminffx[0];
-      }
-    }  // end EM
-    /////////////////////////////
-
-
-
-
-
-    /////////////////////////////
     // Average Information
     /////////////////////////////
     if(algit[i] == 1){
@@ -957,7 +919,7 @@ if(v[0] > 3){
           for(k = 0; k < p[0]; k++){
             if(con[k] == 0 || con[k] == 3) continue;
             dnu[si] = newnu[si] - nu[k];
-Rprintf("\n before step-RED. newnu[%i]=%6.8f", si, newnu[si]);
+Rprintf("\n before step-RED. newnu[%i]=%6.9f", si, newnu[si]);
             if(abs(dnu[si] / nu[k]) > 2.0){
               stpVal = step[0];
             }
@@ -978,7 +940,7 @@ Rprintf("\n before step-RED. newnu[%i]=%6.8f", si, newnu[si]);
           for(k = 0; k < 2*p[0]; k++) wchBd[k] = 0;  // reset, esp. b/c was used above
           for(g = 0; g < p[0]; g++){
             if(con[g] == 0) continue;
-Rprintf("\n after step-RED. newnu[%i]=%6.8f", si, newnu[si]);
+Rprintf("\n after step-RED. newnu[%i]=%6.9f", si, newnu[si]);
             if(newnu[si] <= bound[g]){
               bd = 1;
               wchBd[g] += 1;
@@ -1073,6 +1035,48 @@ Rprintf("\n After conditional AI newnu[%i]=%6.8f", si, newnu[si]);
     }  // end AI
     ///////////////////////////////
     ///////////////////////////////
+
+
+
+
+
+
+    /////////////////////////////
+    // Expectation Maximization
+    /////////////////////////////
+    // Place after AI: if AI fails, change value of algit[i] and will do EM here
+    if(algit[i] == 0 && cc[4] < 2){
+      if(v[0] > 1 && vitout == 0) Rprintf("\n\tEM to find next nu");
+
+      if(!tugugFun(tugug, w, nG, rfxlvls, con,
+	    nffx, ndgeninv, geninv, BLUXs)){
+        error("\nUnsuccessful tugug calculation: EM algorithm in iteration %i", i);
+      }
+
+      if(!traceFun(trace, w, nG, rfxlvls,
+	    nffx, ndgeninv, geninv, BLUXs->m, Lc->L, sLc->pinv)){
+        error("\nUnsuccessful trace calculation: EM algorithm in iteration %i", i);
+      }
+
+      // calculate EM for G (co)variances:
+      //// (tugug + trace ) / qi
+      for(g = 0; g < nG; g++){
+        if(con[g] == 0) continue;  // skip if parameter is fixed
+        nu[g] = (tugug[g] + trace[g] ) / rfxlvls[g];
+      }
+
+      // Calculate EM for residual:
+      //// crossprod(y, r) / nminffx
+      // TODO/FIXME below when >1 Residual
+      if(con[nG] != 0){  // only do if Residual is NOT fixed 
+        d = 0.0;
+        for(k = 0; k < ny[0]; k++) d += y[k] * res[k]; 
+        nu[nG] = d / nminffx[0];
+      }
+    }  // end EM
+    /////////////////////////////
+
+
 
 
 
