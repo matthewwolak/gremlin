@@ -34,6 +34,11 @@ csi cs_ai(const cs *H, const cs *BLUXs, cs **Ginv,
     Rinv->i[0] = 0; Rinv->p[0] = 0; Rinv->p[1] = 1; Rinv->x[0] = (1.0 / sigma2e);
   }else{
     Rinv = cs_inv(R);
+    if(Rinv == NULL){
+      delete [] p_sln;
+      delete [] Scol;
+      return (0);
+    } 
   }
   B = cs_spalloc(n, p, (n * p), true, false);
   // Fill B with all zeroes

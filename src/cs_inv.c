@@ -39,7 +39,10 @@ cs *cs_inv(const cs *C){
                                                          irow=j;
                                                          icol=k;
                                                  }
-                                         } else if (ipiv[k] > 1) error("Singular matrix\n");// //exit(1);
+                                         } else if (ipiv[k] > 1) {
+                                    Rprintf("\nSingular matrix - cannot invert");
+                                    return (cs_done (A, NULL, NULL, 0));
+                                    }
                                  }
                  ++(ipiv[icol]);
                  if (irow != icol) {
@@ -78,8 +81,9 @@ cs *cs_inv(const cs *C){
    	  if(n==1){
 	    A->x[0] = 1.0/DBL_EPSILON;
 	  }else{
-	    PutRNGstate();
-  	       error("Could not invert matrix with CN = %f\n", CN);
+	    // PutRNGstate();  MEW 2020 06 23 don't getRNGstate at moment
+  	    Rprintf("\nCould not invert matrix with CN = %f", CN);
+            return (cs_done (A, NULL, NULL, 0));
           }	 
 	}
 

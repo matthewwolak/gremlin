@@ -64,12 +64,13 @@ csi qNewtRhap(double *nu, double *newnu, double *dLdnu, const cs *A,
   sLh = cs_schol(1, H);
   Lh = cs_chol(H, sLh);
   if(Lh == NULL){
+    f = 3e-5; 
+
     if(v > 1){
       Rprintf("\n\tH cholesky decomposition failed:\n\t   Hessian matrix may be singular - modifying diagonals and re-trying");
         if(v > 2) Rprintf("\n\tH modification: %6.3g\n", f);
     } // end if v>1
         
-    f = 3e-5; 
   }  // end if Lh=NULL
 
 
@@ -98,8 +99,11 @@ What R's `eigen()` calls
     }
   }
   ////XXX ASSUME H is full matrix so H->p[g] + g = diagonal
+for(g = 0; g < H->n; g++) Rprintf("\n before Mod: Diag of H[%i]=%6.4f", g, H->x[ H->p[g] + g ]);
+
   for(g = 0; g < H->n; g++) H->x[ H->p[g] + g ] += f;
 
+for(g = 0; g < H->n; g++) Rprintf("\n after Mod: Diag of H[%i]=%6.4f", g, H->x[ H->p[g] + g ]);
 
   // Now check AGAIN if Hessian can be inverted
   cs_sfree(sLh); 
@@ -121,8 +125,11 @@ What R's `eigen()` calls
 
 
   Hinv = cs_inv(H);
-
-
+  if(Hinv == NULL){
+    cs_spfree(H);
+    delete [] w;
+    return (0);
+  }
 
 
   // fill `newnu` with parameters proposed for next iteration
