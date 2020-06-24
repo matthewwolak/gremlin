@@ -109,8 +109,8 @@ void ugremlin(
   cs*    *Ginv = new cs*[nG];
   cs* 	 *KGinv = new cs*[nG];
 
-  double t[2], T[2], took, dsLc, tyRinvy, tyPy, logDetC, sigma2e, loglik, 
-         d, cc2, cc2d, f, stpVal;
+  double t[2], T[2], took, dsLc, tyRinvy, tyPy, logDetC, sigma2e = 1.0,
+         loglik, d, cc2, cc2d, f, stpVal;
 
   int 	 g, i, k, rw, si, si2, vitout,
 	 itc = 0,
@@ -671,7 +671,7 @@ if(v[0] > 3){
     logDetC = 2.0 * dsLc;
 
     // Factored out residual variance (only for lambda scale)
-    if(lambda[0] == 1) sigma2e = tyPy / nminffx[0]; else sigma2e = 1.0;
+    if(lambda[0] == 1) sigma2e = tyPy / nminffx[0];
 
 
     // V=2 LEVEL of OUTPUT
