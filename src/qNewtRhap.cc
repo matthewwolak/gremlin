@@ -99,11 +99,7 @@ What R's `eigen()` calls
     }
   }
   ////XXX ASSUME H is full matrix so H->p[g] + g = diagonal
-for(g = 0; g < H->n; g++) Rprintf("\n before Mod: Diag of H[%i]=%6.4f", g, H->x[ H->p[g] + g ]);
-
   for(g = 0; g < H->n; g++) H->x[ H->p[g] + g ] += f;
-
-for(g = 0; g < H->n; g++) Rprintf("\n after Mod: Diag of H[%i]=%6.4f", g, H->x[ H->p[g] + g ]);
 
   // Now check AGAIN if Hessian can be inverted
   cs_sfree(sLh); 

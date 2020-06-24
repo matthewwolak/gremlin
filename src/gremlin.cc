@@ -112,7 +112,7 @@ void ugremlin(
   double t[2], T[2], took, dsLc, tyRinvy, tyPy, logDetC, sigma2e, loglik, 
          d, cc2, cc2d, f, stpVal;
 
-  int 	 g, i, k, rw, si, si2, vitout, r, c, rd, pr,
+  int 	 g, i, k, rw, si, si2, vitout,
 	 itc = 0,
          dimM,      // GENERIC dimension of a matrix variable to be REUSED
 	 nr = dimZWG[1],
@@ -920,7 +920,6 @@ if(v[0] > 3){
         for(k = 0; k < p[0]; k++){
           if(con[k] == 0 || con[k] == 3) continue;
           dnu[si] = newnu[si] - nu[k];
-Rprintf("\n before step-RED. newnu[%i]=%6.9f", si, newnu[si]);
           if(abs(dnu[si] / nu[k]) > 2.0){
             stpVal = step[0];
           }
@@ -942,7 +941,6 @@ Rprintf("\n before step-RED. newnu[%i]=%6.9f", si, newnu[si]);
         for(k = 0; k < 2*p[0]; k++) wchBd[k] = 0;  // reset, esp. b/c was used above
         for(g = 0; g < p[0]; g++){
           if(con[g] == 0) continue;
-Rprintf("\n after step-RED. newnu[%i]=%6.9f", si, newnu[si]);
           if(newnu[si] <= bound[g]){
             bd = 1;
             wchBd[g] += 1;
@@ -974,7 +972,6 @@ Rprintf("\n after step-RED. newnu[%i]=%6.9f", si, newnu[si]);
               newnu[si] = bound[p[0] + g] - ezero[0];
               con[g] = 3;
             }
-Rprintf("\n After Restraints newnu[%i]=%6.8f", si, newnu[si]);
             si++;
           }
     
@@ -1176,7 +1173,7 @@ if(v[0] > 3){
 }
 
   //// Average Information
-  ////// only need to do if did NOT do AI (with AI do even if model has converged)
+  ////// only need to do if did NOT do AI
   if(algit[i] != 1){  
     if(lambda[0] == 1){
       if(cs_ai(AI, BLUXs, Ginv, R, 0, 0,
