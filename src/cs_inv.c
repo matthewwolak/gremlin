@@ -87,13 +87,12 @@ cs *cs_inv(const cs *C){
       if(n==1){
 	A->x[0] = 1.0/DBL_EPSILON;
       } else{
-	  // PutRNGstate();  MEW 2020 06 23 don't getRNGstate at moment
   	  Rprintf("\nCould not invert matrix with CN = %f", CN);
           return (cs_done (A, NULL, NULL, 0));
         }  // end if/else	 
     }  // end if
 
-  return (cs_done (A, NULL, NULL, 1)) ;	/* success; free workspace, return C */
+  return (cs_done (A, NULL, NULL, 1)) ;	/* success; free workspace, return A */
 
 }
 
