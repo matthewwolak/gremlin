@@ -311,11 +311,6 @@ maxit = 15,    #<-- maximum iterations
   anova(gr11lm, gr11lmm)
 }
 }
-\references{
-Meyer.
-Henderson.
-Mrode. 2005.
-}
 \author{
 \email{matthewwolak@gmail.com}
 }

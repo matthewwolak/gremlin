@@ -15,7 +15,7 @@ gremlinControl(
 )
 }
 \arguments{
-\item{cctol}{Convergence criteria tolerances. TODO}
+\item{cctol}{Convergence criteria tolerances (Meyer 2007, 2019).}
 
 \item{ezero}{Effective zero to be used, values less than this number are
 treated as zero and fixed to this value.}
@@ -46,7 +46,12 @@ Change default settings for gremlin models.
 
 }
 \references{
-Meyer. Convergence Checks
+Meyer, K. 2007. WOMBAT - a tool for mixed model analyses in quantitative
+  genetics by restricted maximum likelihood (REML). Journal of Zhejiang
+  University SCIENCE B 8(11):815-821.
+
+  Meyer, K. 2019. WOMBAT A program for mixed model analyses by restricted
+  maximum likelihood. User Notes. 27 September 2019.
 }
 \author{
 \email{matthewwolak@gmail.com}

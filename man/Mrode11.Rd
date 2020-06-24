@@ -8,7 +8,8 @@
 An object of class \code{data.frame} with 5 rows and 5 columns.
 }
 \source{
-Mrode. 2005.
+Mrode, R.A. 2005. Linear Models for the Prediction of Animal Breeding
+  Values, 2nd ed. CABI Publishing, Cambridge, MA, USA.
 }
 \usage{
 Mrode11

@@ -3,14 +3,13 @@
 #' Fit linear mixed-effects models using restricted (or residual) maximum
 #' likelihood (REML) and with generalized inverse matrices to specify covariance
 #' structures for random effects. In particular, the package is suited to fit
-#' quantitative genetic mixed models, often referred to as 'animal models'.
-#' Implements the average information algorithm as the main tool to maximize the
-#' restricted likelihood, but with other algorithms available.
+#' quantitative genetic mixed models, often referred to as 'animal models'
+#' (Henderson 1973). Implements the average information algorithm (Johnson &
+#' Thompson 1995; Gilmour et al. 1995; Meyer & Smith 1996) as the main tool to
+#' maximize the restricted log-likelihood, but with other algorithms available.
 #'
-#' The package also implements the average information algorithm to efficiently
-#' maximize the log-likelihood (Thompson & Johnson 1995; Gilmour et al. 1995;
-#' Meyer & Smith 1996). The average information algorithm combined with sparse
-#' matrix techniques can potentially make model fitting very efficient.
+#' The average information algorithm combined with sparse matrix techniques can
+#' potentially make model fitting very efficient.
 #'
 #' @aliases gremlin-package
 #' @useDynLib gremlin, .registration = TRUE
@@ -18,11 +17,24 @@
 #' @import Matrix
 #' @importFrom stats var
 #' @references
-#'   Mrode. 2005.
-#'   Meyer & Smith. 1996.
-#'   Gilmour et al. 1995.
-#'   Thompson & Johnson. 1995.
-#' @seealso \code{\link[MCMCglmm:MCMCglmm-package]{MCMCglmm}}
+#'   Henderson, C.R. 1973. Sire evaluation and genetic trends. Journal of Animal
+#'   Science 1973:10-41. 
+#'   
+#'   Johnson, D.L. and R. Thompson. 1995. Restricted maximum likelihood
+#'   estimation of variance components for univariate animal models using sparse
+#'   matrix techniques and average information. Journal of Dairy Science
+#'   78:449-456.
+#'
+#'   Gilmour, A.R., R. Thompson, and B.R. Cullis. 1995. Average information
+#'   REML: An efficient algorithm for variance parameter estimation in linear
+#'   mixed models. Biometrics 51:1440-1450.
+#'
+#'   Meyer, K. and S.P. Smith. 1996. Restricted maximum likelihood estimation for
+#'   animal models using derivatives of the likelihood. Genetics, Selection, and
+#'   Evolution 28:23-49.
+#'
+#'   Mrode, R.A. 2005. Linear Models for the Prediction of Animal Breeding
+#'   Values, 2nd ed. CABI Publishing, Cambridge, MA, USA.
 #' @examples
 #' \dontrun{
 #'   # Following the example from Mrode 2005, chapter 11.
@@ -222,10 +234,6 @@
 #'     }
 #'   }
 #'
-#' @references
-#' Meyer.
-#' Henderson.
-#' Mrode. 2005.
 #' @author \email{matthewwolak@@gmail.com}
 #' @examples
 #'   grSire <- gremlin(WWG11 ~ sex, random = ~ sire, data = Mrode11)

@@ -10,7 +10,8 @@
 #'   \item WWG11. a numeric vector
 #' }
 #'
-#' @source Mrode. 2005.
+#' @source Mrode, R.A. 2005. Linear Models for the Prediction of Animal Breeding
+#'   Values, 2nd ed. CABI Publishing, Cambridge, MA, USA.
 #' @keywords datasets
 #' @examples
 #' data(Mrode11)

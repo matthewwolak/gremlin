@@ -39,7 +39,8 @@
 #'   \dQuote{Std. Error} for the mathematical function(s) of (co)variance
 #'   components.
 #' @references 
-#'   Lynch and Walsh 1998.
+#'   Lynch, M. and B. Walsh 1998. Genetics and Analysis of Quantitative Traits.
+#'   Sinauer Associates, Inc., Sunderland, MA, USA.
 #' @author \email{matthewwolak@@gmail.com}
 #' @seealso \code{\link[stats]{deriv}}
 #' @importFrom stats deriv

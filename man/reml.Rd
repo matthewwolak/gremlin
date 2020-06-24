@@ -113,12 +113,6 @@ A \code{list} or \code{matrix} containing any of the previous
 Evaluate the REML likelihood and algorithms for iterating to find maximum 
   REML estimates.
 }
-\references{
-Henderson
-Mrode. 2005.
-Meyer
-}
 \author{
 \email{matthewwolak@gmail.com}
- TODO XXX XXX Make example of each modular component working with next
 }

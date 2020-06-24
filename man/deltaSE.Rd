@@ -110,7 +110,8 @@ Though \code{deltaSE} can calculate standard errors for non-linear functions
 
 }
 \references{
-Lynch and Walsh 1998.
+Lynch, M. and B. Walsh 1998. Genetics and Analysis of Quantitative Traits.
+  Sinauer Associates, Inc., Sunderland, MA, USA.
 }
 \seealso{
 \code{\link[stats]{deriv}}
