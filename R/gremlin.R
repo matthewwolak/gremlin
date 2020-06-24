@@ -456,10 +456,13 @@ update.gremlin <- function(object, ...){
   if(diffMod){
     if("Gstart" %in% names(new_args)) call[["Gstart"]] <- new_args[["Gstart"]]
     if("Rstart" %in% names(new_args)) call[["Rstart"]] <- new_args[["Rstart"]]
+    if("Gcon" %in% names(new_args)) call[["Gcon"]] <- new_args[["Gcon"]]
+    if("Rcon" %in% names(new_args)) call[["Rcon"]] <- new_args[["Rcon"]]
   } else{
-      # use output from `object` and replace if G/Rstart provided in `update()`
+      # Gstart / Rstart
+      ## use output from `object` and replace if G/Rstart provided in `update()`
       theta <- vech2matlist(object$grMod$thetav, attr(object$grMod$thetav, "skel"))
-      # G first
+      # Gstart first
       if("Gstart" %in% names(new_args)){
         thetaGtmp <- c(G = sapply(new_args[["Gstart"]], FUN = stTrans))
         if(length(thetaGtmp) != length(object$grMod$thetaG)){
@@ -468,7 +471,7 @@ update.gremlin <- function(object, ...){
         }
         theta[object$grMod$thetaG] <- thetaGtmp  
       } 
-      # now R
+      # now Rstart
       if("Rstart" %in% names(new_args)){
         thetaRtmp <- c(R. = stTrans(new_args[["Rstart"]]))
         if(length(thetaRtmp) != length(object$grMod$thetaR)){
@@ -485,9 +488,45 @@ update.gremlin <- function(object, ...){
                                            object$grMod$thetaR)
       } else object$grMod$nu <- theta
 
+      # Gcon / Rcon
+      ## use output from `object` and replace if G/Rcon provided in `update()`
+      conv <- object$grMod$conv
+      # Gcon first
+      if("Gcon" %in% names(new_args)){
+        tmpGcon <- conTrans(new_args[["Gcon"]], "P")  #<-- "P"=Rcon placeholder
+
+        if((length(tmpGcon)-1) != length(object$grMod$thetaG)){
+          stop(cat("Vectorized Gcon of length", length(tmpGcon)-1,
+                   "is not same length as in original model\n"))
+        }
+        conv[object$grMod$thetaG] <- tmpGcon[object$grMod$thetaG]  
+      } 
+      # now Rcon
+      if("Rcon" %in% names(new_args)){
+        tmpRcon <- conTrans("P", new_args[["Rcon"]])  #<-- "P"=Gcon placeholder
+        if((length(thetaRtmp)-1) != length(object$grMod$thetaR)){
+          stop(cat("Vectorized Rcon of length", length(tmpRcon),
+                   "is not same length as in original model\n"))
+        }
+        conv[object$grMod$thetaR] <- tmpRcon[-1] 
+      } 
+    
+      if(length(object$grMod$conv) != length(conv)){
+        stop("Updated constraint vector not same length as 'conv'")
+      }
+      object$grMod$conv <- conv
+      #TODO add levels as add constaints
+      # F=Fixed | P=Positive | U=Unbounded | B=Boundary/Bounded
+      boundChoices <- matrix(c(NA, NA,                         # Fixed
+	             object$grMod$ezero, object$grMod$einf,    # Positive
+                     -1*object$grMod$einf, object$grMod$einf), # Unbounded
+        ncol = 2, byrow = TRUE)  #<-- TODO add boundaries as add constraints
+      object$grMod$bounds[] <- matrix(boundChoices[as.integer(conv), ], ncol = 2)
+    
     }  # end if/else diffMod
 
-  #TODO something for `Gcon` or `Rcon`
+
+
 
   # MUST do `maxit` before `algit` to handle `algit` length correctly
   for(arg in c("maxit", "vit", "v")){
