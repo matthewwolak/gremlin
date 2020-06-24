@@ -122,6 +122,8 @@ What R's `eigen()` calls
 
   Hinv = cs_inv(H);
   if(Hinv == NULL){
+    cs_sfree(sLh); 
+    cs_nfree(Lh);
     cs_spfree(H);
     delete [] w;
     return (0);
@@ -196,6 +198,8 @@ What R's `eigen()` calls
 
       // Cleanup:
       delete [] w;
+      cs_sfree(sLh); 
+      cs_nfree(Lh);
       cs_spfree(Hinv);
       cs_spfree(H);
 
