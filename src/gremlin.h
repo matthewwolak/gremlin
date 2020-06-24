@@ -84,8 +84,6 @@ void cs_directsumupdate(cs **KGinv, int nG, int nGR, const cs *C);
 /* overwrites C with the direct sum of KGinv[1] KGinv[2] ... KGinv[nG]*/
 cs *cs_inv(const cs *C);
 /* returns the inverse of the dense matrix C*/
-double cs_invR(const cs *C, const cs *A);
-/* overwrites A with the inverse of the dense matrix C*/
 cs *cs_kroneckerA(const cs *G, const cs *A);
 /* forms the kronecker product of G and A*/
 void cs_kroneckerAupdate(const cs *G, const cs *A, const cs *C);
