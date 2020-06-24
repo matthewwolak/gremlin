@@ -695,7 +695,7 @@ if(v[0] > 3){
 
     // `log(|G|)`
     //// Meyer 1997 eqn. 9 for lambda=FALSE equation
-    //// NOTE: setting `sigma2e=1.0` above when lambda=FALSE means 1 line below
+    //// NOTE: setting `sigma2e=1.0` above (when lambda=FALSE) means 1 line below
     //// FIXME only works for independent random effects
     if(nG > 0){
       for(g = 0; g < nG; g++){
