@@ -212,12 +212,16 @@
 #'       iteration.}
 #'     \item{vit }{See the parameter described above.}
 #'     \item{v }{See the parameter described above.}
-#'     \item{cctol }{A \code{numeric} vector of convergence criteria thresholds.}
+#'     \item{cctol }{A \code{numeric} vector of convergence criteria thresholds.
+#'       See \code{\link{gremlinControl}} for more details.}
 #'     \item{ezero, einf }{\code{numeric} values for the effective numbers to
 #'       use as \dQuote{zero} and maximum negative or positive numbers. Values
 #'       less than \code{ezero} are treated as zero and fixed to this value.
 #'       Values less than \code{-1*einf} or greater than \code{einf} are
-#'       restricted to these values.}
+#'       restricted to these values. See \code{\link{gremlinControl}} for more
+#'       details.}
+#'     \item{step }{A \code{numeric} value indicating the step-reduction to use.
+#'       See \code{\link{gremlinControl}} for more details.}
 #'
 #'     \item{itMat }{A \code{matrix} of details about each iteration. Rows
 #'       indicate each REML iteration (rownames reflect the REML algorithm used)
