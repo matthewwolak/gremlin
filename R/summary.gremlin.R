@@ -394,14 +394,23 @@ summary.gremlin <- function(object, ...){
 		"Std. Error" = NA)
     dimnames(varcompSummary)[[1L]] <- vcItMatNames
     if(!is.null(object$grMod$AI)){
-      invAI <- solve(object$grMod$AI)
-      if(object$grMod$lambda){
-        varcompSummary[, "Std. Error"] <- sqrt(nuVar2thetaVar_lambda(object))
-      } else varcompSummary[, "Std. Error"] <- sqrt(diag(invAI))
-      varcompSampCor <- cov2cor(invAI)
+      invAI <- try(solve(object$grMod$AI), silent = TRUE)
+      if(inherits(invAI, "try-error")){
+        varcompSummary[, "Std. Error"] <- rep(NA, nrow(varcompSummary))
+          attr(varcompSummary, "condition") <- attr(invAI, "condition")$message
+        varcompSampCor <- matrix(NA, nrow = nvc, ncol = nvc)
+          dimnames(varcompSampCor) <- list(dimnames(varcompSummary)[[1L]],
+                                           dimnames(varcompSummary)[[1L]])
+      } else{
+          if(object$grMod$lambda){
+            varcompSummary[, "Std. Error"] <- sqrt(nuVar2thetaVar_lambda(object))
+          } else varcompSummary[, "Std. Error"] <- sqrt(diag(invAI))
+          varcompSampCor <- cov2cor(invAI)
+        }
     } else{
         varcompSampCor <- matrix(NA, nrow = nvc, ncol = nvc)
-          dimnames(varcompSampCor) <- list(dimnames(varcompSummary)[[1L]], dimnames(varcompSummary)[[1L]])
+          dimnames(varcompSampCor) <- list(dimnames(varcompSummary)[[1L]],
+                                           dimnames(varcompSummary)[[1L]])
       }
     # Remove SEs of fixed or boundary parameters
     if(any(FBparams <- object$grMod$conv %in% c("F", "B"))){
@@ -469,6 +478,10 @@ print.summary.gremlin <- function(x,
 
   cat("\n (co)variance parameter sampling correlations:\n")
     print(as.data.frame(x$varcompSampCor), digits = digits, ...)
+  if(!is.null(conOut <- attr(x$varcompSummary, "condition"))){
+    cat("(co)variance parameter Std. Errors/sampling correlations not available\n",
+      "Failed to invert AI matrix\n", conOut, "\n")
+  }
 
   cat("\n Fixed effects:", paste(as.expression(x$formulae$fxd)), "\n")
     #See `printCoefmat()`
