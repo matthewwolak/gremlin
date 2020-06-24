@@ -614,7 +614,7 @@ stop(cat("\nNot allowing `NR` right now"))
 
 
   # Calculate Cinv_ii and AI for last set of parameters
-  grMod$Cinv_ii <- diag(solve(a = sLc, b = Ic, system = "A"))
+  grMod$Cinv_ii <- matrix(diag(solve(a = sLc, b = Ic, system = "A")), ncol = 1)
 
   ## AI
   if(grMod$algit[i] != "AI"){
