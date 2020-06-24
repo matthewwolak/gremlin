@@ -24,7 +24,9 @@ cs *cs_inv(const cs *C){
       A->x[i] = C->x[i];
     }
     for(i = 0; i<=n; i++) A->p[i] = C->p[i];
+
     for (j=0;j<n;j++) ipiv[j]=0;
+
 
     for (i=0;i<n;i++) {
       big=0.0;
@@ -44,7 +46,9 @@ cs *cs_inv(const cs *C){
           }  // end for k
         }  // end if
       }  // end for j  
+
       ++(ipiv[icol]);
+
       if (irow != icol) {
         for (l=0;l<n;l++){
           temp = A->x[A->i[irow]+A->p[l]];
