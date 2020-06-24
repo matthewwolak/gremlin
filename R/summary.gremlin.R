@@ -362,7 +362,7 @@ residuals.gremlin <- function(object,
 #'     \item{varcompSampCor }{A \code{matrix} containing the sampling correlations
 #'       of the (co)variance components. Note this is on the underlying \code{nu}
 #'       scale that the model is fitting.}
-#'     \item{fxdSummary }{Table of fixed effects and standard errors (calculated
+#'     \item{coefficients }{Table of fixed effects and standard errors (calculated
 #'       from the corresponding diagonal elements of the inverse of the
 #'       coefficient matrix, transformed where necessary).}
 #'   }
@@ -438,7 +438,7 @@ summary.gremlin <- function(object, ...){
 		residQuants = residQuants,
 		varcompSummary = varcompSummary,
 		varcompSampCor = varcompSampCor,
-		fxdSummary = fxdSummary),
+		coefficients = fxdSummary),
 	class = c("summary.gremlin", "list")))
 } 
 
@@ -485,7 +485,7 @@ print.summary.gremlin <- function(x,
 
   cat("\n Fixed effects:", paste(as.expression(x$formulae$fxd)), "\n")
     #See `printCoefmat()`
-    print(as.data.frame(x$fxdSummary), digits = digits, ...)
+    print(as.data.frame(x$coefficients), digits = digits, ...)
 
 }
 

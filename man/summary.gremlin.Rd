@@ -42,7 +42,7 @@ A \code{list} of class \code{summary.gremlin} or a printed value
     \item{varcompSampCor }{A \code{matrix} containing the sampling correlations
       of the (co)variance components. Note this is on the underlying \code{nu}
       scale that the model is fitting.}
-    \item{fxdSummary }{Table of fixed effects and standard errors (calculated
+    \item{coefficients }{Table of fixed effects and standard errors (calculated
       from the corresponding diagonal elements of the inverse of the
       coefficient matrix, transformed where necessary).}
   }
