@@ -25,7 +25,7 @@ of (co)variance component for which to calculate standard errors.}
 \item{scale}{A \code{character} indicating whether to calculate the function
 and standard error on the original data scale (\dQuote{theta}) or
 on the underlying scale to which (co)variance components are transformed
-for the model fitting calculations (\code{dQuote{nu}}). Defaults to
+for the model fitting calculations (\dQuote{nu}). Defaults to
 \dQuote{theta} if not specified.}
 }
 \value{

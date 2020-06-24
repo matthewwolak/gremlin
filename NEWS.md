@@ -28,7 +28,8 @@ grSf <- gremlin(WWG11 ~ sex,
     - just dropping last number
 
 ## Minor Changes
-
+  - create new c++ function to handle quasi Newton-Rhapson algorithm
+    - allows secondary checks of appropriateness/naughtiness for proposed parameters based on a conditional AI algorithm (conditional on parameters restrained to boundary condition)
 
 
 # 1.0.0.1
