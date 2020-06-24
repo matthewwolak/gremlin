@@ -453,16 +453,40 @@ update.gremlin <- function(object, ...){
 
 
   # below don't change the model, just require a re-run with the new values
-  for(arg in c("Gstart", "Rstart")){
-    if(arg %in% names(new_args)){
-      if(diffMod) call[[arg]] <- new_args[[arg]]
-        else{
-          ## fill in G/Rstart if arg in new_args or if not in new_args then fill object starts/thetav/nu with last parameter values to start from there? (Find out what remlIt needs)
-          #TODO G/Rstarts need to be transformed to replace thetav/nu, maybe sigma2e, etc. in `object$grMod`
+  if(diffMod){
+    if("Gstart" %in% names(new_args)) call[["Gstart"]] <- new_args[["Gstart"]]
+    if("Rstart" %in% names(new_args)) call[["Rstart"]] <- new_args[["Rstart"]]
+  } else{
+      # use output from `object` and replace if G/Rstart provided in `update()`
+      theta <- vech2matlist(object$grMod$thetav, attr(object$grMod$thetav, "skel"))
+      # G first
+      if("Gstart" %in% names(new_args)){
+        thetaGtmp <- c(G = sapply(new_args[["Gstart"]], FUN = stTrans))
+        if(length(thetaGtmp) != length(object$grMod$thetaG)){
+          stop(cat("Gstart of length", length(thetaGtmp),
+                   "is not same length as in original model\n"))
+        }
+        theta[object$grMod$thetaG] <- thetaGtmp  
+      } 
+      # now R
+      if("Rstart" %in% names(new_args)){
+        thetaRtmp <- c(R. = stTrans(new_args[["Rstart"]]))
+        if(length(thetaRtmp) != length(object$grMod$thetaR)){
+          stop(cat("Rstart of length", length(thetaRtmp),
+                   "is not same length as in original model\n"))
+        }
+        theta[object$grMod$thetaR] <- thetaRtmp  
+      } 
+    
+      object$grMod$thetav <- matlist2vech(theta)
+      #object$grMod$nu <- theta2nu_trans(theta)
+      if(object$grMod$lambda){
+        object$grMod$nu <- theta2nu_lambda(theta, object$grMod$thetaG,
+                                           object$grMod$thetaR)
+      } else object$grMod$nu <- theta
 
-        }  #<-- end `else`
-    }  #<-- end if arg %in% names
-  }  #<-- end `for` loop through G/Rstart
+    }  # end if/else diffMod
+
   #TODO something for `Gcon` or `Rcon`
 
   # MUST do `maxit` before `algit` to handle `algit` length correctly
@@ -681,7 +705,7 @@ gremlinSetup <- function(formula, random = NULL, rcov = ~ units,
 ### when to do cholesky factorization of G?
 #### is it easier to do direct product of cholesky's than direct product then cholesky?
 #### If the latter then save the symbolic factorization and just do updates?
-#XXX Don't need for EM algorithm
+#TODO: when change to cholesky with log(diags) - change also in `update.gremlin()`
   #nu <- theta2nu_trans(thetaSt$theta)
   if(lambda) nu <- theta2nu_lambda(thetaSt$theta, thetaSt$thetaG, thetaSt$thetaR)
     else nu <- thetaSt$theta
