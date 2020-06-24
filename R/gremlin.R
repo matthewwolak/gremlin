@@ -562,6 +562,20 @@ update.gremlin <- function(object, ...){
     else object$grMod[["algit"]] <- algit
 
 
+  # gremlinControl() changes
+  ##TODO add `algorithm` and `algArgs`?
+  if("control" %in% names(new_args)){
+    if(diffMod){
+      call[["control"]] <- new_args[["control"]]
+    } else{
+        for(arg in c("cctol", "ezero", "einf", "step", "lambda")){
+          object$grMod[arg] <- new_args$control[arg]
+        }  #<-- end for arg
+      }  #<-- end if/else diffMod
+  }  #<-- end if
+
+
+  ################################################################
 
 
   if(diffMod){
