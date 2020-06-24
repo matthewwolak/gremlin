@@ -8,15 +8,14 @@
 #' Delta Method to Calculate Standard Errors for Functions of (Co)variances.
 #'
 #' Calculates the standard error for results of simple mathematical functions of
-#'   (co)variance parameters using the delta method (Lynch and Walsh 1998,
-#'   Appendix 1).
+#'   (co)variance parameters using the delta method.
 #'
-#' The delta method (e.g., Lynch and Walsh 1998, Appendix 1) uses a Taylor series
-#'   expansion to approximate the moments of a function of parameters. Here, a
-#'   a second-order Taylor series expansion is implemented to approximate the 
-#'   standard error for a function of (co)variance parameters. Partial first
-#'   derivatives of the function are calculated by algorithmic differentiation 
-#'   with \code{\link[stats]{deriv}}.
+#' The delta method (e.g., Lynch and Walsh 1998, Appendix 1; Ver Hoef 2012) uses
+#'   a Taylor series expansion to approximate the moments of a function of
+#'   parameters. Here, a second-order Taylor series expansion is implemented to
+#'   approximate the standard error for a function of (co)variance parameters.
+#'   Partial first derivatives of the function are calculated by algorithmic
+#'   differentiation with \code{\link[stats]{deriv}}.
 #'
 #' Though \code{deltaSE} can calculate standard errors for non-linear functions
 #'   of (co)variance parameters from a fitted \code{gremlin} model, it is limited
@@ -41,6 +40,9 @@
 #' @references 
 #'   Lynch, M. and B. Walsh 1998. Genetics and Analysis of Quantitative Traits.
 #'   Sinauer Associates, Inc., Sunderland, MA, USA.
+#'
+#'   Ver Hoef, J.M. 2012. Who invented the delta method? The American
+#'   Statistician 66:124-127. DOI: 10.1080/00031305.2012.687494
 #' @author \email{matthewwolak@@gmail.com}
 #' @seealso \code{\link[stats]{deriv}}
 #' @importFrom stats deriv
