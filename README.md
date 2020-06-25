@@ -23,7 +23,9 @@
 
   - From GitHub:
     - install the latest versions directly in R using the `devtools` package [https://github.com/hadley/devtools](https://github.com/hadley/devtools):
+
    ```
+
    library(devtools)
 
    # Install `master` branch
@@ -31,6 +33,7 @@
    
    # Install `devel` branch
    install_github("matthewwolak/gremlin", ref = "devel")
+
    ```
 
 ## Examples
@@ -40,7 +43,7 @@
 library(gremlin)
 library(nadiv)  #<-- needed for creating inverse relatedness matrices
 
-# Set up a subset of data for the example
+# Add unique term for including individual effects of additive and dominance
 warcolak$IDD <- warcolak$ID
 
 # Create generalized inverse matrices
@@ -59,4 +62,25 @@ grAD <- gremlin(trait1 ~ sex-1,
 # Summary
 nrow(warcolak)
 summary(grAD)
+
+# Calculate proportions of phenotypic variances (and Std. Error)
+deltaSE(h2 ~ V1 / (V1 + V2 + V3), grAD)
+deltaSE(d2 ~ V2 / (V1 + V2 + V3), grAD)
+
+# Likelihood Ratio Test: Hypothesis test domimance variance=0
+## Do this 2 alternative ways - both use `update()`:
+
+### Either fix dominance variance to *almost* zero
+grA_Dfxd <- update(grAD, Gstart = list(0.1, 1e-8), Gcon = list("P", "F"))
+
+### Or drop dominance variance from the model
+grA <- update(grAD, random = ~ ID)
+
+## Compare log-likelihoods
+logLik(grA_Dfxd)
+logLik(grA)
+
+## Do the Hypothesis test:
+anova(grA, grAD)
+
 ```
