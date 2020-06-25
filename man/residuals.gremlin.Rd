@@ -5,7 +5,8 @@
 \alias{resid.gremlin}
 \title{Residuals of \code{class} \sQuote{gremlin}}
 \usage{
-\method{residuals}{gremlin}(object, type = "response", scaled = FALSE, ...)
+\method{residuals}{gremlin}(object, type = "response", scaled = FALSE,
+  ...)
 }
 \arguments{
 \item{object}{An object of \code{class} \sQuote{gremlin}.}

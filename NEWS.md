@@ -71,6 +71,8 @@ grSf <- gremlin(WWG11 ~ sex,
     - Changed to directly construct coefficient matrix of mixed model equations (`C`) and obtain `tyPy` and `logDetC` using this
     - Previously had to store Cholesky factorizations of both `M` and `C`, now do a `solve` with Cholesky of `C` (`sLc`/`Lc` in `R`/`c++` code) to calculate `tyPy` based off Boldman and Van Vleck
 
+# 0.1.0.1
+Quick fix for issue arising when `R`'s code changed with the new version of `R`
 
 # 0.1.0.0
 ## NEW

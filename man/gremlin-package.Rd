@@ -43,7 +43,6 @@ maxit = 15,    #<-- maximum iterations
   ## See AIC or evaluate likelihood ratio against a Chi-squared distribution
   anova(gr11lm, gr11lmm)
 }
-}
 \references{
 Henderson, C.R. 1973. Sire evaluation and genetic trends. Journal of Animal
   Science 1973:10-41. 

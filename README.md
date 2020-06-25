@@ -1,6 +1,19 @@
-# gremlin <!-- [![](http://www.r-pkg.org/badges/version/nadiv)](https://cran.r-project.org/package=nadiv) [![](http://cranlogs.r-pkg.org/badges/grand-total/nadiv)](http://cranlogs.r-pkg.org/badges/grand-total/nadiv) -->
+# gremlin
+[![](http://www.r-pkg.org/badges/version/gremlin)](https://cran.r-project.org/package=gremlin)
+[![](http://cranlogs.r-pkg.org/badges/grand-total/gremlin)](http://cranlogs.r-pkg.org/badges/grand-total/gremlin)
+[![DOI](https://zenodo.org/badge/87194564.svg)](https://zenodo.org/badge/latestdoi/87194564)
+
+
+
+
 
 [`R`](https://cran.r-project.org/) package for mixed-effects model **REML** incorporating **G**eneralized **In**verses (so, with some mental gymnastics: **GREMLIN**).
+
+
+## Cite as:
+If your use of the `gremlin` package contributes to a publication, please cite the package as (and feel free to let me know!):
+
+>Wolak, M.E. 2018. gremlin: R package for mixed-effects model REML incorporating generalized Inverses. Version *Insert version here*. Zenodo [http://doi.org/10.5281/zenodo.1476565](http://doi.org/10.5281/zenodo.1476565).
 
 
 ## See the latest developments:
