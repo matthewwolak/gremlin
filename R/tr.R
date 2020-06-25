@@ -13,13 +13,6 @@
 #'
 #' @return A \code{numeric} value for the sum of the diagonal elements.
 #' @author \email{matthewwolak@@gmail.com}
-#' @examples
-#'   M <- matrix(seq(9), nrow = 3)
-#'   tr(M)
-#'   # Create sparse 'Matrix'
-#'   dgcM <- as(M, "dgCMatrix")
-#'   # compare `tr()` methods
-#'   tr(M) == tr(dgcM)  #<-- should be TRUE
 #' @export
 tr <- function(X, ...){
   UseMethod("tr", X)

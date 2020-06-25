@@ -12,6 +12,7 @@
 #' potentially make model fitting very efficient.
 #'
 #' @aliases gremlin-package
+#' @useDynLib gremlin, .registration = TRUE
 #' @importFrom methods as is slot
 #' @import Matrix
 #' @importFrom stats var

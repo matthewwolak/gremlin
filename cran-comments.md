@@ -1,7 +1,3 @@
-# Resubmission
-This package was recently archived on CRAN owing to my inability to make changes to the package in time. These changes were necessary after an update to a function in `base` R fundamentally changed the outcome of the function evaluation which caused my package to no longer work. I have now fixed the ERRORs that came about after the change to `base`.
-
-
 # Test environments
   - Ubuntu 19.04
     - R 3.6.1 (2019-07-05) x86_64-pc-linux-gnu (64-bit)
@@ -19,9 +15,7 @@ This package was recently archived on CRAN owing to my inability to make changes
 # R CMD check results
 There were no ERRORs, WARNINGs, or NOTEs.
 
-Further, the NOTE indicates **possibly**  mis-spelled words in the DESCRIPTION. However, these words have been checked and are correctly spelled.
 
 # Downstream dependencies
 I have checked and there are no current downstream dependencies of `gremlin`
-
 

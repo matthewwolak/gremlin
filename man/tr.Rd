@@ -35,14 +35,6 @@ Methods to efficiently calculate a matrix trace depending on the class of matrix
 \item \code{dsCMatrix}: Method for matrix \code{X} of class Matrix:::dsCMatrix
 }}
 
-\examples{
-  M <- matrix(seq(9), nrow = 3)
-  tr(M)
-  # Create sparse 'Matrix'
-  dgcM <- as(M, "dgCMatrix")
-  # compare `tr()` methods
-  tr(M) == tr(dgcM)  #<-- should be TRUE
-}
 \author{
 \email{matthewwolak@gmail.com}
 }
