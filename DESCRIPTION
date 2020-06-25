@@ -1,7 +1,7 @@
 Package: gremlin
 Type: Package
 Title: Mixed-Effects REML Incorporating Generalized Inverses
-Version: 1.0.1
+Version: 1.0.2
 Authors@R: person("Matthew", "Wolak", email = "matthewwolak@gmail.com", role = c("cre", "aut"), comment = c(ORCID="0000-0002-7962-0071"))
 URL: http://github.com/matthewwolak/gremlin
 BugReports: http://github.com/matthewwolak/gremlin/issues
