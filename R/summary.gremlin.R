@@ -292,15 +292,17 @@ anova.gremlin <- function(object, ..., model.names = NULL){
 #' @param \dots Additional arguments.
 #'
 #' @return A \code{numeric} vector of fixed effect estimates.
+#' @export
 #' @author \email{matthewwolak@@gmail.com}
 #' @examples
 #'   grS <- gremlin(WWG11 ~ sex - 1, random = ~ sire, data = Mrode11)
 #'   fixef(grS)
 #' @importFrom nlme fixef
-#' @export
 fixef.gremlin <- function(object, add.dropped = FALSE, ...){
 
-  if(add.dropped) warning("add.dropped = TRUE not implemented")
+  if(add.dropped){
+    warning(cat("add.dropped = TRUE not implemented\n"))
+  }
 
  structure(object$grMod$sln[1:object$grMod$modMats$nb],
            names = dimnames(object$grMod$modMats$X)[[2L]])
