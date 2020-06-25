@@ -279,6 +279,7 @@ anova.gremlin <- function(object, ..., model.names = NULL){
 ################################################################################
 ################  Extract Fixed Effect Estimates    #############
 # Create S3methods that use generic in package `stats`
+# adapted from lme4::fixef()
 #' Fixed Effect Estimates of \code{class} \sQuote{gremlin}
 #'
 #' Extracts the fixed effect estimates from a model of \code{class} \sQuote{gremlin}.
@@ -295,9 +296,8 @@ anova.gremlin <- function(object, ..., model.names = NULL){
 #' @examples
 #'   grS <- gremlin(WWG11 ~ sex - 1, random = ~ sire, data = Mrode11)
 #'   fixef(grS)
-#' @export
 #' @importFrom nlme fixef
-#adapted from `lme4::fixef()`
+#' @export
 fixef.gremlin <- function(object, add.dropped = FALSE, ...){
 
   if(add.dropped) warning("add.dropped = TRUE not implemented")
