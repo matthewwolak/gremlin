@@ -180,7 +180,7 @@
 #'     \item{uni }{A \code{logical} to indicate if the model is univariate or not.}
 #'     \item{W, tWW, RHS, Bpinv }{Sparse matrices of class \code{Matrix} that 
 #'       form the mixed model equations and do not change between iterations of
-#'       REML. These are the column binded \sQuote{X} and \sQuote{Z} design
+#'       REML. These are the column bound \sQuote{X} and \sQuote{Z} design
 #'       matrices for fixed and random effects, the cross-product of \code{W},
 #'       the Right-Hand Side of the mixed model equations, and the inverse of
 #'       the fixed effect prior matrix (zeroes on the diagonal if no priors have

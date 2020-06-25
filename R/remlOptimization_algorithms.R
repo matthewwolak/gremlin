@@ -24,7 +24,7 @@
 #' @param modMats A \code{list} of the model matrices used to construct the
 #'   mixed model equations.
 #' @param W,tWW A sparse \code{Matrix} containing the design matrices for the fixed
-#'   and random effects (\code{W}) and the crossproduct of this (\code{tWW}).
+#'   and random effects (\code{W}) and the cross-product of this (\code{tWW}).
 #' @param Bpinv A matrix inverse of the matrix containing the prior specification
 #'   for fixed effects.
 #' @param nminffx,nminfrfx,rfxlvls \code{Integers} specifying: (1) the difference
@@ -32,7 +32,7 @@
 #'   effects design matrix (X), (2) \code{nminffx} minus the total number of
 #'   random effects, and (3) a \code{vector} of levels for each term in the 
 #'   random effects.
-#' @param rfxIncContrib2loglik A \code{numeric} indicating the sum of constrant
+#' @param rfxIncContrib2loglik A \code{numeric} indicating the sum of constraint
 #'   contributions to the log-likelihood across all terms in the random effects
 #'   that have non-diagonal generalized inverse matrices (\code{ginverse}).
 #' @param ndgeninv A \code{logical} vector indicating if each random term is
