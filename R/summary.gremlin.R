@@ -277,6 +277,36 @@ anova.gremlin <- function(object, ..., model.names = NULL){
 
 
 ################################################################################
+################  Extract Fixed Effect Estimates    #############
+# Create S3methods that use generic in package `stats`
+#' Fixed Effect Estimates of \code{class} \sQuote{gremlin}
+#'
+#' Extracts the fixed effect estimates from a model of \code{class} \sQuote{gremlin}.
+#' 
+#' @aliases fixef fixed.effects fixef.gremlin
+#' @param object An object of \code{class} \sQuote{gremlin}.
+#' @param add.dropped A \code{logical} value indicating whether fixed effects dropped by
+#'   gremlin, due to rank deficiencies in the fixed effect design matrix, should
+#'   be included with \code{NA} values.
+#' @param \dots Additional arguments.
+#'
+#' @return A \code{numeric} vector of fixed effect estimates.
+#' @author \email{matthewwolak@@gmail.com}
+#' @examples
+#' grS <- gremlin(WWG11 ~ sex - 1, random = ~ sire, data = Mrode11)
+#' fixef(grS)
+#' @export
+#' @importFrom nlme fixef
+#adapted from `lme4::fixef()`
+fixef.gremlin <- function(object, add.dropped = FALSE, ...){
+
+  if(add.dropped) warning("add.dropped = TRUE not implemented")
+
+ structure(object$grMod$sln[1:object$grMod$modMats$nb],
+    names = dimnames(object$grMod$modMats$X)[[2L]])
+}
+
+
 ################  Extract Residuals    #############
 # Create S3methods that use generic in package `stats`
 #' Residuals of \code{class} \sQuote{gremlin}
@@ -321,6 +351,7 @@ residuals.gremlin <- function(object,
   if(scaled) res <- res / sqrt(object$grMod$thetav[object$grMod$p])
  res
 }
+
 #TODO######   hatvalues (see lme4) & predict.gremlin    ############
 
 
@@ -424,12 +455,12 @@ summary.gremlin <- function(object, ...){
 
   ########
   coefVarScale <- ifelse(object$grMod$lambda, object$grMod$sigma2e, 1.0)
-  fxdSummary <- cbind(as(object$grMod$sln[1:object$grMod$modMats$nb, , drop = FALSE], "matrix"),
+  fxdSummary <- cbind(as(fixef(object), "matrix"),
         sqrt(coefVarScale * object$grMod$Cinv_ii[1:object$grMod$modMats$nb]))
     #TODO consider reporting `|z value|` instead
     fxdSummary <- cbind(fxdSummary, fxdSummary[, 1] / fxdSummary[, 2])
-    colnames(fxdSummary) <- c("Solution", "Std. Error", "z value")
-	dimnames(fxdSummary)[[1L]] <- object$grMod$modMats$X@Dimnames[[2L]]
+    colnames(fxdSummary) <- c("Estimate", "Std. Error", "z value")
+	dimnames(fxdSummary)[[1L]] <- names(fixef(object))
 
  return(structure(list(logLik = logLik(object),
 		formulae = formulae,
