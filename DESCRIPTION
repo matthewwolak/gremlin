@@ -8,7 +8,7 @@ BugReports: http://github.com/matthewwolak/gremlin/issues
 Depends:
     Matrix
 Imports:
-    methods
+    methods, nlme
 LazyData: yes
 NeedsCompilation: yes
 Description: Fit linear mixed-effects models using restricted (or residual)
