@@ -24,8 +24,7 @@ A \code{numeric} vector of fixed effect estimates.
 Extracts the fixed effect estimates from a model of \code{class} \sQuote{gremlin}.
 }
 \examples{
-  grS <- gremlin(WWG11 ~ sex - 1, random = ~ sire, data = Mrode11)
-  fixef(grS)
+  fixef(grS <- gremlin(WWG11 ~ sex - 1, random = ~ sire, data = Mrode11))
 }
 \author{
 \email{matthewwolak@gmail.com}

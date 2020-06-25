@@ -295,8 +295,7 @@ anova.gremlin <- function(object, ..., model.names = NULL){
 #' @export
 #' @author \email{matthewwolak@@gmail.com}
 #' @examples
-#'   grS <- gremlin(WWG11 ~ sex - 1, random = ~ sire, data = Mrode11)
-#'   fixef(grS)
+#'   fixef(grS <- gremlin(WWG11 ~ sex - 1, random = ~ sire, data = Mrode11))
 #' @importFrom nlme fixef
 fixef.gremlin <- function(object, add.dropped = FALSE, ...){
 
