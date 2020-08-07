@@ -43,7 +43,7 @@
 
 ## Examples
 
-  - Estimating autosomal additive and dominance genetic variances
+### Estimating autosomal additive and dominance genetic variances
 ```
 library(gremlin)
 library(nadiv)  #<-- needed for creating inverse relatedness matrices
@@ -64,15 +64,34 @@ grAD <- gremlin(trait1 ~ sex-1,
 	ginverse = list(ID = Ainv, IDD = Dinv),
 	data = warcolak)
 
+```
+
+
+
+
+### Summarize model
+```
 # Summary
 nrow(warcolak)
 summary(grAD)
+```
 
+
+
+
+### Calculating combinations of (co)variances and quantifying uncertainty
+
+#### Delta method
+```
 # Calculate proportions of phenotypic variances (and Std. Error)
 deltaSE(h2 ~ V1 / (V1 + V2 + V3), grAD)
 deltaSE(d2 ~ V2 / (V1 + V2 + V3), grAD)
+```
 
-# Likelihood Ratio Test: Hypothesis test domimance variance=0
+
+### Likelihood Ratio Test
+  - Hypothesis test: domimance variance=0
+```
 ## Do this 2 alternative ways - both use `update()`:
 
 ### Either fix dominance variance to *almost* zero
