@@ -1,4 +1,9 @@
-# gremlin <!-- [![](http://www.r-pkg.org/badges/version/nadiv)](https://cran.r-project.org/package=nadiv) [![](http://cranlogs.r-pkg.org/badges/grand-total/nadiv)](http://cranlogs.r-pkg.org/badges/grand-total/nadiv) -->
+# gremlin 
+[![](http://www.r-pkg.org/badges/version/gremlin)](https://cran.r-project.org/package=gremlin)
+[![](http://cranlogs.r-pkg.org/badges/grand-total/gremlin)](http://cranlogs.r-pkg.org/badges/grand-total/gremlin)
+[![DOI](https://zenodo.org/badge/87194564.svg)](https://zenodo.org/badge/latestdoi/87194564)
+
+
 
 [`R`](https://cran.r-project.org/) package for mixed-effects model **REML** incorporating **G**eneralized **In**verses (so, with some mental gymnastics: **GREMLIN**).
 
