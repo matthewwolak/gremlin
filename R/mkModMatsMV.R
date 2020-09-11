@@ -17,13 +17,13 @@ mkModMatsMV <- function(formula, random = NULL, rcov = ~ units,
   ## perhaps can add back X, y, Z, etc to 'mf' and return 'mf' - as list of fixed and random frames?
 
   if(any(grepl("units", names(data)))){
-    stop("column names in data cannot be named 'units'")
+    stop("column names in data cannot be named 'units', this is a special term in gremlin")
   }
   if(!any("units" %in% all.vars(rcov))){
     stop("'units' must be specified in 'rcov' argument")
   }
   if(any(grepl("trait", names(data)))){
-    stop("column names in data cannot be named 'trait'")
+    stop("column names in data cannot be named 'trait', this is a special term in gremlin")
   }
 
 
