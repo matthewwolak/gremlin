@@ -1,4 +1,4 @@
-# 1.0.1
+# 1.0.1 Released to CRAN 2020 June 25
 ## NEW
   - `deltaSE()` function to calculate approximate standard errors for functions of (co)variance parameters (e.g., h<sup>2</sup>, standard deviations of variances, or correlations)
     - this can take a formula for the function or a character expression
@@ -72,7 +72,7 @@ grSf <- gremlin(WWG11 ~ sex,
     - Previously had to store Cholesky factorizations of both `M` and `C`, now do a `solve` with Cholesky of `C` (`sLc`/`Lc` in `R`/`c++` code) to calculate `tyPy` based off Boldman and Van Vleck
 
 
-# 0.1.0.0
+# 0.1.0.0 Released to CRAN 2018 October 30
 ## NEW
   - methods for `gremlin` objects
     - notably, `AIC`, `residuals`, `anova`, and `nobs`
