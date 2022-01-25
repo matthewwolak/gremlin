@@ -39,7 +39,7 @@ Function \code{npar.gremlin} returns an object with attributes \code{n.fxd}
 and \code{n.bndry} which give additional information about the parameters
 estimated and contributing to the overall \code{df} of the model. \code{n.fxd}
 returns the total number of parameters (No. fixed effects + No. (co)variance
-comonents) minus the number of parameters constrained to a certain value. Thus,
+components) minus the number of parameters constrained to a certain value. Thus,
 \code{n.fxd} represents the number of parameters that can vary and, as a 
 consequence, affect the log-likelihood.
 

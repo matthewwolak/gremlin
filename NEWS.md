@@ -1,4 +1,11 @@
+# 1.0.2
+## NEW
+
+## Minor Changes
+
+
 # 1.0.1 Released to CRAN 2020 June 25
+
 ## NEW
   - `deltaSE()` function to calculate approximate standard errors for functions of (co)variance parameters (e.g., h<sup>2</sup>, standard deviations of variances, or correlations)
     - this can take a formula for the function or a character expression
