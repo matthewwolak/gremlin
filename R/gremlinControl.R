@@ -31,7 +31,7 @@
 #'
 #' @export
 gremlinControl <- function(cctol = c(5e-4, 1e-8, 1e-3, NULL),
-	ezero = 1e-8, einf = 1e30, step = 0.3, lambda = TRUE,
+	ezero = 1e-8, einf = 1e30, step = 0.3, lambda = FALSE,
 	algorithm = NULL, algArgs = list()){
 
   stopifnot(is.list(algArgs))
