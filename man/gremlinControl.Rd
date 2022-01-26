@@ -9,7 +9,7 @@ gremlinControl(
   ezero = 1e-08,
   einf = 1e+30,
   step = 0.3,
-  lambda = TRUE,
+  lambda = FALSE,
   algorithm = NULL,
   algArgs = list()
 )

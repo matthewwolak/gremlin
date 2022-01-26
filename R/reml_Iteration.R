@@ -43,8 +43,8 @@ remlIt.default <- function(grMod, ...){
   nuv <- matlist2vech(grMod$nu)
   # convert algorithms for each iteration into integers
   intfacalgit <- as.integer(factor(grMod$algit[1:grMod$maxit],
-    levels = c("EM", "AI"), ordered = TRUE))
-    ## Check that all are implemented in cpp (currently only AI or EM)
+    levels = c("EM", "AI", "AIfd"), ordered = TRUE))
+    ## Check that all are implemented in cpp (currently only AI, AIfd, or EM)
     if(any(is.na(intfacalgit))){
       stop(cat("Algorithm", grMod$algit[which(is.na(intfacalgit))],
 	"not implemented in c++, try", sQuote('gremlinR()'), "\n"))
@@ -143,7 +143,7 @@ remlIt.default <- function(grMod, ...){
 
   itMat <- matrix(Cout[[34]][1:(i*(grMod$p+5))], nrow = i, ncol = grMod$p+5,
            byrow = TRUE)
-    dimnames(itMat) <- list(paste(seq(i), c("EM", "AI")[Cout[[35]][1:i] + 1],
+    dimnames(itMat) <- list(paste(seq(i), c("EM", "AI", "AIfd")[Cout[[35]][1:i] + 1],
                 sep = "-"),
 	    c(paste0(names(nuv), "_nu"), "sigma2e",
                "tyPy", "logDetC", "loglik", "itTime"))
@@ -323,23 +323,34 @@ remlIt.gremlinR <- function(grMod, ...){
     }
 
 
-    ############################
-    #    AI
-    ############################
-    if(grMod$algit[i] == "AI"){
+    ########################################
+    #    AI with either analytical or
+    ##  finite difference first derivatives
+    ########################################
+    if(grMod$algit[i] == "AI" | grMod$algit[i] == "AIfd"){
       if(grMod$v > 1 && vitout == 0) cat("\n\tAI to find next nu")
 #FIXME Currently, only allow when not: 
 if(nrow(theta[[thetaR]]) != 1){
   stop(cat("\nAI algorithm currently only works for a single residual variance"))
 }
-      Cinv <- solve(a = sLc, b = Ic, system = "A")
+      if(grMod$algit[i] == "AI") Cinv <- solve(a = sLc, b = Ic, system = "A")
+      if(grMod$algit[i] == "AIfd"){
+        # finite difference algorithm for first derivatives
+        #TODO instead interface next line with gremlinControl$algArgs
+        # For now, default is forward differences for first 2 iterations
+        ## then central differences for rest (central gives better estimates)
+        if(i < 2) fd_in <- "fdiff" else fd_in <- "cdiff"
+        dLdnu <- gradFun_fd(nuvin = nuv, grObj = grMod,
+          lL = remlOut$loglik, fd = fd_in)
+      }  #<-- end finite difference first derivative choice
 
       if(lambda){
         AI <- ai(nuv, skel, thetaG,
              grMod$modMats, grMod$W, sLc, grMod$sln, grMod$r,
   	      thetaR = NULL,
 	      sigma2e)  #<-- NULL if lambda==FALSE
-        dLdnu <- gradFun(nuv, thetaG, grMod$modMats, Cinv, grMod$sln,
+	if(grMod$algit[i] == "AI"){  #<-- analytical first derivatives      
+          dLdnu <- gradFun(nuv, thetaG, grMod$modMats, Cinv, grMod$sln,
 	    	      sigma2e = sigma2e, r = NULL, nminfrfx = NULL)
 #          dLdnu_TEST <- gradFun_TEST(nuv, thetaG,
 #	  	      grMod$modMats, sLc, grMod$ndgeninv, grMod$sln,	
@@ -349,19 +360,23 @@ if(nrow(theta[[thetaR]]) != 1){
 #	  	      grMod$modMats, sLc, grMod$ndgeninv, grMod$sln,	
 #		      sigma2e = sigma2e,   #<-- NULL if lambda==FALSE
 #		      thetaR = NULL, r = NULL, nminfrfx = NULL)  #<-- NULL if lambda==TRUE
+        } #<-- end analytical first derivative choice
+          
       } else{
           AI <- ai(nuv, skel, thetaG,
         	grMod$modMats, grMod$W, sLc, grMod$sln, grMod$r,
                 thetaR,   #<-- NULL if lambda==TRUE
 	        sigma2e = NULL)
 
-	  dLdnu <- gradFun(nuv, thetaG, grMod$modMats, Cinv, grMod$sln,
+	  if(grMod$algit[i] == "AI"){  #<-- analytical first derivatives      
+	    dLdnu <- gradFun(nuv, thetaG, grMod$modMats, Cinv, grMod$sln,
   	      sigma2e = NULL, grMod$r, grMod$nminfrfx)
 
 #	   dLdnu_TEST2 <- gradFun_TEST2(nuv, thetaG,
 #	  	      grMod$modMats, sLc, grMod$ndgeninv, grMod$sln,	
 #		      sigma2e = NULL,   #<-- NULL if lambda==FALSE
 #		      thetaR = thetaR, r = grMod$r, nminfrfx = grMod$nminfrfx) #<-- NULL if lambda==TRUE
+          } #<-- end analytical first derivative choice
         }
 
       ## Find next set of parameters using a quasi-Newton method/algorithm
@@ -576,17 +591,19 @@ stop(cat("\nNot allowing `NR` right now"))
     nu <- sapply(nuout, FUN = stTrans)
     itTime <- Sys.time() - stItTime
     if(grMod$v > 0 && vitout == 0){
-      if(grMod$v > 2 && grMod$algit[i] == "AI"){
-        sgd <- matrix(NA, nrow = p, ncol = p+2)  #<-- `sgd` is summary.gremlinDeriv 
-          dimnames(sgd) <- list(row.names(dLdnu),
-            c("gradient", "", "AI", rep("", p-1)))
-        sgd[, 1] <- dLdnu
-        for(rc in 1:p) sgd[rc, 3:(p+2)] <- AI[rc, ]
-        cat("\tstep reduction:", step, "\n")
-        cat("\tH modification", round(f, 3), "\n")
-        print(as.table(sgd), digits = 3, na.print = " | ", zero.print = ".")
-        cat("\n")
-      } 
+      if(grMod$v > 2){
+        if(grMod$algit[i] == "AI" | grMod$algit[i] == "AIfd"){
+          sgd <- matrix(NA, nrow = p, ncol = p+2)  #<--`sgd` = summary.gremlinDeriv 
+            dimnames(sgd) <- list(row.names(dLdnu),
+              c("gradient", "", "AI", rep("", p-1)))
+          sgd[, 1] <- dLdnu
+          for(rc in 1:p) sgd[rc, 3:(p+2)] <- AI[rc, ]
+          cat("\tstep reduction:", step, "\n")
+          cat("\tH modification", round(f, 3), "\n")
+          print(as.table(sgd), digits = 3, na.print = " | ", zero.print = ".")
+          cat("\n")
+        } 
+      }  
       cat("\t\ttook ", round(itTime, 2), units(itTime), "\n")
     }
     units(itTime) <- "secs"

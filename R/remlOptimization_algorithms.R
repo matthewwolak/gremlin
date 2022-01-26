@@ -447,7 +447,7 @@ gradFun <- function(nuvin, thetaG, modMats, Cinv, sln,
 ################################################################################
 #' @rdname reml
 #' @export
-gradFun_fd <- function(grObj, lL, fd = c("fdiff", "cdiff", "bdiff"),
+gradFun_fd <- function(nuvin, grObj, lL, fd = c("fdiff", "cdiff", "bdiff"),
    e = .Machine$double.eps){
 
   fd <- match.arg(fd)
@@ -458,7 +458,7 @@ gradFun_fd <- function(grObj, lL, fd = c("fdiff", "cdiff", "bdiff"),
       h <- sqrt(e)
       denomSC <- 1
     }
-  nuvin <- nuv_tmp <- matlist2vech(grObj$nu)
+  nuv_tmp <- nuvin
     skel <- attr(nuvin, "skel")
   lambda <- grObj$lambda
     if(lambda){

@@ -1,8 +1,11 @@
-# 1.0.2
+# 1.1.0
 ## NEW
+  - add finite difference algorithm to obtain first derivatives of likelihood function
+    - made this part of the default algorithm (second derivatives from AI with first derivatives via finite differencing)
 
 ## Minor Changes
-
+  - Changed default parameterization so _lambda_ transformation is __no longer the default__
+  
 
 # 1.0.1 Released to CRAN 2020 June 25
 

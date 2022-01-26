@@ -550,9 +550,10 @@ update.gremlin <- function(object, ...){
     if(is.null(call[["algit"]])) algit <- defaultCall[["algit"]]
       else algit <- call[["algit"]]
     if(is.null(algit)) algit <- c(rep("EM", min(maxitTmp, 2)),
-                                  rep("AI", max(0, maxitTmp-2)))
+                                  rep("AIfd", max(0, maxitTmp-2))) #TODO switch back
+  ## to "AI" once analytical/`gradFun()` gives faster derivatives than finite diffs
   } else{
-      algChoices <- c("EM", "AI", "bobyqa", "NR") #TODO Update if add/subtract any
+      algChoices <- c("EM", "AI", "AIfd", "bobyqa", "NR") #TODO Update if add/subtract
       algMatch <- pmatch(new_args[["algit"]], algChoices,
         nomatch = 0, duplicates.ok = TRUE)
       if(any(algMatch == 0)){  
@@ -651,8 +652,8 @@ gremlinSetup <- function(formula, random = NULL, rcov = ~ units,
   modMats <- eval(mMmc, parent.frame())
 
   if(missing(rcov)) mc$rcov <- as.list(formals(eval(mc[[1L]])))[["rcov"]]
-  #algChoices <- c("EM", "AI", "bobyqa", "NR", control$algorithm)
-  algChoices <- c("EM", "AI", "bobyqa", "NR")  #<-- ignore control$algorithm
+  #algChoices <- c("EM", "AI", "AIfd", "bobyqa", "NR", control$algorithm)
+  algChoices <- c("EM", "AI", "AIfd", "bobyqa", "NR")  #<-- ignore control$algorithm
     if(!is.null(control$algorithm)){
       #TODO check validity of `control$algorithm` and `control$algArgs`
       ## need to pass algorithm to `gremlinR` or switch to it if `gremlin` called
@@ -673,10 +674,10 @@ gremlinSetup <- function(formula, random = NULL, rcov = ~ units,
     algit <- algit[-which(algMatch == 0)]
   }
   if(is.null(mc$algit)){
-    algit <- c(rep("EM", min(maxit, 2)), rep("AI", max(0, maxit-2)))
+    algit <- c(rep("EM", min(maxit, 2)), rep("AIfd", max(0, maxit-2)))
   } else algit <- algChoices[algMatch]
   if(length(algit) == 0) algit <- c(rep("EM", min(maxit, 2)),
-                                    rep("AI", max(0, maxit-2)))
+                                    rep("AIfd", max(0, maxit-2)))
   if(length(algit) == 1) algit <- rep(algit, maxit)
 
 
