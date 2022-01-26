@@ -443,3 +443,103 @@ gradFun <- function(nuvin, thetaG, modMats, Cinv, sln,
 ##########################
 
 
+
+################################################################################
+#' @rdname reml
+#' @export
+gradFun_fd <- function(grObj, lL, fd = c("fdiff", "cdiff", "bdiff"),
+   e = .Machine$double.eps){
+
+  fd <- match.arg(fd)
+  if(fd == "cdiff"){
+    h <- e^(1/3)
+    denomSC <- 2
+  } else{
+      h <- sqrt(e)
+      denomSC <- 1
+    }
+  nuvin <- nuv_tmp <- matlist2vech(grObj$nu)
+    skel <- attr(nuvin, "skel")
+  lambda <- grObj$lambda
+    if(lambda){
+      thetaR <- NULL
+      tWW <- grObj$tWW
+      RHS <- grObj$RHS
+    } else{
+        thetaR <- grObj$thetaR
+        tWW <- RHS <- NULL
+      }
+  thetaG <- grObj$thetaG
+  p <- grObj$p
+  con <- grObj$con
+  fxL <- fxU <- matrix(lL, nrow = grObj$p, ncol = 1,
+    dimnames = list(names(nuvin), NULL))
+
+  # Skip most of below if there are no variance components other than residual
+  if(length(thetaG) > 0){
+    # `g` is the gth component of the G-structure to model
+    for(g in thetaG){
+      if(con[g] != "F"){
+        if(fd != "bdiff"){  # if either FORWARD or CENTRAL difference method
+          nuv_tmp[g] <- nuvin[g] + h
+          lL_fd <- reml(vech2matlist(nuv_tmp, skel), skel, thetaG,
+	    grObj$sLc, grObj$modMats, grObj$W, grObj$Bpinv,
+            grObj$nminffx, grObj$nminfrfx, grObj$rfxlvls,
+            grObj$rfxIncContrib2loglik,
+	    thetaR, tWW, RHS)$loglik
+	  fxL[g, 1] <- lL_fd   # either forward or central diff.
+        }     
+        if(fd != "fdiff"){  # if either BACKWARD or CENTRAL difference method
+          nuv_tmp[g] <- nuvin[g] - h
+          lL_fd <- reml(vech2matlist(nuv_tmp, skel), skel, thetaG,
+	    grObj$sLc, grObj$modMats, grObj$W, grObj$Bpinv,
+            grObj$nminffx, grObj$nminfrfx, grObj$rfxlvls,
+            grObj$rfxIncContrib2loglik,
+	    thetaR, tWW, RHS)$loglik
+	  fxU[g, 1] <- lL_fd   # either backward or central diff.
+        }
+        
+        nuv_tmp[g] <- nuvin[g]  #<-- reset
+      }  #<-- end if g is not fixed
+    }  #<-- end `for g in thetaG`
+  }  #<-- end if there are any G-structure elements
+
+
+  # Residual (co)variances when not on Lambda scale
+#FIXME change `[p]` below to be number of residual (co)variances
+  if(!lambda){
+    if(con[p] != "F"){
+      if(fd != "bdiff"){  # if either FORWARD or CENTRAL difference method
+        nuv_tmp[p] <- nuvin[p] + h
+        lL_fd <- reml(vech2matlist(nuv_tmp, skel), skel, thetaG,
+	  grObj$sLc, grObj$modMats, grObj$W, grObj$Bpinv,
+          grObj$nminffx, grObj$nminfrfx, grObj$rfxlvls,
+          grObj$rfxIncContrib2loglik,
+	  thetaR, tWW, RHS)$loglik
+	# residual is backward hence `fxL` (instead of `fxU`)  
+        fxL[p, 1] <- lL_fd   # either forward or central diff.
+      }     
+      if(fd != "fdiff"){  # if either BACKWARD or CENTRAL difference method
+        nuv_tmp[p] <- nuvin[p] - h
+        lL_fd <- reml(vech2matlist(nuv_tmp, skel), skel, thetaG,
+	  grObj$sLc, grObj$modMats, grObj$W, grObj$Bpinv,
+          grObj$nminffx, grObj$nminfrfx, grObj$rfxlvls,
+          grObj$rfxIncContrib2loglik,
+	  thetaR, tWW, RHS)$loglik
+	# residual is backward hence `fxU` (instead of `fxL`) 
+        fxU[p, 1] <- lL_fd   # either backward or central diff.
+      }
+      
+      nuv_tmp[p] <- nuvin[p]  #<-- reset
+    }  #<-- end if g is not fixed
+  }  #<-- end if lambda=FALSE    
+
+  # First derivatives (gradient/score)
+  ## forward = [f(x+h) - f(x)] / h
+  ## backward = [f(x) - f(x-h)] / h
+  ## central = [f(x+h) - f(x-h)] / 2h
+  dLdnu <- (fxU - fxL) / (denomSC * h)
+
+ -1 * dLdnu  #<-- since optimizing the negative log-likelihood
+}  #<-- end `gradFun_fd()`
+
