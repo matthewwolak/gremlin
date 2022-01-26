@@ -5,6 +5,7 @@
 \alias{ai}
 \alias{em}
 \alias{gradFun}
+\alias{gradFun_fd}
 \title{REML optimization algorithms for mixed-effect models.}
 \usage{
 reml(
@@ -37,6 +38,13 @@ gradFun(
   sigma2e = NULL,
   r = NULL,
   nminfrfx = NULL
+)
+
+gradFun_fd(
+  grObj,
+  lL,
+  fd = c("fdiff", "cdiff", "bdiff"),
+  e = .Machine$double.eps
 )
 }
 \arguments{
