@@ -304,7 +304,8 @@ remlIt.gremlinR <- function(grMod, ...){
       # wombat 1
       cc[1] <- diff(itMat[c(i-1, i), "loglik"]) < grMod$cctol[1]
       # wombat 2 (eqn. A.1) (also Knight 2008 (eqn. 6.1) criteria
-      cc[2] <- sqrt(sum((itMat[i, 1:p] - itMat[(i-1), 1:p])^2) / sum(itMat[i, 1:p]^2)) < grMod$cctol[2]
+      cc[2] <- sqrt(sum((itMat[i, 1:p] - itMat[(i-1), 1:p])^2) / 
+          sum(itMat[i, 1:p]^2)) < grMod$cctol[2]
     } else cc[1] <- FALSE  #<-- ensures one of the EM/AI/etc algorithms used if i==1
 
 
