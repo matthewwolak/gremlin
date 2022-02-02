@@ -77,7 +77,8 @@ remlIt.default <- function(grMod, ...){
   bound <- grMod$bound
     bound[is.na(bound)] <- 0  # Replace NAs with 0
 
-  Cout <- .C("ugremlin", PACKAGE = "gremlin",
+
+  Cout <- .C("ugremlin2", PACKAGE = "gremlin",
 	as.double(grMod$modMats$y),
 	as.integer(grMod$modMats$ny),
 	as.integer(grMod$nminffx),		# No. observations - No. Fxd Fx

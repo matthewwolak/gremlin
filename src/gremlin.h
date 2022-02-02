@@ -11,13 +11,25 @@ extern "C" {
 
 
 
+/* returns log-likelihood if successful, 0 if not
+   Replaces all objects that are updated based on changed `nu` values */
+csn *cs_reml(csi n, csi *dimZWG, csi nG, csi p, double *y,
+	cs *Bpinv, cs *W, cs *tW, csi *rfxlvls, double rfxlL,
+	cs *R, cs *Rinv, cs **G, cs  **Ginv, csi *ndgeninv, cs **geninv,
+	cs *KRinv, cs **KGinv, cs *tWKRinv, cs *tWKRinvW, cs *Ctmp,
+	cs *RHS, cs *tmpBLUXs, cs *BLUXs, double *res,
+	css *sLc,
+	double *tyPy, double *logDetC, double *sigma2e, double *loglik,
+	csi i, csi v, csi vitout);
+
+
 /* Average Information Algorithm:
-    returns 1 if successful, 0 if not:  H->x replaced */
-csi cs_ai(const cs *H, const cs *BLUXs, cs **Ginv,
-        const cs *R, const cs *KRinv, const cs *tWKRinv,
+    returns replaces AI */
+cs *cs_ai(cs *BLUXs, cs **Ginv,
+        cs *R, cs *KRinv, cs *tWKRinv,
         double *rory,  // residuals if lambda=FALSE else y if lambda=TRUE
-        const cs *W, const cs *tW, csi n, csi p, csi nG, csi *rfxlvls, csi nb,
-	const cs *Lc, const csi *Pinv,
+        cs *W, cs *tW, csi n, csi p, csi nG, csi *rfxlvls, csi nb,
+	cs *Lc, csi *Pinv,
 	csi thetaR,       // 0 if lambda=TRUE
         double sigma2e);    // 1.0 if lambda=FALSE
 
