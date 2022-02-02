@@ -35,16 +35,26 @@ cs *cs_ai(cs *BLUXs, cs **Ginv,
 
 
  
-/* Gradient/Score (first derivative) function
+/* Analytical Gradient/Score (first derivative) function
      return 1 if successful else returns 0
-     dLdnu overwritten with output
-     Cinv_ii overwritten with diag(Cinv) */
+     dLdnu overwritten with output */
 csi cs_gradFun(double *nu, double *dLdnu, 
         double *tugug, double *trace, csi *con,
 	csi n, csi nG, csi *rfxlvls, csi nb,
 	double sigma2e,    // 1.0 if lambda=FALSE
 	csi thetaR, double *r);      // 0 if lambda=TRUE
 
+
+/* Finite difference Gradient/Score (first derivative) function
+     return 1 if successful else returns 0
+     dLdnu overwritten with output */
+csi cs_gradFun_fd(double *nu, csi fd, double *dLdnu, double lL, csi *con,
+	csi n, csi *dimZWG, csi nG, csi p, double *y,
+	cs *Bpinv, cs *W, cs *tW, csi *rfxlvls, double rfxlL,
+	csi *ndgeninv, cs **geninv, cs *KRinv,
+	cs *Ctmp, cs *RHS, cs *tmpBLUXs, cs *BLUXs,
+	css *sLc, 
+	int *nnzGRs, int *dimGRs, int *iGRs);
 
 /* solve Ax=k where Lx=b, L'b=k, and x, b, and k are dense.
    x=b on input, solution on output. */
