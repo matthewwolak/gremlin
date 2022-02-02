@@ -115,6 +115,7 @@ remlIt.default <- function(grMod, ...){
 	as.double(c(grMod$r)),				#empty resdiuals
 	as.double(rep(0, grMod$maxit*(grMod$p+5))),	#itMat
 	as.integer(intfacalgit -1), 			#algorithm for each iteration
+	as.integer(grMod$fdit - 1),			#finite difference algorithm
 	as.integer(grMod$maxit),			#max it./n algit
 	as.double(grMod$step),			#init./default step-halving value
 	as.double(grMod$cctol),				#convergence tol.
@@ -125,7 +126,7 @@ remlIt.default <- function(grMod, ...){
 	as.integer(grMod$vit),				#when to output status
 	as.integer(rep(0, length(grMod$sln))))		#empty sLc->pinv
 
-  i <- Cout[[36]]  #<-- index from c++ always increments +1 at end of for `i`
+  i <- Cout[[37]]  #<-- index from c++ always increments +1 at end of for `i`
 
   grMod$nu[] <- vech2matlist(Cout[[22]], attr(grMod$thetav, "skel"))
   grMod$dLdnu[] <- Cout[[29]]
@@ -140,7 +141,7 @@ remlIt.default <- function(grMod, ...){
   grMod$r[] <- Cout[[33]]
   #TODO Will definitely need R vs. c++ methods for `update.gremlin()`
   #### can directly use R's `grMod$sLc`, but will need to figure out how to give c++'s `cs_schol()` a pinv (need to reconstruct `sLc` in c++ around pinv (see old code on how I may have done this when I made sLc from sLm)
-  grMod$sLcPinv <- Cout[[43]]
+  grMod$sLcPinv <- Cout[[44]]
 
   itMat <- matrix(Cout[[34]][1:(i*(grMod$p+5))], nrow = i, ncol = grMod$p+5,
            byrow = TRUE)
@@ -339,9 +340,11 @@ if(nrow(theta[[thetaR]]) != 1){
       if(grMod$algit[i] == "AIfd"){
         # finite difference algorithm for first derivatives
         #TODO instead interface next line with gremlinControl$algArgs
-        # For now, default is forward differences for first 2 iterations
-        ## then central differences for rest (central gives better estimates)
-        if(i < 2) fd_in <- "fdiff" else fd_in <- "cdiff"
+        if(fdit[i] == 2){
+          fd_in <- "cdiff"
+        } else{
+            fd_in <- ifelse(fdit[i] == 1, "bdiff", "fdiff")
+          }  
         dLdnu <- gradFun_fd(nuvin = nuv, grObj = grMod,
           lL = remlOut$loglik, fd = fd_in)
       }  #<-- end finite difference first derivative choice

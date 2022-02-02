@@ -110,7 +110,12 @@
 #'   iterations.
 #' @param algit A \code{character} vector of length 1 or more or an expression
 #'   to be evaluated that specifies the algorithm to use for proposing
-#'   (co)variances in the next likelihood iteration.
+#'   (co)variances in the next likelihood iteration. Mainly used to switch
+#'   between Expectation Maximization (\code{"EM"}), or Average Information
+#'   second derivatives with either (1) analytical first derivatives (\code{"AI"}),
+#'   or (2) first derivatives using finite difference method (either backward
+#'   \code{"AIbfd"}, central \code{"AIcfd"}, or forward finite differences
+#'   \code{"AIffd"}).
 #' @param vit An \code{integer} value specifying the verbosity of screen output
 #'   on each iteration. A value of zero gives no iteration specific output and
 #'   larger values increase the amount of information printed on the screen.
@@ -211,6 +216,9 @@
 #'     \item{maxit }{See the parameter described above.}
 #'     \item{algit }{A \code{character} vector of REML algorithms to use in each
 #'       iteration.}
+#'     \item{fdit }{A \code{integer} vector of which finite difference gradient
+#'       algorithm to use each iteration (if first derivatives of the likelihood
+#'       function are to be calculated using a finite difference method).
 #'     \item{vit }{See the parameter described above.}
 #'     \item{v }{See the parameter described above.}
 #'     \item{cctol }{A \code{numeric} vector of convergence criteria thresholds.
@@ -550,10 +558,10 @@ update.gremlin <- function(object, ...){
     if(is.null(call[["algit"]])) algit <- defaultCall[["algit"]]
       else algit <- call[["algit"]]
     if(is.null(algit)) algit <- c(rep("EM", min(maxitTmp, 2)),
-                                  rep("AIfd", max(0, maxitTmp-2))) #TODO switch back
-  ## to "AI" once analytical/`gradFun()` gives faster derivatives than finite diffs
+                                  rep("AIcfd", max(0, maxitTmp-2))) #TODO switch 
+  ## back to "AI" once analytical/`gradFun()` gives faster derivatives than finite diffs
   } else{
-      algChoices <- c("EM", "AI", "AIfd", "bobyqa", "NR") #TODO Update if add/subtract
+      algChoices <- c("EM", "AI", "AIbfd", "AIcfd", "AIffd", "bobyqa", "NR") #TODO Update if add/subtract
       algMatch <- pmatch(new_args[["algit"]], algChoices,
         nomatch = 0, duplicates.ok = TRUE)
       if(any(algMatch == 0)){  
@@ -565,8 +573,21 @@ update.gremlin <- function(object, ...){
   if(length(algit) == 1) algit <- rep(algit, maxitTmp)
   if(length(algit) > maxitTmp) algit <- algit[1:maxitTmp]
   if(length(algit) < maxitTmp) algit <- rep(tail(algit, 1), maxitTmp)
-  if(diffMod) call[["algit"]] <- algit
-    else object$grMod[["algit"]] <- algit
+  # Now check for finite difference algorithms with AI:
+  fdit <- as.integer(rep(0, maxitTmp))
+    fdit[grep("bfd", algit)] <- 1
+      algit <- gsub("bfd", "fd", algit)
+    fdit[grep("cfd", algit)] <- 2
+      algit <- gsub("cfd", "fd", algit)
+    fdit[grep("ffd", algit)] <- 3
+      algit <- gsub("ffd", "fd", algit)
+  if(diffMod){
+    call[["algit"]] <- algit
+    call[["fdit"]] <- fdit
+  } else{
+      object$grMod[["algit"]] <- algit
+      object$grMod[["fdit"]] <- fdit
+    }
 
 
   # gremlinControl() changes
@@ -652,8 +673,8 @@ gremlinSetup <- function(formula, random = NULL, rcov = ~ units,
   modMats <- eval(mMmc, parent.frame())
 
   if(missing(rcov)) mc$rcov <- as.list(formals(eval(mc[[1L]])))[["rcov"]]
-  #algChoices <- c("EM", "AI", "AIfd", "bobyqa", "NR", control$algorithm)
-  algChoices <- c("EM", "AI", "AIfd", "bobyqa", "NR")  #<-- ignore control$algorithm
+  #algChoices <- c("EM", "AI", "AIbfd", "AIcfd", "AIffd", "bobyqa", "NR", control$algorithm)
+  algChoices <- c("EM", "AI", "AIbfd", "AIcfd", "AIffd", "bobyqa", "NR")  #<-- ignore control$algorithm
     if(!is.null(control$algorithm)){
       #TODO check validity of `control$algorithm` and `control$algArgs`
       ## need to pass algorithm to `gremlinR` or switch to it if `gremlin` called
@@ -674,13 +695,19 @@ gremlinSetup <- function(formula, random = NULL, rcov = ~ units,
     algit <- algit[-which(algMatch == 0)]
   }
   if(is.null(mc$algit)){
-    algit <- c(rep("EM", min(maxit, 2)), rep("AIfd", max(0, maxit-2)))
+    algit <- c(rep("EM", min(maxit, 2)), rep("AIcfd", max(0, maxit-2)))
   } else algit <- algChoices[algMatch]
   if(length(algit) == 0) algit <- c(rep("EM", min(maxit, 2)),
-                                    rep("AIfd", max(0, maxit-2)))
+                                    rep("AIcfd", max(0, maxit-2)))
   if(length(algit) == 1) algit <- rep(algit, maxit)
-
-
+  # Now check for finite difference algorithms with AI:
+  fdit <- as.integer(rep(0, maxit))
+    fdit[grep("bfd", algit)] <- 1
+      algit <- gsub("bfd", "fd", algit)
+    fdit[grep("cfd", algit)] <- 2
+      algit <- gsub("cfd", "fd", algit)
+    fdit[grep("ffd", algit)] <- 3
+      algit <- gsub("ffd", "fd", algit)
 
   #TODO check dimensions G/Rstart
 #FIXME assumes univariate
@@ -847,7 +874,7 @@ gremlinSetup <- function(formula, random = NULL, rcov = ~ units,
 		sLc = sLc,
 		sln = sln, Cinv_ii = Cinv_ii, r = r,
 		AI = AI, dLdnu = dLdnu,
-		maxit = maxit, algit = algit, vit = vit, v = v,
+		maxit = maxit, algit = algit, fdit = fdit, vit = vit, v = v,
 		cctol = control$cctol,
 		ezero = control$ezero, einf = control$einf, step = control$step),
 	class = c("grMod", "gremlin"),
