@@ -1,4 +1,5 @@
 #include "gremlincc.h"
+
 /*******************************************************************/
 /* 2 clock functions from SuiteSparse 5.1.0 by Tim Davis           */
 /* -------------------------------------------------------------------------- */
@@ -40,7 +41,6 @@ double simple_toc           /* returns time since last simple_tic */
 }
 
 /*******************************************************************/
-
 
 
 
@@ -809,30 +809,37 @@ if(v[0] > 3){
       f = 0.0;  // initialize to a default/no alteration of Hessian
 
 
-      if(!tugugFun(tugug, w, nG, rfxlvls, con,
+      // Gradient via Analytical (vs. Finite Difference)
+      if(algit[i] == 1){  
+        if(!tugugFun(tugug, w, nG, rfxlvls, con,
 	    nffx, ndgeninv, geninv, BLUXs)){
-        error("\nUnsuccessful tugug calculation: AI algorithm in iteration %i", i);
-      }
+          error("\nUnsuccessful tugug calculation: AI algorithm in iteration %i", i);
+        }
 if(v[0] > 3){
   took = simple_toc(t);
   Rprintf("\n\t    %6.6f sec.: calculate tugug(s)", took);
   simple_tic(t);
 }
 
-      if(!traceFun(trace, w, nG, rfxlvls,
+        if(!traceFun(trace, w, nG, rfxlvls,
 	    nffx, ndgeninv, geninv, BLUXs->m, Lc->L, sLc->pinv)){
-        error("\nUnsuccessful trace calculation: AI algorithm in iteration %i", i);
-      }
+          error("\nUnsuccessful trace calculation: AI algorithm in iteration %i", i);
+        }
 if(v[0] > 3){
   took = simple_toc(t);
   Rprintf("\n\t    %6.6f sec.: calculate trace(s)", took);
   simple_tic(t);
 }
-
+      }  // end if gradient via analytical (vs. finite difference)
+      
+      
+      
       if(lambda[0] == 1){
-        if(cs_ai(AI, BLUXs, Ginv, R, 0, 0,
+        cs_spfree(AI);
+        AI = cs_ai(BLUXs, Ginv, R, 0, 0,
 	      y, W, tW, ny[0], p[0], nG, rfxlvls, nffx, Lc->L, sLc->pinv,
-	      0, sigma2e) == 0){
+	      0, sigma2e);
+	if(AI == NULL){
           error("\nUnsuccessful AI algorithm in iteration %i", i);
         }
 if(v[0] > 3){
@@ -841,14 +848,18 @@ if(v[0] > 3){
   simple_tic(t);
 }
 
-        if(!cs_gradFun(nu, dLdnu,
+
+        if(algit[i] == 1){
+          if(!cs_gradFun(nu, dLdnu,
 	      tugug, trace, con,
 	      ny[0], nG, rfxlvls, nffx,
               sigma2e,    // 1.0 if lambda=FALSE
 	      0, res)){      // 0 if lambda=TRUE
 	      
-          error("\nUnsuccessful gradient calculation in iteration %i", i);
-        }  // end if cs_gradFun
+            error("\nUnsuccessful gradient calculation in iteration %i", i);
+          }  // end if cs_gradFun
+        }
+
 if(v[0] > 3){
   took = simple_toc(t);
   Rprintf("\n\t    %6.4f sec.: calculate gradient", took);
@@ -857,9 +868,11 @@ if(v[0] > 3){
 
       } else{
         // when lambda = FALSE
-        if(cs_ai(AI, BLUXs, Ginv, R, KRinv, tWKRinv,
+        cs_spfree(AI);
+        AI = cs_ai(BLUXs, Ginv, R, KRinv, tWKRinv,
 	      res, W, tW, ny[0], p[0], nG, rfxlvls, nffx, Lc->L, sLc->pinv,
-	      nG, 1.0) == 0){
+	      nG, 1.0);
+	if(AI == NULL){
           error("\nUnsuccessful AI algorithm in iteration %i", i);
         }
 if(v[0] > 3){
@@ -1176,9 +1189,11 @@ if(v[0] > 3){
   ////// only need to do if did NOT do AI
   if(algit[i] != 1){  
     if(lambda[0] == 1){
-      if(cs_ai(AI, BLUXs, Ginv, R, 0, 0,
+      cs_spfree(AI);
+      AI = cs_ai(BLUXs, Ginv, R, 0, 0,
 	  y, W, tW, ny[0], p[0], nG, rfxlvls, nffx, Lc->L, sLc->pinv,
-	  0, sigma2e) == 0){
+	  0, sigma2e);
+      if(AI == NULL){
         error("Unsuccessful AI algorithm at convergence %i\n", i);
       }
 if(v[0] > 3){
@@ -1189,9 +1204,11 @@ if(v[0] > 3){
        
 
     }else{
-      if(cs_ai(AI, BLUXs, Ginv, R, KRinv, tWKRinv,
+      cs_spfree(AI);
+      AI = cs_ai(BLUXs, Ginv, R, KRinv, tWKRinv,
           res, W, tW, ny[0], p[0], nG, rfxlvls, nffx, Lc->L, sLc->pinv,
-	  nG, 1.0) == 0){
+	  nG, 1.0);
+      if(AI == NULL){
         error("Unsuccessful AI algorithm  at convergence %i\n", i);
       }
 if(v[0] > 3){
