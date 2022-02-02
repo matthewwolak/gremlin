@@ -489,7 +489,7 @@ if(v[0] > 3){
   Rprintf("\n\t    %6.6f sec.: calculate trace(s)", took);
   simple_tic(t);
 }
-      }  // end if gradient via analytical (vs. finite difference)
+      }  // end if gradient via analytical (isntead of finite difference)
       
       
            
@@ -551,6 +551,7 @@ if(v[0] > 3){
             error("\nUnsuccessful gradient calculation iteration %i", i);
           }  // end if cs_gradFun
         }  // end if algit=1
+
         
         // algit 2 is AI with finite differences for the gradient calculation
         if(algit[i] == 2){
@@ -563,6 +564,7 @@ if(v[0] > 3){
               nnzGRs, dimGRs, iGRs)){      // 0 if lambda=TRUE
             error("\nUnsuccessful finite difference gradient calculation iteration %i", i);
           }  // end if cs_gradFun
+
         }  // end if algit=2
 
         
@@ -604,7 +606,7 @@ if(v[0] > 3){
       si2 = 0;  // Keep track (avoid infinite loops): 
                 //// get as many tries as numbers of parameters
       bd = 1;  // initialize so enters while loop
-      while(algit[i] == 1 && bd == 1 && si2 < p[0]){
+      while(algit[i] > 0 && bd == 1 && si2 < p[0]){
         si = 0;
         stpVal = 1.0;
         for(k = 0; k < p[0]; k++){
@@ -683,7 +685,7 @@ if(v[0] > 3){
       }  // end while AI and bd
 
 
-      if(algit[i] == 1){
+      if(algit[i] > 0){
         // CONVERGENCE CRITERIA 3 and 4
         //// Appendix 2 of WOMBAT help manual for 4 criteria specified
         // Norm of gradient vector: wombt eqn. A.2
@@ -802,7 +804,7 @@ if(v[0] > 3){
       if(v[0] > 1 && vitout == 0){ 
         // V=3 LEVEL of OUTPUT
         if(v[0] > 2){
-          if(algit[i] == 1){
+          if(algit[i] > 0){
             // output step-size modification
             Rprintf("\tgradient | AI\n");
             Rprintf("\t-------- |--------\n");
@@ -864,7 +866,7 @@ if(v[0] > 3){
 
   //// Average Information
   ////// only need to do if did NOT do AI
-  if(algit[i] != 1){  
+  if(algit[i] < 1){  
     if(lambda[0] == 1){
       cs_spfree(AI);  //TODO how pass if not initialized
       AI = cs_ai(BLUXs, Ginv, R, 0, 0,
