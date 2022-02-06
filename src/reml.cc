@@ -1,4 +1,5 @@
 #include "gremlin.h"
+#include "gremlincc.h"
 
 /* returns log-likelihood if successful, 0 if not
    Replaces all objects that are updated based on changed `nu` values */
@@ -19,7 +20,7 @@ csn *cs_reml(csi n, csi *dimZWG, csi nG, csi p, double *y,
   
   if(!CS_CSC(W)) return (0);
 
-//  if(v > 3) simple_tic(t);
+  if(v > 3) simple_tic(t);
   *loglik = 0.0;
   
 
@@ -80,10 +81,9 @@ csn *cs_reml(csi n, csi *dimZWG, csi nG, csi p, double *y,
     }
 
 if((i == 0) && (v > 3)){
-//  took = simple_toc(t); 
-//  Rprintf("  %6.4f sec.: initial cpp setup to get C\n", took);
-  Rprintf("  X sec.: initial cpp setup to get C\n");
-//  simple_tic(t);
+  took = simple_toc(t); 
+  Rprintf("  %6.4f sec.: initial cpp setup to get C\n", took);
+  simple_tic(t);
 }
 
 
@@ -96,10 +96,9 @@ if((i == 0) && (v > 3)){
   }
 
 if(v > 3){
-//  took = simple_toc(t);
-//  Rprintf("\n    %6.4f sec.: cpp REML i=%i cs_chol(C)", took, i);
-  Rprintf("\n    XX sec.: cpp REML i=%i cs_chol(C)", i);
-//  simple_tic(t);
+  took = simple_toc(t);
+  Rprintf("\n    %6.4f sec.: cpp REML i=%i cs_chol(C)", took, i);
+  simple_tic(t);
 }
 
 
@@ -117,10 +116,9 @@ if(v > 3){
   cs_pvec(sLc->pinv, tmpBLUXs->x, BLUXs->x, C->n) ;  /* b = P'*x */
 
 if(v > 3){
-//  took = simple_toc(t); 
-//  Rprintf("\n\t    %6.4f sec.: cpp REML i=%i sln forward/back solve with chol(C)", took, i);
-  Rprintf("\n\t    XX sec.: cpp REML i=%i sln forward/back solve with chol(C)", i);
-//  simple_tic(t);
+  took = simple_toc(t); 
+  Rprintf("\n\t    %6.4f sec.: cpp REML i=%i sln forward/back solve with chol(C)", took, i);
+  simple_tic(t);
 }
 
 
@@ -137,10 +135,9 @@ if(v > 3){
 
 
 if(v > 3){
-//  took = simple_toc(t);
-//  Rprintf("\n    %6.4f sec.: cpp REML i=%i sln/r calc.", took, i);
-  Rprintf("\n    XX sec.: cpp REML i=%i sln/r calc.", i);
-//  simple_tic(t);
+  took = simple_toc(t);
+  Rprintf("\n    %6.4f sec.: cpp REML i=%i sln/r calc.", took, i);
+  simple_tic(t);
 }
 
 
@@ -205,10 +202,9 @@ if(v > 3){
 
 
 if(v > 3){
-//  took = simple_toc(t);
-//  Rprintf("\n    %6.4f sec.: cpp REML i=%i log-likelihood calc.", took, i);
-  Rprintf("\n    XX sec.: cpp REML i=%i log-likelihood calc.", i);
-//  simple_tic(t);
+  took = simple_toc(t);
+  Rprintf("\n    %6.4f sec.: cpp REML i=%i log-likelihood calc.", took, i);
+  simple_tic(t);
 }
 
   /////////////////////////////////////
