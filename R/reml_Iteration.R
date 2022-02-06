@@ -526,9 +526,10 @@ if(nrow(theta[[thetaR]]) != 1){
             # wombat 3 (eqn. A.2): Norm of the gradient vector
             cc[3] <- sqrt(sum(dLdnu_con * dLdnu_con)) < grMod$cctol[3]
             # wombat 4 (eqn A.3): Newton decrement
-            ## (see Boyd & Vandenberghe 2004 cited in wombat)
+            ## (Boyd & Vandenberghe 2004 "Convex Optimization" book cited in wombat)
             # AI only
             #TODO: figure it whether to use "_con" versions or not
+            #TODO: what is criteria? Not stated in Wombat see Boyd & Vandenberghe 2004
 #            cc[4] <- -1 * c(crossprod(dLdnu_con, H_con) %*% dLdnu_con)
 
         }  #<-- end if/else Hessian can be inverted

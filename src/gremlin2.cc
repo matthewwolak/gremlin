@@ -55,7 +55,8 @@ void ugremlin2(
 	 *R, *Rinv, *KRinv, *tWKRinv, *tWKRinvW, *ttWKRinvW,
 	 *Ctmp, *C,
 	 *RHS, *tmpBLUXs, *BLUXs,
-	 *AI, *invAI;
+	 *AI;
+	 //TODO when implement Newton Decrement method need *invAI;
 
   css    *sLc;
   csn    *Lc;
