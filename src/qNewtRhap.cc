@@ -120,8 +120,7 @@ csi qNewtRhap(double *nu, double *newnu, double *dLdnu, const cs *A,
 
       }  // end if/else boundaryFlag
 
-
-       
+     
 
       // Cleanup:
       delete [] w;

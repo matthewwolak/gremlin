@@ -55,7 +55,7 @@ void ugremlin2(
 	 *R, *Rinv, *KRinv, *tWKRinv, *tWKRinvW, *ttWKRinvW,
 	 *Ctmp, *C,
 	 *RHS, *tmpBLUXs, *BLUXs,
-	 *AI;
+	 *AI, *invAI;
 
   css    *sLc;
   csn    *Lc;
@@ -200,20 +200,8 @@ if(v[0] > 3) simple_tic(t);
 
 
 
-// DELETE or FIXME depending on whether ai2.cc pans out
   // setup empty AI matrix
   AI = cs_spalloc(p[0], p[0], p[0]*p[0], true, false);
-  si = 0;
-  for(k = 0; k < p[0]; k++){
-    AI->p[k] = si;
-    for(g = 0; g < p[0]; g++){
-      AI->i[si] = g;
-      AI->x[si] = 1.0;
-      si++;
-    }
-  }
-  AI->p[ p[0] ] = si;
-
 
 
 
@@ -495,9 +483,10 @@ if(v[0] > 3){
            
       if(lambda[0] == 1){
         cs_spfree(AI);  //TODO how pass if not initialized
-        if(cs_ai(BLUXs, Ginv, R, 0, 0,
+        AI = cs_ai(BLUXs, Ginv, R, 0, 0,
 	      y, W, tW, ny[0], p[0], nG, rfxlvls, nffx, Lc->L, sLc->pinv,
-	      0, sigma2e) == 0){
+	      0, sigma2e);
+	if(AI == 0){
           error("\nUnsuccessful AI algorithm iteration %i", i);
         }
 if(v[0] > 3){
@@ -697,10 +686,17 @@ if(v[0] > 3){
         cc[2] += (sqrt(d) < cctol[2]);
           cc[4] += cc[2];
         // Newton decrement: wombat eqn A.3 and Boyd & Vandenberghe 2004
-        //TODO
-        //cc[4] += cc[3];
-
-
+        /* TODO: determine `cctol` value - FIXME truned off for now 
+        invAI = cs_inv_withDiagMod(AI, con, wchBd, ezero, v[0]);
+        d = 0.0;
+        for(g = 0; g < p[0]; g++){
+          for(k = invAI->p[g]; k < invAI->p[g+1]; k++){
+            d += dLdnu[ invAI->i[k] ] * dLdnu[g] * invAI->x[ invAI->i[k] ];
+          }  // end for kth row
+        }  // end for gth column 
+        cc[3] += (-1 * d) < cctol[3];
+          cc[4] += cc[3];
+        */
 
         // unpack newnu into nu
         si = 0;
