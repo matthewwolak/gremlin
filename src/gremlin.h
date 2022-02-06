@@ -87,6 +87,10 @@ csi traceFun(double *trace, double *w,
 cs *cs_droprowcol(const cs *A, csi *drop);
 
 
+/* inverted matrix returned if successful else NULL */
+cs *cs_inv_withDiagMod(const cs *A, csi *con, csi *wchBd,
+	double *ezero, csi v);
+
 /* 1 returned if successful, else NULL
    `newnu` replaced with next set of nu parameters   */
 csi qNewtRhap(double *nu, double *newnu, double *dLdnu, const cs *A,
