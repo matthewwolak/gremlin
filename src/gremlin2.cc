@@ -74,8 +74,7 @@ void ugremlin2(
   int 	 g, i, k, si, si2, vitout,
 	 itc = 0,
          dimM,      // GENERIC dimension of a matrix variable to be REUSED 
-	 nffx, nminfrfx,
-	 nr = dimZWG[1],
+	 nffx,
 	 bd;  
 
   int	 *rfxlvls = new int[nG];
@@ -194,9 +193,6 @@ if(v[0] > 3) simple_tic(t);
   for(g = 0; g < nG; g++){
     rfxlvls[g] = dimZgs[2*g+1];
   }
-  // only use `nminfrfx` when lambda=TRUE
-  //// but just do simple calculation regardless, to avoid if statement
-  nminfrfx = nminffx[0] - nr; 
 
   // initialize to zero: will change for lambda=TRUE else always be passed to reml
   //// as 0.0 to be calculated within cs_reml() for each G/R
@@ -866,7 +862,7 @@ if(v[0] > 3){
     }  // end if v > 0
 
 
-    itMat[itc] += round(took*10) / 10;              // gives 1 decimal place
+    itMat[itc] += round(took*1000) / 1000;              // gives 3 decimal places
     itc++;
  
 

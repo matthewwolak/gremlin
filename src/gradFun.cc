@@ -84,6 +84,9 @@ csi cs_gradFun(double *nu, double *dLdnu,
 
 /* return 1 if successful else returns 0
        dLdnu overwritten with output
+fd = 0; backwards finite differences
+fd = 1; central (both backwards and forward finite differences)
+fd = 2; forward finite differences       
       					 */
 csi cs_gradFun_fd(double *nu, csi fd, double *dLdnu, double lL, csi *con,
 	csi n, csi *dimZWG, csi nG, csi p, double *y,
@@ -120,10 +123,13 @@ csi cs_gradFun_fd(double *nu, csi fd, double *dLdnu, double lL, csi *con,
     h = pow(DBL_EPSILON, (1.0 / 3.0));
     denomSC = 2.0;
   } else{
-      h = pow(DBL_EPSILON, (1.0 / 2.0));
+//      h = pow(DBL_EPSILON, (1.0 / 2.0));
+// previous used square root for h, but this seemed to produce too small a number
+      h = pow(DBL_EPSILON, (1.0 / 3.0));
+
       denomSC = 1.0;
     }
-    
+
   // seed upper and lower log-likelihood vectors with current model log-likelihood
   //// so if using either backward or forward then will be subtracting from this
   for(g = 0; g < p; g++){
