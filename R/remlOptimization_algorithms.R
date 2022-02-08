@@ -447,8 +447,7 @@ gradFun <- function(nuvin, thetaG, modMats, Cinv, sln,
 ################################################################################
 #' @rdname reml
 #' @export
-gradFun_fd <- function(nuvin, grObj, lL, fd = c("fdiff", "cdiff", "bdiff"),
-   e = .Machine$double.eps){
+gradFun_fd <- function(nuvin, grObj, lL, fd = c("fdiff", "cdiff", "bdiff")){
 
   fd <- match.arg(fd)
   h <- grObj$h

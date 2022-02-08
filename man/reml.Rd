@@ -40,13 +40,7 @@ gradFun(
   nminfrfx = NULL
 )
 
-gradFun_fd(
-  nuvin,
-  grObj,
-  lL,
-  fd = c("fdiff", "cdiff", "bdiff"),
-  e = .Machine$double.eps
-)
+gradFun_fd(nuvin, grObj, lL, fd = c("fdiff", "cdiff", "bdiff"))
 }
 \arguments{
 \item{nu, nuvin}{A \code{list} or \code{vector} of (co)variance parameters to

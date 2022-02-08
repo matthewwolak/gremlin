@@ -341,10 +341,10 @@ if(nrow(theta[[thetaR]]) != 1){
       if(grMod$algit[i] == "AIfd"){
         # finite difference algorithm for first derivatives
         #TODO instead interface next line with gremlinControl$algArgs
-        if(fdit[i] == 2){
+        if(grMod$fdit[i] == 2){
           fd_in <- "cdiff"
         } else{
-            fd_in <- ifelse(fdit[i] == 1, "bdiff", "fdiff")
+            fd_in <- ifelse(grMod$fdit[i] == 1, "bdiff", "fdiff")
           }  
         dLdnu <- gradFun_fd(nuvin = nuv, grObj = grMod,
           lL = remlOut$loglik, fd = fd_in)
