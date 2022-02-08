@@ -41,6 +41,7 @@ gradFun(
 )
 
 gradFun_fd(
+  nuvin,
   grObj,
   lL,
   fd = c("fdiff", "cdiff", "bdiff"),

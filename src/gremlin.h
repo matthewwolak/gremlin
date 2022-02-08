@@ -50,8 +50,13 @@ csi cs_gradFun(double *nu, double *dLdnu,
 
 /* Finite difference Gradient/Score (first derivative) function
      return 1 if successful else returns 0
-     dLdnu overwritten with output */
-csi cs_gradFun_fd(double *nu, csi fd, double *dLdnu, double lL, csi *con,
+     dLdnu overwritten with output
+fd = 0; backwards finite differences
+fd = 1; central (both backwards and forward finite differences)
+fd = 2; forward finite differences       
+      */
+csi cs_gradFun_fd(double *nu, csi fd, double h,
+	double *dLdnu, double lL, csi *con,
 	csi n, csi *dimZWG, csi nG, csi p, double *y,
 	cs *Bpinv, cs *W, cs *tW, csi *rfxlvls, double rfxlL,
 	csi *ndgeninv, cs **geninv, cs *KRinv,

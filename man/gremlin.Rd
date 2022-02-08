@@ -125,7 +125,12 @@ iterations.}
 
 \item{algit}{A \code{character} vector of length 1 or more or an expression
 to be evaluated that specifies the algorithm to use for proposing
-(co)variances in the next likelihood iteration.}
+(co)variances in the next likelihood iteration. Mainly used to switch
+between Expectation Maximization (\code{"EM"}), or Average Information
+second derivatives with either (1) analytical first derivatives (\code{"AI"}),
+or (2) first derivatives using finite difference method (either backward
+\code{"AIbfd"}, central \code{"AIcfd"}, or forward finite differences
+\code{"AIffd"}).}
 
 \item{vit}{An \code{integer} value specifying the verbosity of screen output
 on each iteration. A value of zero gives no iteration specific output and
@@ -180,7 +185,7 @@ A \code{list} containing an object of class \code{grMod} and, if a
       (co)variance matrices to be estimated that have been factored out).}
     \item{ndgeninv }{A \code{logical} indicating which terms in the random
       formula have generalized inverses associated with them (non-diagonal 
-      matrices in the Kronecker product.}
+      matrices in the Kronecker product).}
     \item{dimsZg, nminffx, rfxlvls, nminfrfx }{\code{Numeric} vectors or scalars
       describing the numbers of random effects or some function of random and
       fixed effects.}
@@ -238,6 +243,9 @@ A \code{list} containing an object of class \code{grMod} and, if a
     \item{maxit }{See the parameter described above.}
     \item{algit }{A \code{character} vector of REML algorithms to use in each
       iteration.}
+    \item{fdit }{A \code{integer} vector of which finite difference gradient
+      algorithm to use each iteration (if first derivatives of the likelihood
+      function are to be calculated using a finite difference method).}
     \item{vit }{See the parameter described above.}
     \item{v }{See the parameter described above.}
     \item{cctol }{A \code{numeric} vector of convergence criteria thresholds.
@@ -250,6 +258,8 @@ A \code{list} containing an object of class \code{grMod} and, if a
       details.}
     \item{step }{A \code{numeric} value indicating the step-reduction to use.
       See \code{\link{gremlinControl}} for more details.}
+    \item{h }{A \code{numeric} value indicating the increment used in the
+      first derivative (gradient) finite difference method.}
 
     \item{itMat }{A \code{matrix} of details about each iteration. Rows
       indicate each REML iteration (rownames reflect the REML algorithm used)

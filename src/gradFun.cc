@@ -88,7 +88,8 @@ fd = 0; backwards finite differences
 fd = 1; central (both backwards and forward finite differences)
 fd = 2; forward finite differences       
       					 */
-csi cs_gradFun_fd(double *nu, csi fd, double *dLdnu, double lL, csi *con,
+csi cs_gradFun_fd(double *nu, csi fd, double h,
+	double *dLdnu, double lL, csi *con,
 	csi n, csi *dimZWG, csi nG, csi p, double *y,
 	cs *Bpinv, cs *W, cs *tW, csi *rfxlvls, double rfxlL,
 	csi *ndgeninv, cs **geninv, cs *KRinv,
@@ -100,8 +101,7 @@ csi cs_gradFun_fd(double *nu, csi fd, double *dLdnu, double lL, csi *con,
 ){
 
   int     g, k, si, dimM;
-  double  tyPy, logDetC, sigma2e, loglik,
-          h, denomSC;
+  double  tyPy, logDetC, sigma2e, loglik, denomSC;
           
   cs      *R, *Rinv, *tWKRinv, *tWKRinvW, *ttWKRinvW;
 
@@ -119,16 +119,7 @@ csi cs_gradFun_fd(double *nu, csi fd, double *dLdnu, double lL, csi *con,
   
   sigma2e = (lmbda == 1) ? 0.0 : 1.0;
 
-  if(fd == 1){
-    h = pow(DBL_EPSILON, (1.0 / 3.0));
-    denomSC = 2.0;
-  } else{
-//      h = pow(DBL_EPSILON, (1.0 / 2.0));
-// previous used square root for h, but this seemed to produce too small a number
-      h = pow(DBL_EPSILON, (1.0 / 3.0));
-
-      denomSC = 1.0;
-    }
+  denomSC = (fd == 1) ? 2.0 : 1.0;
 
   // seed upper and lower log-likelihood vectors with current model log-likelihood
   //// so if using either backward or forward then will be subtracting from this

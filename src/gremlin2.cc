@@ -47,7 +47,8 @@ void ugremlin2(
 /*41*/  double *einf,           // effective +/- max values
 /*42*/	int *v,			// verbosity level of  output messages
 /*43*/	int *vit,		// at what iterations to output messages
-/*44*/  int *sLcPinv		// empty Cholesky permutation vector
+/*44*/  double *finDiffH,	// finite differencing h-value
+/*45*/  int *sLcPinv		// empty Cholesky permutation vector
 		
 ){
 
@@ -69,7 +70,7 @@ void ugremlin2(
   cs* 	 *KGinv = new cs*[nG];
 
   double t[2], T[2], took, tyPy, tyRinvy, logDetC, sigma2e,
-         loglik, d, cc2, cc2d, f, stpVal;
+         loglik, d, cc2, cc2d, f, stpVal, h;
 
   int 	 g, i, k, si, si2, vitout,
 	 itc = 0,
@@ -118,6 +119,8 @@ if(v[0] > 3) simple_tic(t);
 
   d = 0.0;    // temporary for calculating change in nu (cc2) and EM residual
 
+  h = finDiffH[0];  // finite differencing h value
+  
   // Setup all ginverse (geninv) matrices
   //// (leave elements for diagonal/I matrices alone)
   si = 0; si2 = 0;
@@ -584,7 +587,8 @@ if(v[0] > 3){
       // algit 2 is AI with finite differences for the gradient calculation
       //// specify 1 way regardless of lambda
       if(algit[i] == 2){
-        if(!cs_gradFun_fd(nu, fdit[i], dLdnu, loglik, con,
+        if(!cs_gradFun_fd(nu, fdit[i], h,
+            dLdnu, loglik, con,
             ny[0], dimZWG, nG, p[0], y,
             Bpinv, W, tW, rfxlvls, rfxlL[0],
             ndgeninv, geninv, KRinv,

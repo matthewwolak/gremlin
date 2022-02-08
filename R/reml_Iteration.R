@@ -124,6 +124,7 @@ remlIt.default <- function(grMod, ...){
 #uni?
 	as.integer(grMod$v),				#verbosity
 	as.integer(grMod$vit),				#when to output status
+	as.double(grMod$h),				#finite difference h value
 	as.integer(rep(0, length(grMod$sln))))		#empty sLc->pinv
 
   i <- Cout[[37]]  #<-- index from c++ always increments +1 at end of for `i`

@@ -451,13 +451,9 @@ gradFun_fd <- function(nuvin, grObj, lL, fd = c("fdiff", "cdiff", "bdiff"),
    e = .Machine$double.eps){
 
   fd <- match.arg(fd)
-  if(fd == "cdiff"){
-    h <- e^(1/3)
-    denomSC <- 2
-  } else{
-      h <- sqrt(e)
-      denomSC <- 1
-    }
+  h <- grObj$h
+  denomSC <- ifelse(fd == "cdiff", 2, 1)
+    
   nuv_tmp <- nuvin
     skel <- attr(nuvin, "skel")
   lambda <- grObj$lambda
