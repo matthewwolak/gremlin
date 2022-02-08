@@ -9,13 +9,16 @@ csn *cs_reml(csi n, csi *dimZWG, csi nG, csi p, double *y,
 	cs *KRinv, cs **KGinv, cs *tWKRinv, cs *tWKRinvW, cs *Ctmp,
 	cs *RHS, cs *tmpBLUXs, cs *BLUXs, double *res,
 	css *sLc,
-	double *tyPy, double *logDetC, double *sigma2e, double *loglik,
-	csi i, csi v, csi vitout 
+	double *tyPy, double *logDetC, double *sigma2e,
+	double tyRinvy, // lambda=TRUE same every iteration else 0.0 when FALSE
+        int nminffx,  // lambda=TRUE else 0
+	double *loglik,
+	csi i, csi v, csi vitout, csi lmbda 
 ){
 
-  int     g, k, rw;
-  double  t[2], took, dsLc, tyRinvy;  
-  cs	  *tyRinv, *ttWKRinvW, *C;
+  int     g, k, rw, nminfrfx;
+  double  t[2], took, dsLc;  
+  cs	  *tyRinv, *C;
   csn     *Lc;
   
   if(!CS_CSC(W)) return (0);
@@ -23,54 +26,48 @@ csn *cs_reml(csi n, csi *dimZWG, csi nG, csi p, double *y,
   if(v > 3) simple_tic(t);
   *loglik = 0.0;
   
+  nminfrfx = nminffx - dimZWG[1]; 
+  
 
-
-  // setup tyRinv [t(y) %*% KRinv] to receive output from cs_gaxpy
-  tyRinv = cs_spalloc(1, dimZWG[2], dimZWG[2], true, false);
-    for(k = 0; k < dimZWG[2]; k++){
-      tyRinv->i[k] = 0;
-      tyRinv->p[k] = k;
-      tyRinv->x[k] = 0.0;
-    }
-    tyRinv->p[dimZWG[2]] = dimZWG[2];
-    
   //////////////////////////////////////////////////////////////////////////
   // 1 Setup to create coeficient matrix of MME (C)
-  // Reset RHS to 0.0 so cs_gaxpy works right
-  if(i > 0) for(k = 0; k < dimZWG[3]; k++) RHS->x[k] = 0.0;
-
-  // ASSUME cs_gaxpy does KRinv %*% y, which gives correct values for tyRinv@x
-  cs_gaxpy(KRinv, y, tyRinv->x);  // y = A*x+y XXX my `y` is cs_gaxpy's `x` 
-  tyRinvy = 0.0;   
-  for(k = 0; k < n; k++){
-    tyRinvy += tyRinv->x[k] * y[k];  
-  }
+  if(lmbda == 0){
+    // setup tyRinv [t(y) %*% KRinv] to receive output from cs_gaxpy
+    tyRinv = cs_spalloc(1, dimZWG[2], dimZWG[2], true, false);
+      for(k = 0; k < dimZWG[2]; k++){
+        tyRinv->i[k] = 0;
+        tyRinv->p[k] = k;
+        tyRinv->x[k] = 0.0;
+      }
+      tyRinv->p[dimZWG[2]] = dimZWG[2];
+    // ASSUME cs_gaxpy does KRinv %*% y, which gives correct values for tyRinv@x
+    cs_gaxpy(KRinv, y, tyRinv->x);  // y = A*x+y XXX my `y` is cs_gaxpy's `x` 
+    for(k = 0; k < n; k++){
+      tyRinvy += tyRinv->x[k] * y[k];  
+    }
     
-  // Components of Meyer 1989 eqn 2
-  tWKRinv = cs_multiply(tW, KRinv);
-  tWKRinvW = cs_multiply(tWKRinv, W);
-  // Next creates RHS
-  //// Meyer '97 eqn 11
-  //// (Note different order of RHS from Meyer '89 eqn 6; Meyer '91 eqn 4)
-  cs_gaxpy(tWKRinv, y, RHS->x);  // y = A*x+y XXX my `y` is cs_gaxpy's `x` 
+    // Next creates RHS
+    //// Meyer '97 eqn 11
+    //// (Note different order of RHS from Meyer '89 eqn 6; Meyer '91 eqn 4)
+    // Reset RHS to 0.0 so cs_gaxpy works right
+    if(i > 0) for(k = 0; k < dimZWG[3]; k++) RHS->x[k] = 0.0;
+    cs_gaxpy(tWKRinv, y, RHS->x);  // y = A*x+y XXX my `y` is cs_gaxpy's `x` 
+  }  // end if lambda=FALSE 
+  
 
-  // Now take transpose of transpose to correctly order (don't ask why)
-  ttWKRinvW = cs_transpose(tWKRinvW, true);
-  cs_spfree(tWKRinvW);
-  tWKRinvW = cs_transpose(ttWKRinvW, true);
-  cs_spfree(ttWKRinvW);
-
-
+   
   // 1c Now make coefficient matrix of MME
   //// form Kronecker products for each G and ginverse element (i.e., I or geninv)
-  ////// Make or Update; depend on whether first iteration (i=0)
-  for(g = 0; g < nG; g++){
-    if(ndgeninv[g] == 0){   // Diagonal matrix kronecker product: Ginv %x% I
-      cs_kroneckerIupdate(Ginv[g], dimZWG[4+g], KGinv[g]);
-    } else{  // generalized inverse kronecker product: Ginv %x% geninv
-        cs_kroneckerAupdate(Ginv[g], geninv[g], KGinv[g]);
-      }
-  }
+  ////// Update; originally made first iteration (i=0)
+  if(i > 0){
+    for(g = 0; g < nG; g++){
+      if(ndgeninv[g] == 0){   // Diagonal matrix kronecker product: Ginv %x% I
+        cs_kroneckerIupdate(Ginv[g], dimZWG[4+g], KGinv[g]);
+      } else{  // generalized inverse kronecker product: Ginv %x% geninv
+          cs_kroneckerAupdate(Ginv[g], geninv[g], KGinv[g]);
+        }
+    }
+  }  // end if i>0
   
   //// Construct C
   if(nG > 0){
@@ -163,6 +160,9 @@ if(v > 3){
   }
   *logDetC = 2.0 * dsLc;
 
+  // Factored out residual variance (only for lambda scale)
+  if(lmbda == 1) *sigma2e = *tyPy / nminffx;
+
   // V=2 LEVEL of OUTPUT
   if(v > 2 && vitout == 0){
     Rprintf("\n\tsigma2e\ttyPy\tlogDetC\n");
@@ -175,7 +175,11 @@ if(v > 3){
   // Construct the log-likelihood (Meyer 1997 eqn. 8)
   //// (firt put together as `-2 log-likelihood`)
   // `log(|R|)`
-  *loglik += n * log(R->x[0]);  //FIXME won't work when R (co)variances
+  if(lmbda == 1){
+    *loglik += nminfrfx * log(*sigma2e);
+  } else{
+      *loglik += n * log(R->x[0]);  //FIXME won't work when R (co)variances
+    }
     if(v > 3) Rprintf("\n\t log|R|=%6.4f", *loglik);
 
   // `log(|G|)`
@@ -193,7 +197,13 @@ if(v > 3){
     if(v > 3) Rprintf("\n\t\t log|G| rfxlL(%6.4f) added=%6.4f", rfxlL, *loglik);
 
   // log(|C|) + tyPy
-  *loglik += *logDetC + *tyPy;
+  //// if lambda=TRUE then nminffx=tyPy/sigma2e simplified below
+  ////// (because sigma2e=tyPy/nminffx)
+  if(lmbda == 1){
+    *loglik += *logDetC + nminffx;
+  } else{
+      *loglik += *logDetC + *tyPy;
+    }
     if(v > 3) Rprintf("\n\t log|C|+tyPy added=%6.4f", *loglik);
     
   // Multiply by -0.5 to calculate `loglik` from `-2loglik`
@@ -209,7 +219,7 @@ if(v > 3){
 
   /////////////////////////////////////
   cs_spfree(C);
-  cs_spfree(tyRinv);
+  if(lmbda == 0) cs_spfree(tyRinv);
 
  return (Lc);
 }

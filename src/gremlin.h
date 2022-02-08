@@ -19,8 +19,11 @@ csn *cs_reml(csi n, csi *dimZWG, csi nG, csi p, double *y,
 	cs *KRinv, cs **KGinv, cs *tWKRinv, cs *tWKRinvW, cs *Ctmp,
 	cs *RHS, cs *tmpBLUXs, cs *BLUXs, double *res,
 	css *sLc,
-	double *tyPy, double *logDetC, double *sigma2e, double *loglik,
-	csi i, csi v, csi vitout);
+	double *tyPy, double *logDetC, double *sigma2e,
+	double tyRinvy, // lambda=TRUE same every iteration else 0.0 when FALSE
+	int nminffx, // lambda=TRUE else 0
+	double *loglik,
+	csi i, csi v, csi vitout, csi lmbda);
 
 
 /* Average Information Algorithm:
@@ -54,7 +57,9 @@ csi cs_gradFun_fd(double *nu, csi fd, double *dLdnu, double lL, csi *con,
 	csi *ndgeninv, cs **geninv, cs *KRinv,
 	cs *Ctmp, cs *RHS, cs *tmpBLUXs, cs *BLUXs,
 	css *sLc, 
-	int *nnzGRs, int *dimGRs, int *iGRs);
+	double tyRinvy, // lambda=TRUE same every iteration else 0.0 when FALSE
+	int nminffx, // lambda=TRUE else 0
+	int *nnzGRs, int *dimGRs, int *iGRs, csi lmbda);
 
 /* solve Ax=k where Lx=b, L'b=k, and x, b, and k are dense.
    x=b on input, solution on output. */

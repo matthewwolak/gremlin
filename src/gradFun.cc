@@ -90,8 +90,10 @@ csi cs_gradFun_fd(double *nu, csi fd, double *dLdnu, double lL, csi *con,
 	cs *Bpinv, cs *W, cs *tW, csi *rfxlvls, double rfxlL,
 	csi *ndgeninv, cs **geninv, cs *KRinv,
 	cs *Ctmp, cs *RHS, cs *tmpBLUXs, cs *BLUXs,
-	css *sLc, 
-	int *nnzGRs, int *dimGRs, int *iGRs
+	css *sLc,
+	double tyRinvy, // lambda=TRUE same every iteration else 0.0 when FALSE
+	int nminffx, // lambda=TRUE same every iteration else 0
+	int *nnzGRs, int *dimGRs, int *iGRs, csi lmbda
 ){
 
   int     g, k, si, dimM;
@@ -112,9 +114,7 @@ csi cs_gradFun_fd(double *nu, csi fd, double *dLdnu, double lL, csi *con,
 
   if(!lL || !nu) return (0);    // check arguments
   
-  //TODO implement for LAMBDA=TRUE
-  // FIXME need to change this after lambda passed in (maybe sigma2e = (lambda[0]) ? 0.0 : 1.0;
-  sigma2e = 1.0;
+  sigma2e = (lmbda == 1) ? 0.0 : 1.0;
 
   if(fd == 1){
     h = pow(DBL_EPSILON, (1.0 / 3.0));
@@ -146,10 +146,16 @@ csi cs_gradFun_fd(double *nu, csi fd, double *dLdnu, double lL, csi *con,
   }
 
   Rinv = cs_inv(R);
-  cs_kroneckerIupdate(Rinv, dimZWG[2], KRinv); 
-  // Components of Meyer 1989 eqn 2
-  tWKRinv = cs_multiply(tW, KRinv);
-  tWKRinvW = cs_multiply(tWKRinv, W);
+  if(lmbda == 1){
+    tWKRinvW = cs_multiply(tW, W);
+  } else{
+      // if lambda=FALSE    
+      cs_kroneckerIupdate(Rinv, dimZWG[2], KRinv); 
+      // Components of Meyer 1989 eqn 2
+      tWKRinv = cs_multiply(tW, KRinv);
+      tWKRinvW = cs_multiply(tWKRinv, W);
+    }
+    
   // Now take transpose of transpose to correctly order (don't ask why)
   ttWKRinvW = cs_transpose(tWKRinvW, true);
   cs_spfree(tWKRinvW);
@@ -203,13 +209,16 @@ csi cs_gradFun_fd(double *nu, csi fd, double *dLdnu, double lL, csi *con,
               KRinv, KGinv, tWKRinv, tWKRinvW, Ctmp,
               RHS, tmpBLUXs, BLUXs, r,
               sLc, 
-              &tyPy, &logDetC, &sigma2e, &loglik,
-              1, 0, 0);      
+              &tyPy, &logDetC, &sigma2e,
+              tyRinvy,
+              nminffx,
+              &loglik,
+              1, 0, 0, lmbda);      
 if(loglik == 0.0){
   error("\nUnsuccessful REML calculation: finite difference gradient function component %i",
     g);
 }
-            cs_nfree(Lc);      
+            cs_nfree(Lc);  
             fxL[g] = loglik;  // Either Forward or Central diff. lL
           }  // end if fd > 0  
       
@@ -224,8 +233,11 @@ if(loglik == 0.0){
               KRinv, KGinv, tWKRinv, tWKRinvW, Ctmp,
               RHS, tmpBLUXs, BLUXs, r,
               sLc, 
-              &tyPy, &logDetC, &sigma2e, &loglik,
-              1, 0, 0);      
+              &tyPy, &logDetC, &sigma2e,
+              tyRinvy,
+              nminffx,
+              &loglik,
+              1, 0, 0, lmbda);      
 if(loglik == 0.0){
   error("\nUnsuccessful REML calculation: finite difference gradient function component %i",
     g);
@@ -247,8 +259,7 @@ if(loglik == 0.0){
 
 
   // Residual (co)variances when not on Lambda scale
-//TODO need an if(lambda == 0) to wrap all of the below
-//  if(lambda == 0){
+  if(lmbda == 0){
 //FIXME change `[p]` below to be number of residual (co)variances
     // `g` is the gth component of the R-structure model
     for(g = nG; g < p; g++){
@@ -280,8 +291,11 @@ if(loglik == 0.0){
               KRinv, KGinv, tWKRinv, tWKRinvW, Ctmp,
               RHS, tmpBLUXs, BLUXs, r,
               sLc, 
-              &tyPy, &logDetC, &sigma2e, &loglik,
-              1, 0, 0);      
+              &tyPy, &logDetC, &sigma2e,
+              tyRinvy,
+              nminffx,
+              &loglik,
+              1, 0, 0, lmbda);      
 if(loglik == 0.0){
   error("\nUnsuccessful REML calculation: finite difference gradient function component %i",
     g);
@@ -314,8 +328,11 @@ if(loglik == 0.0){
               KRinv, KGinv, tWKRinv, tWKRinvW, Ctmp,
               RHS, tmpBLUXs, BLUXs, r,
               sLc, 
-              &tyPy, &logDetC, &sigma2e, &loglik,
-              1, 0, 0);      
+              &tyPy, &logDetC, &sigma2e,
+              tyRinvy,
+              nminffx,
+              &loglik,
+              1, 0, 0, lmbda);      
 if(loglik == 0.0){
   error("\nUnsuccessful REML calculation: finite difference gradient function component %i",
     g);
@@ -330,7 +347,7 @@ if(loglik == 0.0){
       
     }  // end for g through R-structure components 
 
-//  }  end when lambda FALSE
+  }  // end when lambda FALSE
 
 
   // First derivatives (gradient/score)
@@ -347,7 +364,7 @@ if(loglik == 0.0){
   // Cleanup:
   cs_spfree(R);
   cs_spfree(Rinv);
-  cs_spfree(tWKRinv);
+  if(lmbda == 0) cs_spfree(tWKRinv);
   cs_spfree(tWKRinvW);
   // Lc always "freed" just after making with cs_reml
   

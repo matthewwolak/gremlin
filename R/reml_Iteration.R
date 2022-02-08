@@ -114,7 +114,7 @@ remlIt.default <- function(grMod, ...){
         as.double(c(grMod$Cinv_ii)),			#empty diag(Cinv)
 	as.double(c(grMod$r)),				#empty resdiuals
 	as.double(rep(0, grMod$maxit*(grMod$p+5))),	#itMat
-	as.integer(intfacalgit -1), 			#algorithm for each iteration
+	as.integer(intfacalgit - 1), 			#algorithm for each iteration
 	as.integer(grMod$fdit - 1),			#finite difference algorithm
 	as.integer(grMod$maxit),			#max it./n algit
 	as.double(grMod$step),			#init./default step-halving value

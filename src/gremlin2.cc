@@ -68,14 +68,14 @@ void ugremlin2(
   cs*    *Ginv = new cs*[nG];
   cs* 	 *KGinv = new cs*[nG];
 
-  double t[2], T[2], took, tyPy, logDetC, sigma2e,
+  double t[2], T[2], took, tyPy, tyRinvy, logDetC, sigma2e,
          loglik, d, cc2, cc2d, f, stpVal;
 
   int 	 g, i, k, si, si2, vitout,
 	 itc = 0,
          dimM,      // GENERIC dimension of a matrix variable to be REUSED 
-	 nffx,
-//FIXME when lambda can be true uncomment	 nminfrfx, nr = dimZWG[1],
+	 nffx, nminfrfx,
+	 nr = dimZWG[1],
 	 bd;  
 
   int	 *rfxlvls = new int[nG];
@@ -169,9 +169,6 @@ if(v[0] > 3) simple_tic(t);
   tW = cs_transpose(W, true);
 
 
-
-
-
   // setup 0 initialized RHS 1-column matrix
   //// keep explicit 0s for cs_gaxpy to work in forming RHS
   RHS = cs_spalloc(dimZWG[3], 1, dimZWG[3], true, false);
@@ -197,8 +194,24 @@ if(v[0] > 3) simple_tic(t);
   for(g = 0; g < nG; g++){
     rfxlvls[g] = dimZgs[2*g+1];
   }
-//FIXME when lambda can be true uncomment  if(lambda[0] == 1) nminfrfx = nminffx[0] - nr; 
+  // only use `nminfrfx` when lambda=TRUE
+  //// but just do simple calculation regardless, to avoid if statement
+  nminfrfx = nminffx[0] - nr; 
 
+  // initialize to zero: will change for lambda=TRUE else always be passed to reml
+  //// as 0.0 to be calculated within cs_reml() for each G/R
+  tyRinvy = 0.0;
+  if(lambda[0] == 1){
+    // below don't change between REML iterations for lambda=TRUE
+    tWKRinvW = cs_multiply(tW, W);
+    // Fill in RHS
+    cs_gaxpy(tW, y, RHS->x);  // y = A*x+y XXX my `y` is cs_gaxpy's `x` 
+    // form tyy (crossprod(y)), but call it tyRinvy for conciseness
+    //// either non-zero for all iterations or 0.0 passed in when lambda=FALSE
+    for(k = 0; k < ny[0]; k++){
+      tyRinvy += y[k] * y[k];
+    }
+  }  // end if lambda=TRUE
 
 
   // setup empty AI matrix
@@ -216,13 +229,21 @@ if(v[0] > 3){
 
 
 
+
+
   //////////////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
-  //XXX									     XXX
-  /*		REML ITERATIONS			REML ITERATIONS		      */
-  //XXX									     XXX
+  //XXX									   XXX
+  //XXX									   XXX
+  //XXX									   XXX
+  /*		REML ITERATIONS			REML ITERATIONS		    */
+  //XXX									   XXX
+  //XXX									   XXX
+  //XXX									   XXX
   //////////////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
+
+
   for(i = 0; i < maxit[0]; i++){
     simple_tic(T);
     if(i == 0){vitout = 0;}else{vitout = (i+1)%vit[0];}  // always do first iteration
@@ -302,25 +323,33 @@ could do a check to make sure R was inverted correctly:
     }
 
 
+
     // need to set up sLc once and not again
     //// just construct matrices needed to make C
-    if(i == 0){
+    if(lambda[0] == 0){
+      // NOT lambda: Straight (co)variances
       // Rinv Kronecker with Diagonal/I
       //// Make sure ORDER is correct
       ////// (determine if want traits w/in individs or individs w/in traits)
-      KRinv = cs_kroneckerI(Rinv, dimZWG[2]); 
-    } else cs_kroneckerIupdate(Rinv, dimZWG[2], KRinv);    
-    // Components of Meyer 1989 eqn 2
-    tWKRinv = cs_multiply(tW, KRinv);
-    tWKRinvW = cs_multiply(tWKRinv, W);
+      if(i == 0){
+        KRinv = cs_kroneckerI(Rinv, dimZWG[2]); 
+      } else cs_kroneckerIupdate(Rinv, dimZWG[2], KRinv);
+
+      // Components of Meyer 1989 eqn 2
+      tWKRinv = cs_multiply(tW, KRinv);
+      tWKRinvW = cs_multiply(tWKRinv, W);
+    }
+     
     // Now take transpose of transpose to correctly order (don't ask why)
     ttWKRinvW = cs_transpose(tWKRinvW, true);
     cs_spfree(tWKRinvW);
     tWKRinvW = cs_transpose(ttWKRinvW, true);
     cs_spfree(ttWKRinvW);
+    
+    
+    // 1c Now make coefficient matrix of MME
     if(i == 0){   
-      // 1c Now make coefficient matrix of MME
-      //// form Kronecker products for each G and ginverse element (i.e., I or geninv)
+      // form Kronecker products for each G and ginverse element (i.e., I or geninv)
       for(g = 0; g < nG; g++){
         if(ndgeninv[g] == 0){   // Diagonal matrix kronecker product: Ginv %x% I
           KGinv[g] = cs_kroneckerI(Ginv[g], dimZWG[4+g]);
@@ -369,15 +398,17 @@ if(v[0] > 3){
     
 
 
-
     Lc = cs_reml(ny[0], dimZWG, nG, p[0], y,
         Bpinv, W, tW, rfxlvls, rfxlL[0],
         R, Rinv, G, Ginv, ndgeninv, geninv,
         KRinv, KGinv, tWKRinv, tWKRinvW, Ctmp,
         RHS, tmpBLUXs, BLUXs, res,
         sLc, 
-        &tyPy, &logDetC, &sigma2e, &loglik,
-        i, v[0], vitout);      
+        &tyPy, &logDetC, &sigma2e,
+        tyRinvy,
+        nminffx[0],
+        &loglik,
+        i, v[0], vitout, lambda[0]); 
     if(loglik == 0.0){
       error("\nUnsuccessful REML calculation: iteration %i", i);
     }
@@ -478,7 +509,7 @@ if(v[0] > 3){
   Rprintf("\n\t    %6.6f sec.: calculate trace(s)", took);
   simple_tic(t);
 }
-      }  // end if gradient via analytical (isntead of finite difference)
+      }  // end if gradient via analytical (instead of finite difference)
       
       
            
@@ -506,23 +537,23 @@ if(v[0] > 3){
 	      
             error("\nUnsuccessful gradient calculation iteration %i", i);
           }  // end if cs_gradFun
-        }//TODO FINITE DIFFERENCES with lambda=TRUE
-         
 if(v[0] > 3){
   took = simple_toc(t);
   Rprintf("\n\t    %6.4f sec.: calculate gradient", took);
   simple_tic(t);
 }
+        }  // end if algit=1
+               
 
       } else{
-        // when lambda = FALSE
-        cs_spfree(AI);
-        AI = cs_ai(BLUXs, Ginv, R, KRinv, tWKRinv,
+          // when lambda = FALSE
+          cs_spfree(AI);
+          AI = cs_ai(BLUXs, Ginv, R, KRinv, tWKRinv,
 	      res, W, tW, ny[0], p[0], nG, rfxlvls, nffx, Lc->L, sLc->pinv,
 	      nG, 1.0);
-	if(AI == NULL){
+	  if(AI == NULL){
           error("\nUnsuccessful AI algorithm in iteration %i", i);
-        }
+          }
 
 if(v[0] > 3){
   took = simple_toc(t);
@@ -531,40 +562,51 @@ if(v[0] > 3){
 }
 
 
-        // algit 1 is AI with analytical gradient calculation
-        if(algit[i] == 1){
-          if(!cs_gradFun(nu, dLdnu,
+          // algit 1 is AI with analytical gradient calculation
+          if(algit[i] == 1){
+            if(!cs_gradFun(nu, dLdnu,
 	      tugug, trace, con,
 	      ny[0], nG, rfxlvls, nffx,
               1.0,    // 1.0 if lambda=FALSE
 	      nG, res)){      // 0 if lambda=TRUE
             error("\nUnsuccessful gradient calculation iteration %i", i);
           }  // end if cs_gradFun
-        }  // end if algit=1
 
-        
-        // algit 2 is AI with finite differences for the gradient calculation
-        if(algit[i] == 2){
-          if(!cs_gradFun_fd(nu, fdit[i], dLdnu, loglik, con,
-              ny[0], dimZWG, nG, p[0], y,
-              Bpinv, W, tW, rfxlvls, rfxlL[0],
-              ndgeninv, geninv, KRinv,
-              Ctmp, RHS, tmpBLUXs, BLUXs,
-              sLc,
-              nnzGRs, dimGRs, iGRs)){      // 0 if lambda=TRUE
-            error("\nUnsuccessful finite difference gradient calculation iteration %i", i);
-          }  // end if cs_gradFun
-
-        }  // end if algit=2
-
-        
 if(v[0] > 3){
   took = simple_toc(t);
   Rprintf("\n\t    %6.4f sec.: calculate gradient", took);
   simple_tic(t);
 }
+          }  // end if algit=1     
 
-      }  // end if/else lambda
+        }  // end if/else lambda
+
+
+
+
+
+      // algit 2 is AI with finite differences for the gradient calculation
+      //// specify 1 way regardless of lambda
+      if(algit[i] == 2){
+        if(!cs_gradFun_fd(nu, fdit[i], dLdnu, loglik, con,
+            ny[0], dimZWG, nG, p[0], y,
+            Bpinv, W, tW, rfxlvls, rfxlL[0],
+            ndgeninv, geninv, KRinv,
+            Ctmp, RHS, tmpBLUXs, BLUXs,
+            sLc,
+            tyRinvy,
+            nminffx[0],
+            nnzGRs, dimGRs, iGRs, lambda[0])){      // 0 if lambda=TRUE
+          error("\nUnsuccessful finite difference gradient calculation iteration %i", i);
+        }  // end if cs_gradFun
+
+if(v[0] > 3){
+  took = simple_toc(t);
+  Rprintf("\n\t    %6.4f sec.: calculate gradient", took);
+  simple_tic(t);
+}
+      }  // end if algit=2
+
 
 
 
