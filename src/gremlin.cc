@@ -1031,7 +1031,8 @@ if(v[0] > 3) simple_tic(t);
   }
   cs_spfree(tWKRinvW);
   // ttWKRinvW freed just after it is made so do not free here
-  //free C just after making it/sLc - have room for a C in cs_remlcs_spfree(Ctmp);  
+  //free C just after making it/sLc - have room for a C in cs_reml
+  cs_spfree(Ctmp);  
   cs_spfree(RHS); cs_spfree(tmpBLUXs); cs_spfree(BLUXs);
 
   cs_sfree(sLc);
