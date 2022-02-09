@@ -78,7 +78,7 @@ remlIt.default <- function(grMod, ...){
     bound[is.na(bound)] <- 0  # Replace NAs with 0
 
 
-  Cout <- .C("ugremlin2", PACKAGE = "gremlin",
+  Cout <- .C("ugremlin", PACKAGE = "gremlin",
 	as.double(grMod$modMats$y),
 	as.integer(grMod$modMats$ny),
 	as.integer(grMod$nminffx),		# No. observations - No. Fxd Fx
@@ -142,7 +142,7 @@ remlIt.default <- function(grMod, ...){
   grMod$r[] <- Cout[[33]]
   #TODO Will definitely need R vs. c++ methods for `update.gremlin()`
   #### can directly use R's `grMod$sLc`, but will need to figure out how to give c++'s `cs_schol()` a pinv (need to reconstruct `sLc` in c++ around pinv (see old code on how I may have done this when I made sLc from sLm)
-  grMod$sLcPinv <- Cout[[44]]
+  grMod$sLcPinv <- Cout[[45]]
 
   itMat <- matrix(Cout[[34]][1:(i*(grMod$p+5))], nrow = i, ncol = grMod$p+5,
            byrow = TRUE)
