@@ -145,19 +145,6 @@ void ugremlin(
 
 if(v[0] > 3) simple_tic(t);
 
-
-
-
-
-
-
-//FIXME  FIXME    FIXME   DELETEME    DELETEME  FIXME
-  Rprintf("\n\n\t\t**GREMLIN 2** called\n\n");
-//XXX	XXX	XXX	XXX XXX			XXX
-
-
-
-
   sigma2e = (lambda[0]) ? 0.0 : 1.0;
 
   d = 0.0;    // temporary for calculating change in nu (cc2) and EM residual
