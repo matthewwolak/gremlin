@@ -300,15 +300,10 @@ remlIt.gremlinR <- function(grMod, ...){
 
     #################################
     # 5c check convergence criteria
-    ## Knight 2008 (ch. 6) says Searle et al. 1992 and Longford 1993 discuss diff types of converg. crit.
-    ## See Appendix 2 of WOMBAT help manual for 4 convergence criteria used
     cc <- rep(NA, 4)
     if(i > 1){
-      # wombat 1
-      cc[1] <- diff(itMat[c(i-1, i), "loglik"]) < grMod$cctol[1]
-      # wombat 2 (eqn. A.1) (also Knight 2008 (eqn. 6.1) criteria
-      cc[2] <- sqrt(sum((itMat[i, 1:p] - itMat[(i-1), 1:p])^2) / 
-          sum(itMat[i, 1:p]^2)) < grMod$cctol[2]
+      cc[1] <- ccFun1()   
+      cc[2] <- ccFun2()
     } else cc[1] <- FALSE  #<-- ensures one of the EM/AI/etc algorithms used if i==1
 
 
@@ -523,15 +518,8 @@ if(nrow(theta[[thetaR]]) != 1){
               }  #<-- end if/else indecent proposals
 
             # CONVERGENCE checks for AI
-            ## See Appendix 2 of WOMBAT help manual for convergence criteria
-            # wombat 3 (eqn. A.2): Norm of the gradient vector
-            cc[3] <- sqrt(sum(dLdnu_con * dLdnu_con)) < grMod$cctol[3]
-            # wombat 4 (eqn A.3): Newton decrement
-            ## (Boyd & Vandenberghe 2004 "Convex Optimization" book cited in wombat)
-            # AI only
-            #TODO: figure it whether to use "_con" versions or not
-            #TODO: what is criteria? Not stated in Wombat see Boyd & Vandenberghe 2004
-#            cc[4] <- -1 * c(crossprod(dLdnu_con, H_con) %*% dLdnu_con)
+            cc[3] <- ccFun3()
+#            cc[4] <- ccFun4()
 
         }  #<-- end if/else Hessian can be inverted
 
