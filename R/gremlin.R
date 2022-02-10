@@ -559,9 +559,10 @@ update.gremlin <- function(object, ...){
   if(is.null(new_args[["algit"]])){
     if(is.null(call[["algit"]])) algit <- defaultCall[["algit"]]
       else algit <- call[["algit"]]
-    if(is.null(algit)) algit <- c(rep("EM", min(maxitTmp, 2)),
-                                  rep("AIcfd", max(0, maxitTmp-2))) #TODO switch 
+#    if(is.null(algit)) algit <- c(rep("EM", min(maxitTmp, 2)),
+#                                  rep("AIcfd", max(0, maxitTmp-2))) #TODO switch 
   ## back to "AI" once analytical/`gradFun()` gives faster derivatives than finite diffs
+    if(is.null(algit)) algit <- c("AIcfd")
   } else{
       algChoices <- c("EM", "AI", "AIbfd", "AIcfd", "AIffd", "bobyqa", "NR") #TODO Update if add/subtract
       algMatch <- pmatch(new_args[["algit"]], algChoices,
