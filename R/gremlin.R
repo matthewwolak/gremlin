@@ -697,10 +697,12 @@ gremlinSetup <- function(formula, random = NULL, rcov = ~ units,
     algit <- algit[-which(algMatch == 0)]
   }
   if(is.null(mc$algit)){
-    algit <- c(rep("EM", min(maxit, 2)), rep("AIcfd", max(0, maxit-2)))
+#    algit <- c(rep("EM", min(maxit, 2)), rep("AIcfd", max(0, maxit-2)))
+    algit <- c("AIcfd")
   } else algit <- algChoices[algMatch]
-  if(length(algit) == 0) algit <- c(rep("EM", min(maxit, 2)),
-                                    rep("AIcfd", max(0, maxit-2)))
+#  if(length(algit) == 0) algit <- c(rep("EM", min(maxit, 2)),
+#                                    rep("AIcfd", max(0, maxit-2)))
+  if(length(algit) == 0) algit <- c("AIcfd")
   if(length(algit) == 1) algit <- rep(algit, maxit)
   # Now check for finite difference algorithms with AI:
   fdit <- as.integer(rep(0, maxit))
