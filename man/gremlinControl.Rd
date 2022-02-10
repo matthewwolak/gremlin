@@ -5,7 +5,7 @@
 \title{Advanced Options for Mixed-effect modeling functions.}
 \usage{
 gremlinControl(
-  cctol = c(5e-04, 1e-08, 0.001, NULL),
+  cctol = c(5e-04, 1e-05, 0.01, NULL),
   ezero = 1e-08,
   einf = 1e+30,
   step = 0.3,
