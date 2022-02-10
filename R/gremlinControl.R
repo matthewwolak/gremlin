@@ -33,7 +33,7 @@
 #'   str(gremlinControl())
 #'
 #' @export
-gremlinControl <- function(cctol = c(5e-4, 1e-8, 1e-3, NULL),
+gremlinControl <- function(cctol = c(5e-4, 1e-5, 1e-2, NULL),
 	ezero = 1e-8, einf = 1e30, step = 0.3, h = .Machine$double.eps^(1/3),
 	lambda = FALSE,
 	algorithm = NULL, algArgs = list()){
