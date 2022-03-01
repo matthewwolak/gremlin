@@ -94,7 +94,7 @@ ccFun3 <- function(obj = NULL){
       conv <- obj$grMod$dLdnu
     }      
   
-  if(algit[i] == "AI"){
+  if(algit[i] == "AI" | algit[i] == "AIfd"){
     grad <- dLdnu[which(conv == "F")]
     return(sqrt(sum(grad * grad)) < cctol[3])
   } else return(TRUE)
