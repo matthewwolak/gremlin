@@ -554,42 +554,31 @@ update.gremlin <- function(object, ...){
 
   # Handle `algit` separately (must be done after `maxit` and treated special)
   maxitTmp <- c(new_args[["maxit"]], object$grMod$maxit)[which(!sapply(c(new_args[["maxit"]], object$grMod$maxit), FUN = is.null))[1]]
+  
   ## Check validity of `algit`
   ## Fill-in `algit` default if necessary
   if(is.null(new_args[["algit"]])){
     if(is.null(call[["algit"]])) algit <- defaultCall[["algit"]]
       else algit <- call[["algit"]]
-#    if(is.null(algit)) algit <- c(rep("EM", min(maxitTmp, 2)),
-#                                  rep("AIcfd", max(0, maxitTmp-2))) #TODO switch 
-  ## back to "AI" once analytical/`gradFun()` gives faster derivatives than finite diffs
-    if(is.null(algit)) algit <- c("AIcfd")
+    algfdit <- algChk(algit, maxitTmp,
+        ctrl = list(algorithm = NULL), #<-- FIXME grab from original object
+                             ## control/call or new_args control (see section
+                             ## just below) when allow this to be supplied
+        mc = call)
+        
   } else{
-      algChoices <- c("EM", "AI", "AIbfd", "AIcfd", "AIffd", "bobyqa", "NR") #TODO Update if add/subtract
-      algMatch <- pmatch(new_args[["algit"]], algChoices,
-        nomatch = 0, duplicates.ok = TRUE)
-      if(any(algMatch == 0)){  
-        stop(cat("Algorithms:", new_args[["algit"]][which(algMatch == 0)],
-        "not valid. Please check values given to the `algit` argument\n"))
-      }
-      algit <- algChoices[algMatch]
+      algfdit <- algChk(new_args[["algit"]], maxitTmp,
+        ctrl = list(algorithm = NULL), #<-- FIXME grab from original object
+                             ## control/call or new_args control (see section
+                             ## just below) when allow this to be supplied
+        mc = call)
     }  #<-- end if/else new_args null for algit
-  if(length(algit) == 1) algit <- rep(algit, maxitTmp)
-  if(length(algit) > maxitTmp) algit <- algit[1:maxitTmp]
-  if(length(algit) < maxitTmp) algit <- rep(tail(algit, 1), maxitTmp)
-  # Now check for finite difference algorithms with AI:
-  fdit <- as.integer(rep(0, maxitTmp))
-    fdit[grep("bfd", algit)] <- 1
-      algit <- gsub("bfd", "fd", algit)
-    fdit[grep("cfd", algit)] <- 2
-      algit <- gsub("cfd", "fd", algit)
-    fdit[grep("ffd", algit)] <- 3
-      algit <- gsub("ffd", "fd", algit)
   if(diffMod){
-    call[["algit"]] <- algit
-    call[["fdit"]] <- fdit
+    call[["algit"]] <- algfdit$algit
+    call[["fdit"]] <- algfdit$fdit
   } else{
-      object$grMod[["algit"]] <- algit
-      object$grMod[["fdit"]] <- fdit
+      object$grMod[["algit"]] <- algfdit$algit
+      object$grMod[["fdit"]] <- algfdit$fdit
     }
 
 
@@ -676,43 +665,10 @@ gremlinSetup <- function(formula, random = NULL, rcov = ~ units,
   modMats <- eval(mMmc, parent.frame())
 
   if(missing(rcov)) mc$rcov <- as.list(formals(eval(mc[[1L]])))[["rcov"]]
-  #algChoices <- c("EM", "AI", "AIbfd", "AIcfd", "AIffd", "bobyqa", "NR", control$algorithm)
-  algChoices <- c("EM", "AI", "AIbfd", "AIcfd", "AIffd", "bobyqa", "NR")  #<-- ignore control$algorithm
-    if(!is.null(control$algorithm)){
-      #TODO check validity of `control$algorithm` and `control$algArgs`
-      ## need to pass algorithm to `gremlinR` or switch to it if `gremlin` called
-      ## temporarily IGNORE with warning
-      warning(cat("Ignored algorithm(s) supplied in control",
-        dQuote(control$algorithm),
-        ". gremlin is not old enough for user-specified algorithms\n"),
-          immediate. = TRUE)
-    }
-  algMatch <- pmatch(algit, algChoices, nomatch = 0, duplicates.ok = TRUE)
-  if(all(algMatch == 0) & !all(algit %in% control$algorithm)){ 
-      stop(cat("Algorithms:", dQuote(algit[which(algMatch == 0)]),
-        "not valid. Please check values given to the `algit` argument\n"))
-  }
-  if(any(algMatch == 0)){  
-    warning(cat("Algorithms:", dQuote(algit[which(algMatch == 0)]),
-      "not valid - dropped from the list\n"))
-    algit <- algit[-which(algMatch == 0)]
-  }
-  if(is.null(mc$algit)){
-#    algit <- c(rep("EM", min(maxit, 2)), rep("AIcfd", max(0, maxit-2)))
-    algit <- c("AIcfd")
-  } else algit <- algChoices[algMatch]
-#  if(length(algit) == 0) algit <- c(rep("EM", min(maxit, 2)),
-#                                    rep("AIcfd", max(0, maxit-2)))
-  if(length(algit) == 0) algit <- c("AIcfd")
-  if(length(algit) == 1) algit <- rep(algit, maxit)
-  # Now check for finite difference algorithms with AI:
-  fdit <- as.integer(rep(0, maxit))
-    fdit[grep("bfd", algit)] <- 1
-      algit <- gsub("bfd", "fd", algit)
-    fdit[grep("cfd", algit)] <- 2
-      algit <- gsub("cfd", "fd", algit)
-    fdit[grep("ffd", algit)] <- 3
-      algit <- gsub("ffd", "fd", algit)
+
+  algfdit <- algChk(algit, maxit, control, mc)
+    algit <- algfdit$algit
+    fdit <- algfdit$fdit    
 
   #TODO check dimensions G/Rstart
 #FIXME assumes univariate
