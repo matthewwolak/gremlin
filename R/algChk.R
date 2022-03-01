@@ -14,20 +14,21 @@
 #'   of finite differences for each iteration if this procedure is to be used for
 #'   first derivative calculations.
 #' @author \email{matthewwolak@@gmail.com}
+#' @export
 algChk  <- function(algit, maxit, ctrl, mc){
   # List of all acceptable algorithm choices
   #algChoices <- c("EM", "AI", "AIbfd", "AIcfd", "AIffd", "bobyqa", "NR", ctrl$algorithm)
   algChoices <- c("EM", "AI", "AIbfd", "AIcfd", "AIffd", "bobyqa", "NR")  #<-- ignore ctrl$algorithm for now
 
-    if(!is.null(ctrl$algorithm)){
-      #TODO check validity of `ctrl$algorithm` and `ctrl$algArgs`
-      ## need to pass algorithm to `gremlinR` or switch to it if `gremlin` called
-      ## temporarily IGNORE with warning
-      warning(cat("Ignored algorithm(s) supplied in control",
-        dQuote(ctrl$algorithm),
-        ". gremlin is not old enough for user-specified algorithms\n"),
-          immediate. = TRUE)
-    }
+  if(!is.null(ctrl$algorithm)){
+    #TODO check validity of `ctrl$algorithm` and `ctrl$algArgs`
+    ## need to pass algorithm to `gremlinR` or switch to it if `gremlin` called
+    ## temporarily IGNORE with warning
+    warning(cat("Ignored algorithm(s) supplied in control",
+      dQuote(ctrl$algorithm),
+      ". gremlin is not old enough for user-specified algorithms\n"),
+        immediate. = TRUE)
+  }
     
   algMatch <- pmatch(algit, algChoices, nomatch = 0, duplicates.ok = TRUE)
   if(all(algMatch == 0) & !all(algit %in% ctrl$algorithm)){ 

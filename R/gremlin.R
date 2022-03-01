@@ -574,8 +574,15 @@ update.gremlin <- function(object, ...){
         mc = call)
     }  #<-- end if/else new_args null for algit
   if(diffMod){
-    call[["algit"]] <- algfdit$algit
-    call[["fdit"]] <- algfdit$fdit
+    # diffMod=TRUE passes to gremlinSetup so need full algorithm choice
+    algit <- algfdit$algit
+    if(any(algit == "AIfd")){
+      algit[which(algfdit$fdit == 1)] <- "AIbfd"
+      algit[which(algfdit$fdit == 2)] <- "AIcfd"
+      algit[which(algfdit$fdit == 3)] <- "AIffd"
+    }
+    call[["algit"]] <- algit
+    
   } else{
       object$grMod[["algit"]] <- algfdit$algit
       object$grMod[["fdit"]] <- algfdit$fdit
