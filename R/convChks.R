@@ -82,19 +82,17 @@ ccFun3 <- function(obj = NULL){
     itMat <- get("itMat", parent.frame())
     cctol <- get("grMod", parent.frame())$cctol
     i <- get("i", parent.frame())
-    algit <- get("grMod", parent.frame())$algit
     dLdnu <- get("grMod", parent.frame())$dLdnu
     conv <- get("grMod", parent.frame())$conv
   } else{
       itMat <- obj$itMat
       cctol <- obj$grMod$cctol
       i <- nrow(itMat)
-      algit <- obj$grMod$algit
       dLdnu <- obj$grMod$dLdnu
       conv <- obj$grMod$dLdnu
     }      
-  
-  if(algit[i] == "AI" | algit[i] == "AIfd"){
+
+  if(grepl("AI", dimnames(itMat)[[1L]])[i]){
     grad <- dLdnu[which(conv == "F")]
     return(sqrt(sum(grad * grad)) < cctol[3])
   } else return(TRUE)
