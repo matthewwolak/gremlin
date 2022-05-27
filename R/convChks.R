@@ -84,18 +84,22 @@ ccFun3 <- function(obj = NULL){
     i <- get("i", parent.frame())
     dLdnu <- get("grMod", parent.frame())$dLdnu
     conv <- get("grMod", parent.frame())$conv
+    fdit <- get("grMod", parent.frame())$fdit
   } else{
       itMat <- obj$itMat
       cctol <- obj$grMod$cctol
       i <- nrow(itMat)
       dLdnu <- obj$grMod$dLdnu
       conv <- obj$grMod$dLdnu
+      fdit <- obj$grMod$fdit
     }      
-
-  if(grepl("AI", dimnames(itMat)[[1L]])[i]){
-    grad <- dLdnu[which(conv == "F")]
-    return(sqrt(sum(grad * grad)) < cctol[3])
-  } else return(TRUE)
+  # do checks if first derivative algorithm used, otherwise can't/don't
+  if(is.na(fdit[i])){
+    return(TRUE)
+  } else{
+      grad <- dLdnu[which(conv == "F")]
+      return(sqrt(sum(grad * grad)) < cctol[3])
+    }
 }
 
 ################################################################
