@@ -42,14 +42,17 @@ remlIt.default <- function(grMod, ...){
   gnu <- lapply(grMod$nu, FUN = as, "dgCMatrix") #FIXME do this directly to begin with or just use dense matrices (class="matrix")
   nuv <- matlist2vech(grMod$nu)
   # convert algorithms for each iteration into integers
-  intfacalgit <- as.integer(factor(grMod$algit[1:grMod$maxit],
-    levels = c("EM", "AI", "AIfd"), ordered = TRUE))
-    ## Check that all are implemented in cpp (currently only AI, AIfd, or EM)
+  ## Below also checks that all are implemented in cpp (if nomatch <--> NA)
+  ### (currently only EM (1) or AItr/AIfd (2))
+  intfacalgit <- rep(NA, grMod$maxit)
+    intfacalgit[which(grMod$algit[1:grMod$maxit] == "EM")] <- 1
+    intfacalgit[which(grMod$sdit[1:grMod$maxit] == "AI")] <- 2
     if(any(is.na(intfacalgit))){
       stop(cat("Algorithm", grMod$algit[which(is.na(intfacalgit))],
 	"not implemented in c++, try", sQuote('gremlinR()'), "\n"))
     }
-
+  intfacfdit <- as.integer(grMod$fdit)
+  
   nnzWG <- with(grMod, c(length(W@x),		# No. nonzero W
     sapply(seq_len(length(thetaG)),
 	    FUN = function(g){length(modMats$listGeninv[[g]]@x)}))) # No. nz geninvs
@@ -115,7 +118,7 @@ remlIt.default <- function(grMod, ...){
 	as.double(c(grMod$r)),				#empty resdiuals
 	as.double(rep(0, grMod$maxit*(grMod$p+5))),	#itMat
 	as.integer(intfacalgit - 1), 			#algorithm for each iteration
-	as.integer(grMod$fdit - 1),			#finite difference algorithm
+	as.integer(intfacfdit - 1),			#first deriv. algorithm
 	as.integer(grMod$maxit),			#max it./n algit
 	as.double(grMod$step),			#init./default step-halving value
 	as.double(grMod$cctol),				#convergence tol.
@@ -144,10 +147,19 @@ remlIt.default <- function(grMod, ...){
   #### can directly use R's `grMod$sLc`, but will need to figure out how to give c++'s `cs_schol()` a pinv (need to reconstruct `sLc` in c++ around pinv (see old code on how I may have done this when I made sLc from sLm)
   grMod$sLcPinv <- Cout[[45]]
 
+  intfacalgitOut <- Cout[[35]][1:i]
+    intfacalgit0 <- which(intfacalgit == 0) #<-- create an index to use several times
+    # change derivative values to NA for iteration when AI fail, switch to EM
+    grMod$fdit[intfacalgit0] <- NA
+    grMod$sdit[intfacalgit0] <- NA
+    # remake algit values
+    grMod$algit[intfacalgit0] <- "EM"
+    grMod$algit[which(intfacalgit > 0)] <- with(grMod,
+      paste0(sdit[which(intfacalgit > 0)], fdit[which(intfacalgit > 0)]))
+      
   itMat <- matrix(Cout[[34]][1:(i*(grMod$p+5))], nrow = i, ncol = grMod$p+5,
            byrow = TRUE)
-    dimnames(itMat) <- list(paste(seq(i), c("EM", "AI", "AIfd")[Cout[[35]][1:i] + 1],
-                sep = "-"),
+    dimnames(itMat) <- list(paste(seq(i), grMod$algit[1:i], sep = "-"),
 	    c(paste0(names(nuv), "_nu"), "sigma2e",
                "tyPy", "logDetC", "loglik", "itTime"))
 
@@ -326,20 +338,20 @@ remlIt.gremlinR <- function(grMod, ...){
     #    AI with either analytical or
     ##  finite difference first derivatives
     ########################################
-    if(grMod$algit[i] == "AI" | grMod$algit[i] == "AIfd"){
+    if(grMod$sdit[i] == "AI"){
       if(grMod$v > 1 && vitout == 0) cat("\n\tAI to find next nu")
 #FIXME Currently, only allow when not: 
 if(nrow(theta[[thetaR]]) != 1){
   stop(cat("\nAI algorithm currently only works for a single residual variance"))
 }
-      if(grMod$algit[i] == "AI") Cinv <- solve(a = sLc, b = Ic, system = "A")
-      if(grMod$algit[i] == "AIfd"){
+      if(grMod$fdit[i] == "tr") Cinv <- solve(a = sLc, b = Ic, system = "A")
+      if(grMod$fdit[i] != "tr"){
         # finite difference algorithm for first derivatives
         #TODO instead interface next line with gremlinControl$algArgs
-        if(grMod$fdit[i] == 2){
+        if(grMod$fdit[i] == "cfd"){
           fd_in <- "cdiff"
         } else{
-            fd_in <- ifelse(grMod$fdit[i] == 1, "bdiff", "fdiff")
+            fd_in <- ifelse(grMod$fdit[i] == "bfd", "bdiff", "fdiff")
           }  
         dLdnu <- gradFun_fd(nuvin = nuv, grObj = grMod,
           lL = remlOut$loglik, fd = fd_in)
@@ -350,7 +362,7 @@ if(nrow(theta[[thetaR]]) != 1){
              grMod$modMats, grMod$W, sLc, grMod$sln, grMod$r,
   	      thetaR = NULL,
 	      sigma2e)  #<-- NULL if lambda==FALSE
-	if(grMod$algit[i] == "AI"){  #<-- analytical first derivatives      
+	if(grMod$fdit[i] == "tr"){  #<-- analytical first derivatives      
           dLdnu <- gradFun(nuv, thetaG, grMod$modMats, Cinv, grMod$sln,
 	    	      sigma2e = sigma2e, r = NULL, nminfrfx = NULL)
 #          dLdnu_TEST <- gradFun_TEST(nuv, thetaG,
@@ -369,7 +381,7 @@ if(nrow(theta[[thetaR]]) != 1){
                 thetaR,   #<-- NULL if lambda==TRUE
 	        sigma2e = NULL)
 
-	  if(grMod$algit[i] == "AI"){  #<-- analytical first derivatives      
+	  if(grMod$sdit[i] == "tr"){  #<-- analytical first derivatives      
 	    dLdnu <- gradFun(nuv, thetaG, grMod$modMats, Cinv, grMod$sln,
   	      sigma2e = NULL, grMod$r, grMod$nminfrfx)
 
@@ -432,6 +444,7 @@ if(nrow(theta[[thetaR]]) != 1){
             grMod$modMats, grMod$nminffx, sLc, grMod$ndgeninv, grMod$sln, grMod$r)
           nuvout <- emOut$nuv
           grMod$algit[i] <- "EM"
+          grMod$fdit[i] <- grMod$sdit[i] <- NA
 
       } else{  #<-- end if Hessian cannot be inverted
           Hinv <- solve(H)
@@ -587,7 +600,7 @@ stop(cat("\nNot allowing `NR` right now"))
     itTime <- Sys.time() - stItTime
     if(grMod$v > 0 && vitout == 0){
       if(grMod$v > 2){
-        if(grMod$algit[i] == "AI" | grMod$algit[i] == "AIfd"){
+        if(grMod$sdit[i] == "AI"){
           sgd <- matrix(NA, nrow = p, ncol = p+2)  #<--`sgd` = summary.gremlinDeriv 
             dimnames(sgd) <- list(row.names(dLdnu),
               c("gradient", "", "AI", rep("", p-1)))
@@ -614,7 +627,7 @@ stop(cat("\nNot allowing `NR` right now"))
 
   }  # END log-likelihood iterations
   #################################### 
-
+  
   itMat <- itMat[1:i, , drop = FALSE]
     rownames(itMat) <- paste(seq(i), grMod$algit[1:i], sep = "-")
   if(lambda){
@@ -629,7 +642,7 @@ stop(cat("\nNot allowing `NR` right now"))
   grMod$Cinv_ii <- matrix(diag(solve(a = sLc, b = Ic, system = "A")), ncol = 1)
 
   ## AI
-  if(grMod$algit[i] != "AI"){
+  if(grMod$sdit[i] != "AI"){
     if(lambda){
       AI <- ai(nuv, skel, thetaG,
 	     grMod$modMats, grMod$W, sLc, grMod$sln, grMod$r,

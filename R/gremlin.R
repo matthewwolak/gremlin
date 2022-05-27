@@ -112,10 +112,10 @@
 #'   to be evaluated that specifies the algorithm to use for proposing
 #'   (co)variances in the next likelihood iteration. Mainly used to switch
 #'   between Expectation Maximization (\code{"EM"}), or Average Information
-#'   second derivatives with either (1) analytical first derivatives (\code{"AI"}),
-#'   or (2) first derivatives using finite difference method (either backward
-#'   \code{"AIbfd"}, central \code{"AIcfd"}, or forward finite differences
-#'   \code{"AIffd"}).
+#'   second derivatives with either (1) analytical first derivatives
+#'   (specifically \code{"AItr"}) or (2) first derivatives using a finite
+#'   difference method (backward \code{"AIbfd"}, central \code{"AIcfd"}, or
+#'   forward \code{"AIffd"} finite differences).
 #' @param vit An \code{integer} value specifying the verbosity of screen output
 #'   on each iteration. A value of zero gives no iteration specific output and
 #'   larger values increase the amount of information printed on the screen.
@@ -216,9 +216,12 @@
 #'     \item{maxit }{See the parameter described above.}
 #'     \item{algit }{A \code{character} vector of REML algorithms to use in each
 #'       iteration.}
-#'     \item{fdit }{A \code{integer} vector of which finite difference gradient
+#'     \item{fdit }{A \code{character} vector of which first derivative/gradient
 #'       algorithm to use each iteration (if first derivatives of the likelihood
-#'       function are to be calculated using a finite difference method).}
+#'       function are to be calculated).}
+#'     \item{sdit }{A \code{character} vector of which second derivative/hessian
+#'       algorithm to use each iteration (if second derivatives of the likelihood
+#'       function are to be calculated).}
 #'     \item{vit }{See the parameter described above.}
 #'     \item{v }{See the parameter described above.}
 #'     \item{cctol }{A \code{numeric} vector of convergence criteria thresholds.
@@ -560,32 +563,28 @@ update.gremlin <- function(object, ...){
   if(is.null(new_args[["algit"]])){
     if(is.null(call[["algit"]])) algit <- defaultCall[["algit"]]
       else algit <- call[["algit"]]
-    algfdit <- algChk(algit, maxitTmp,
+    algfsdit <- algChk(algit, maxitTmp,
         ctrl = list(algorithm = NULL), #<-- FIXME grab from original object
                              ## control/call or new_args control (see section
                              ## just below) when allow this to be supplied
         mc = call)
         
   } else{
-      algfdit <- algChk(new_args[["algit"]], maxitTmp,
+      algfsdit <- algChk(new_args[["algit"]], maxitTmp,
         ctrl = list(algorithm = NULL), #<-- FIXME grab from original object
                              ## control/call or new_args control (see section
                              ## just below) when allow this to be supplied
         mc = call)
     }  #<-- end if/else new_args null for algit
   if(diffMod){
-    # diffMod=TRUE passes to gremlinSetup so need full algorithm choice
-    algit <- algfdit$algit
-    if(any(algit == "AIfd")){
-      algit[which(algfdit$fdit == 1)] <- "AIbfd"
-      algit[which(algfdit$fdit == 2)] <- "AIcfd"
-      algit[which(algfdit$fdit == 3)] <- "AIffd"
-    }
+    # diffMod=TRUE this passes to gremlinSetup so need full algorithm choice
+    algit <- algfsdit$algit
     call[["algit"]] <- algit
     
   } else{
-      object$grMod[["algit"]] <- algfdit$algit
-      object$grMod[["fdit"]] <- algfdit$fdit
+      object$grMod[["algit"]] <- algfsdit$algit
+      object$grMod[["fdit"]] <- algfsdit$fdit
+      object$grMod[["sdit"]] <- algfsdit$sdit
     }
 
 
@@ -673,10 +672,11 @@ gremlinSetup <- function(formula, random = NULL, rcov = ~ units,
 
   if(missing(rcov)) mc$rcov <- as.list(formals(eval(mc[[1L]])))[["rcov"]]
 
-  algfdit <- algChk(algit, maxit, control, mc)
-    algit <- algfdit$algit
-    fdit <- algfdit$fdit    
-
+  algfsdit <- algChk(algit, maxit, control, mc)
+    algit <- algfsdit$algit
+    fdit <- algfsdit$fdit    
+    sdit <- algfsdit$sdit
+    
   #TODO check dimensions G/Rstart
 #FIXME assumes univariate
   if(modMats$nG > 8) fra <- 0.9 / modMats$nG else fra <- 0.1
@@ -842,7 +842,8 @@ gremlinSetup <- function(formula, random = NULL, rcov = ~ units,
 		sLc = sLc,
 		sln = sln, Cinv_ii = Cinv_ii, r = r,
 		AI = AI, dLdnu = dLdnu,
-		maxit = maxit, algit = algit, fdit = fdit, vit = vit, v = v,
+		maxit = maxit, algit = algit, fdit = fdit, sdit = sdit,
+		vit = vit, v = v,
 		cctol = control$cctol,
 		ezero = control$ezero, einf = control$einf,
 		step = control$step, h = control$h),
