@@ -16,10 +16,10 @@ algChk(algit, maxit, ctrl, mc)
 \item{mc}{A model \code{call}.}
 }
 \value{
-A \code{list} containing a vector specifying the currently implemented
-  optimization algorithms for each iteration and a vector containing the type
-  of finite differences for each iteration if this procedure is to be used for
-  first derivative calculations.
+A \code{list} containing a vector \code{algit} specifying the currently
+  implemented optimization algorithms for each iteration along with a vector
+  each containing the type of first (\code{fdit}) and second (\code{sdit})
+  derivatives for each iteration (else \code{NA} if either is not applicable).
 }
 \description{
 Check and/or set optimization algorithms to use. Intended for internal use

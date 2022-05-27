@@ -127,10 +127,10 @@ iterations.}
 to be evaluated that specifies the algorithm to use for proposing
 (co)variances in the next likelihood iteration. Mainly used to switch
 between Expectation Maximization (\code{"EM"}), or Average Information
-second derivatives with either (1) analytical first derivatives (\code{"AI"}),
-or (2) first derivatives using finite difference method (either backward
-\code{"AIbfd"}, central \code{"AIcfd"}, or forward finite differences
-\code{"AIffd"}).}
+second derivatives with either (1) analytical first derivatives
+(specifically \code{"AItr"}) or (2) first derivatives using a finite
+difference method (backward \code{"AIbfd"}, central \code{"AIcfd"}, or
+forward \code{"AIffd"} finite differences).}
 
 \item{vit}{An \code{integer} value specifying the verbosity of screen output
 on each iteration. A value of zero gives no iteration specific output and
@@ -243,9 +243,12 @@ A \code{list} containing an object of class \code{grMod} and, if a
     \item{maxit }{See the parameter described above.}
     \item{algit }{A \code{character} vector of REML algorithms to use in each
       iteration.}
-    \item{fdit }{A \code{integer} vector of which finite difference gradient
+    \item{fdit }{A \code{character} vector of which first derivative/gradient
       algorithm to use each iteration (if first derivatives of the likelihood
-      function are to be calculated using a finite difference method).}
+      function are to be calculated).}
+    \item{sdit }{A \code{character} vector of which second derivative/hessian
+      algorithm to use each iteration (if second derivatives of the likelihood
+      function are to be calculated).}
     \item{vit }{See the parameter described above.}
     \item{v }{See the parameter described above.}
     \item{cctol }{A \code{numeric} vector of convergence criteria thresholds.
