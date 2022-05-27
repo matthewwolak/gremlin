@@ -82,7 +82,7 @@ void ugremlin(
 /*33*/	double *res,		// residual vector
 /*34*/	double *itMat,		// parameter information at each iteration
 /*35*/	int *algit,		// algorithm for optimization at each iteration
-/*36*/  int *fdit,		// Finite Difference algorithm at each iteration
+/*36*/  int *fdit,		// First derivative algorithm at each iteration
 /*37*/	int *maxit,		// maximum No. iterations
 /*38*/  double *step,		// initial/default step-halving value
 /*39*/	double *cctol,		// convergence criteria tolerances
@@ -511,13 +511,13 @@ if(v[0] > 3){
     /////////////////////////////
     // Average Information
     /////////////////////////////
-    if(algit[i] > 0){
+    if(algit[i] == 1){
       if(v[0] > 1 && vitout == 0) Rprintf("\n\tAI to find next nu");
       f = 0.0;  // initialize to a default/no alteration of Hessian
 
 
-      // Gradient via Analytical (vs. Finite Difference)
-      if(algit[i] == 1){  
+      // Gradient via Analytical/trace calculation (vs. Finite Difference)
+      if(fdit[i] == 3){  
 
         if(!tugugFun(tugug, w, nG, rfxlvls, con,
 	    nffx, ndgeninv, geninv, BLUXs)){
@@ -557,7 +557,7 @@ if(v[0] > 3){
 }
 
 
-        if(algit[i] == 1){
+        if(fdit[i] == 3){
           if(!cs_gradFun(nu, dLdnu,
 	      tugug, trace, con,
 	      ny[0], nG, rfxlvls, nffx,
@@ -571,7 +571,7 @@ if(v[0] > 3){
   Rprintf("\n\t    %6.4f sec.: calculate gradient", took);
   simple_tic(t);
 }
-        }  // end if algit=1
+        }  // end if fdit=3
                
 
       } else{
@@ -591,8 +591,8 @@ if(v[0] > 3){
 }
 
 
-          // algit 1 is AI with analytical gradient calculation
-          if(algit[i] == 1){
+          // fdit 3 is trace/analytical gradient calculation
+          if(fdit[i] == 3){
             if(!cs_gradFun(nu, dLdnu,
 	      tugug, trace, con,
 	      ny[0], nG, rfxlvls, nffx,
@@ -606,7 +606,7 @@ if(v[0] > 3){
   Rprintf("\n\t    %6.4f sec.: calculate gradient", took);
   simple_tic(t);
 }
-          }  // end if algit=1     
+          }  // end if fdit=3    
 
         }  // end if/else lambda
 
@@ -614,9 +614,9 @@ if(v[0] > 3){
 
 
 
-      // algit 2 is AI with finite differences for the gradient calculation
+      // fdit=0-2 is finite differences for the gradient calculation
       //// specify 1 way regardless of lambda
-      if(algit[i] == 2){
+      if(fdit[i] < 3){
         if(!cs_gradFun_fd(nu, fdit[i], h,
             dLdnu, loglik, con,
             ny[0], dimZWG, nG, p[0], y,
@@ -628,14 +628,14 @@ if(v[0] > 3){
             nminffx[0],
             nnzGRs, dimGRs, iGRs, lambda[0])){      // 0 if lambda=TRUE
           error("\nUnsuccessful finite difference gradient calculation iteration %i", i);
-        }  // end if cs_gradFun
+        }  // end if cs_gradFun_fd
 
 if(v[0] > 3){
   took = simple_toc(t);
   Rprintf("\n\t    %6.4f sec.: calculate gradient", took);
   simple_tic(t);
 }
-      }  // end if algit=2
+      }  // end if fdit=0-2
 
 
 
@@ -805,7 +805,7 @@ if(v[0] > 3){
     /////////////////////////////
     // Expectation Maximization
     /////////////////////////////
-    // Place after AI: if AI fails, change value of algit[i] and will do EM here
+    // Place after AI: if AI fails, value of algit[i] changed so will do EM here
     if(algit[i] == 0 && cc[4] < 2){
       if(v[0] > 1 && vitout == 0) Rprintf("\n\tEM to find next nu");
 
@@ -935,7 +935,7 @@ if(v[0] > 3){
 
   //// Average Information
   ////// only need to do if did NOT do AI
-  if(algit[i] < 1){  
+  if(algit[i] != 1){  
     if(lambda[0] == 1){
       cs_spfree(AI);  //TODO how pass if not initialized
       AI = cs_ai(BLUXs, Ginv, R, 0, 0,
