@@ -1,8 +1,18 @@
-# 1.0.2
+# 1.1.0
 ## NEW
+  - add finite difference algorithm to obtain first derivatives of likelihood function
+    - made this part of the default algorithm (second derivatives from AI with first derivatives via finite differencing)
+    - introduced a parameter (`h`) inside `gremlinControl()` to set the "difference" or amount to alter parameters to calculate change in log-likelihood.
+    
+  - created a REML function inside the c++ code (`cs_reml`) to calculate log-likelihood
+    - moved log-likelihood calculation out of main program and reduced amount of repeated code.
+    
 
 ## Minor Changes
-
+  - Changed default parameterization so _lambda_ transformation is __no longer the default__
+  - Changed default convergence check criteria (`cctol`)
+    - Models using previous values tended to only improve precision of estimates well beyond what was meaningful.
+    
 
 # 1.0.1 Released to CRAN 2020 June 25
 

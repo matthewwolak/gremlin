@@ -110,7 +110,12 @@
 #'   iterations.
 #' @param algit A \code{character} vector of length 1 or more or an expression
 #'   to be evaluated that specifies the algorithm to use for proposing
-#'   (co)variances in the next likelihood iteration.
+#'   (co)variances in the next likelihood iteration. Mainly used to switch
+#'   between Expectation Maximization (\code{"EM"}), or Average Information
+#'   second derivatives with either (1) analytical first derivatives
+#'   (specifically \code{"AItr"}) or (2) first derivatives using a finite
+#'   difference method (backward \code{"AIbfd"}, central \code{"AIcfd"}, or
+#'   forward \code{"AIffd"} finite differences).
 #' @param vit An \code{integer} value specifying the verbosity of screen output
 #'   on each iteration. A value of zero gives no iteration specific output and
 #'   larger values increase the amount of information printed on the screen.
@@ -153,7 +158,7 @@
 #'       (co)variance matrices to be estimated that have been factored out).}
 #'     \item{ndgeninv }{A \code{logical} indicating which terms in the random
 #'       formula have generalized inverses associated with them (non-diagonal 
-#'       matrices in the Kronecker product.}
+#'       matrices in the Kronecker product).}
 #'     \item{dimsZg, nminffx, rfxlvls, nminfrfx }{\code{Numeric} vectors or scalars
 #'       describing the numbers of random effects or some function of random and
 #'       fixed effects.}
@@ -211,6 +216,12 @@
 #'     \item{maxit }{See the parameter described above.}
 #'     \item{algit }{A \code{character} vector of REML algorithms to use in each
 #'       iteration.}
+#'     \item{fdit }{A \code{character} vector of which first derivative/gradient
+#'       algorithm to use each iteration (if first derivatives of the likelihood
+#'       function are to be calculated).}
+#'     \item{sdit }{A \code{character} vector of which second derivative/hessian
+#'       algorithm to use each iteration (if second derivatives of the likelihood
+#'       function are to be calculated).}
 #'     \item{vit }{See the parameter described above.}
 #'     \item{v }{See the parameter described above.}
 #'     \item{cctol }{A \code{numeric} vector of convergence criteria thresholds.
@@ -223,6 +234,8 @@
 #'       details.}
 #'     \item{step }{A \code{numeric} value indicating the step-reduction to use.
 #'       See \code{\link{gremlinControl}} for more details.}
+#'     \item{h }{A \code{numeric} value indicating the increment used in the
+#'       first derivative (gradient) finite difference method.}
 #'
 #'     \item{itMat }{A \code{matrix} of details about each iteration. Rows
 #'       indicate each REML iteration (rownames reflect the REML algorithm used)
@@ -544,28 +557,35 @@ update.gremlin <- function(object, ...){
 
   # Handle `algit` separately (must be done after `maxit` and treated special)
   maxitTmp <- c(new_args[["maxit"]], object$grMod$maxit)[which(!sapply(c(new_args[["maxit"]], object$grMod$maxit), FUN = is.null))[1]]
+  
   ## Check validity of `algit`
   ## Fill-in `algit` default if necessary
   if(is.null(new_args[["algit"]])){
     if(is.null(call[["algit"]])) algit <- defaultCall[["algit"]]
       else algit <- call[["algit"]]
-    if(is.null(algit)) algit <- c(rep("EM", min(maxitTmp, 2)),
-                                  rep("AI", max(0, maxitTmp-2)))
+    algfsdit <- algChk(algit, maxitTmp,
+        ctrl = list(algorithm = NULL), #<-- FIXME grab from original object
+                             ## control/call or new_args control (see section
+                             ## just below) when allow this to be supplied
+        mc = call)
+        
   } else{
-      algChoices <- c("EM", "AI", "bobyqa", "NR") #TODO Update if add/subtract any
-      algMatch <- pmatch(new_args[["algit"]], algChoices,
-        nomatch = 0, duplicates.ok = TRUE)
-      if(any(algMatch == 0)){  
-        stop(cat("Algorithms:", new_args[["algit"]][which(algMatch == 0)],
-        "not valid. Please check values given to the `algit` argument\n"))
-      }
-      algit <- algChoices[algMatch]
+      algfsdit <- algChk(new_args[["algit"]], maxitTmp,
+        ctrl = list(algorithm = NULL), #<-- FIXME grab from original object
+                             ## control/call or new_args control (see section
+                             ## just below) when allow this to be supplied
+        mc = call)
     }  #<-- end if/else new_args null for algit
-  if(length(algit) == 1) algit <- rep(algit, maxitTmp)
-  if(length(algit) > maxitTmp) algit <- algit[1:maxitTmp]
-  if(length(algit) < maxitTmp) algit <- rep(tail(algit, 1), maxitTmp)
-  if(diffMod) call[["algit"]] <- algit
-    else object$grMod[["algit"]] <- algit
+  if(diffMod){
+    # diffMod=TRUE this passes to gremlinSetup so need full algorithm choice
+    algit <- algfsdit$algit
+    call[["algit"]] <- algit
+    
+  } else{
+      object$grMod[["algit"]] <- algfsdit$algit
+      object$grMod[["fdit"]] <- algfsdit$fdit
+      object$grMod[["sdit"]] <- algfsdit$sdit
+    }
 
 
   # gremlinControl() changes
@@ -574,7 +594,7 @@ update.gremlin <- function(object, ...){
     if(diffMod){
       call[["control"]] <- new_args[["control"]]
     } else{
-        for(arg in c("cctol", "ezero", "einf", "step", "lambda")){
+        for(arg in c("cctol", "ezero", "einf", "step", "h", "lambda")){
           object$grMod[arg] <- new_args$control[arg]
         }  #<-- end for arg
       }  #<-- end if/else diffMod
@@ -651,36 +671,12 @@ gremlinSetup <- function(formula, random = NULL, rcov = ~ units,
   modMats <- eval(mMmc, parent.frame())
 
   if(missing(rcov)) mc$rcov <- as.list(formals(eval(mc[[1L]])))[["rcov"]]
-  #algChoices <- c("EM", "AI", "bobyqa", "NR", control$algorithm)
-  algChoices <- c("EM", "AI", "bobyqa", "NR")  #<-- ignore control$algorithm
-    if(!is.null(control$algorithm)){
-      #TODO check validity of `control$algorithm` and `control$algArgs`
-      ## need to pass algorithm to `gremlinR` or switch to it if `gremlin` called
-      ## temporarily IGNORE with warning
-      warning(cat("Ignored algorithm(s) supplied in control",
-        dQuote(control$algorithm),
-        ". gremlin is not old enough for user-specified algorithms\n"),
-          immediate. = TRUE)
-    }
-  algMatch <- pmatch(algit, algChoices, nomatch = 0, duplicates.ok = TRUE)
-  if(all(algMatch == 0) & !all(algit %in% control$algorithm)){ 
-      stop(cat("Algorithms:", dQuote(algit[which(algMatch == 0)]),
-        "not valid. Please check values given to the `algit` argument\n"))
-  }
-  if(any(algMatch == 0)){  
-    warning(cat("Algorithms:", dQuote(algit[which(algMatch == 0)]),
-      "not valid - dropped from the list\n"))
-    algit <- algit[-which(algMatch == 0)]
-  }
-  if(is.null(mc$algit)){
-    algit <- c(rep("EM", min(maxit, 2)), rep("AI", max(0, maxit-2)))
-  } else algit <- algChoices[algMatch]
-  if(length(algit) == 0) algit <- c(rep("EM", min(maxit, 2)),
-                                    rep("AI", max(0, maxit-2)))
-  if(length(algit) == 1) algit <- rep(algit, maxit)
 
-
-
+  algfsdit <- algChk(algit, maxit, control, mc)
+    algit <- algfsdit$algit
+    fdit <- algfsdit$fdit    
+    sdit <- algfsdit$sdit
+    
   #TODO check dimensions G/Rstart
 #FIXME assumes univariate
   if(modMats$nG > 8) fra <- 0.9 / modMats$nG else fra <- 0.1
@@ -846,9 +842,11 @@ gremlinSetup <- function(formula, random = NULL, rcov = ~ units,
 		sLc = sLc,
 		sln = sln, Cinv_ii = Cinv_ii, r = r,
 		AI = AI, dLdnu = dLdnu,
-		maxit = maxit, algit = algit, vit = vit, v = v,
+		maxit = maxit, algit = algit, fdit = fdit, sdit = sdit,
+		vit = vit, v = v,
 		cctol = control$cctol,
-		ezero = control$ezero, einf = control$einf, step = control$step),
+		ezero = control$ezero, einf = control$einf,
+		step = control$step, h = control$h),
 	class = c("grMod", "gremlin"),
 	startTime = startTime))
 }  #<-- end `gremlinSetup()`

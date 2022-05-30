@@ -5,6 +5,7 @@
 \alias{ai}
 \alias{em}
 \alias{gradFun}
+\alias{gradFun_fd}
 \title{REML optimization algorithms for mixed-effect models.}
 \usage{
 reml(
@@ -38,6 +39,8 @@ gradFun(
   r = NULL,
   nminfrfx = NULL
 )
+
+gradFun_fd(nuvin, grObj, lL, fd = c("fdiff", "cdiff", "bdiff"))
 }
 \arguments{
 \item{nu, nuvin}{A \code{list} or \code{vector} of (co)variance parameters to

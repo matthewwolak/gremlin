@@ -22,7 +22,8 @@ potentially make model fitting very efficient.
 \dontrun{
   # Following the example from Mrode 2005, chapter 11.
   library(nadiv)  #<-- to construct inverse of the numerator relatedness matrix
-  Ainv <- makeAinv(Mrode11[, 1:3])$Ainv
+  pedMrode11 <- prepPed(Mrode11[, 1:3])
+  Ainv <- makeAinv(pedMrode11)$Ainv
 
   gr11lmm <- gremlin(WWG11 ~ sex - 1,
 random = ~ calf,
