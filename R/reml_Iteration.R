@@ -79,8 +79,8 @@ remlIt.default <- function(grMod, ...){
       return(remlIt.gremlinR(grMod))
     }
 
-  bound <- grMod$bound
-    bound[is.na(bound)] <- 0  # Replace NAs with 0
+  bounds <- grMod$bounds
+    bounds[is.na(bounds)] <- 0  # Replace NAs with 0
 
 
   Cout <- .C("ugremlin", PACKAGE = "gremlin",
@@ -108,7 +108,7 @@ remlIt.default <- function(grMod, ...){
 	as.integer(unlist(lapply(gnu, FUN = function(g) length(g@x)))), #no. non-zero GRs
 	as.double(unlist(lapply(gnu, FUN = function(g) g@x))),	#nu vector
         as.integer(as.integer(grMod$conv)-1),   # constraint codes (F=0)
-        as.double(c(bound)),			#boundaries (1:p=LB | p+1:2p=UB
+        as.double(c(bounds)),			#boundaries (1:p=LB | p+1:2p=UB
 	as.integer(length(grMod$Bpinv@x)),		#Bpinv (fixed fx prior inverse)
 	as.integer(grMod$Bpinv@i),
 	as.integer(grMod$Bpinv@p),
