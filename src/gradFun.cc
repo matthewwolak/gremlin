@@ -348,13 +348,12 @@ if(loglik == 0.0){
 
 
   // First derivatives (gradient/score)
-  //// forward = [f(x+h) - f(x)] / h
   //// backward = [f(x) - f(x-h)] / h
   //// central = [f(x+h) - f(x-h)] / 2h
+  //// forward = [f(x+h) - f(x)] / h
   // unpack/calculate derivativs of log-likelihood from differences 
-  //// -1 since optimizing negative log-likelihood 
   for(g = 0; g < p; g++){
-    dLdnu[g] = -1 * (fxU[g] - fxL[g]) / (denomSC * h);  
+    dLdnu[g] = (fxL[g] - fxU[g]) / (denomSC * h);  
   }
  
   //////////////////////////////////////////////////////////////////////////////
