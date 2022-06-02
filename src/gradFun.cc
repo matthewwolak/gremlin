@@ -89,7 +89,7 @@ fd = 1; central (both backwards and forward finite differences)
 fd = 2; forward finite differences       
       					 */
 csi cs_gradFun_fd(double *nu, csi fd, double h,
-	double *dLdnu, double lL, csi *con,
+	double *dLdnu, double lL, csi *con, double *bound, int v,
 	csi n, csi *dimZWG, csi nG, csi p, double *y,
 	cs *Bpinv, cs *W, cs *tW, csi *rfxlvls, double rfxlL,
 	csi *ndgeninv, cs **geninv, cs *KRinv,
@@ -101,7 +101,7 @@ csi cs_gradFun_fd(double *nu, csi fd, double h,
 ){
 
   int     g, k, si, dimM;
-  double  tyPy, logDetC, sigma2e, loglik, denomSC;
+  double  tyPy, logDetC, sigma2e, loglik;
           
   cs      *R, *Rinv, *tWKRinv, *tWKRinvW, *ttWKRinvW;
 
@@ -114,19 +114,46 @@ csi cs_gradFun_fd(double *nu, csi fd, double h,
   double *r = new double[dimZWG[2]];
   double *fxL = new double[p];
   double *fxU = new double[p];
+  //in `hvec` 1:p is lower bound/backward and (p+1):2p upper/forward
+  double *hvec = new double[2 * p];  
+  int *fdmth = new int[p];
+  
 
   if(!lL || !nu) return (0);    // check arguments
   
   sigma2e = (lmbda == 1) ? 0.0 : 1.0;
 
-  denomSC = (fd == 1) ? 2.0 : 1.0;
 
-  // seed upper and lower log-likelihood vectors with current model log-likelihood
-  //// so if using either backward or forward then will be subtracting from this
   for(g = 0; g < p; g++){
+    // seed upper and lower log-likelihood (lL) vectors with current model lL
+    //// if using either backward or forward then will be subtracting from this
     fxL[g] = lL;
     fxU[g] = lL;
-  }
+    // specify finite difference method and denominator for each parameter
+    //// However, if parameter value at boundary then make sure finite difference
+    ///// method won't change parameter in direction that violates boundary
+    ////// boundaries (0:p-1=LB | p:2p-1=UB) Fixed/NA=0
+    fdmth[g] = fd;
+    hvec[g] = hvec[p + g] = h;
+    if((fd < 2) && (nu[g] <= (bound[g] + h))){  // go through backwards/central
+if(v > 0){    
+  Rprintf("\nparameter %i <= near bound, reducing 'h' (finite difference)",
+    g+1);
+}
+      hvec[g] = 0.1 * (nu[g] - bound[g]); // fraction of distance between
+      // fdmth[g] = 2; Don't change for now, but leave in case want to in future
+    }
+
+    if((fd > 0) && (nu[g] >= (bound[p + g] - h))){  // go through central/forward
+if(v > 0){    
+  Rprintf("\nparameter %i >= upper bound, reducing 'h' (finite difference)",
+    g+1);
+}    
+      hvec[p + g] = 0.1 * (bound[p + g] - nu[g]); // fraction of dist. between
+      //fdmth[g] = 0; Don't change for now, but leave in case want to in future
+    }
+    
+  }  // end for g
   
   
   // setup R matrix
@@ -196,9 +223,9 @@ csi cs_gradFun_fd(double *nu, csi fd, double h,
       } else{
           // replace elements in G with finite difference pertubation(s)
           //// if either FORWARD or CENTRAL difference method
-          if(fd > 0){
+          if(fdmth[g] > 0){
             cs_spfree(Ginv[g]);    
-            G[g]->x[0] = nu[g] + h;   // TODO fix x[0] when G can be a matrix
+            G[g]->x[0] = nu[g] + hvec[p + g]; //FIXME x[0] when G can be a matrix
             Ginv[g] = cs_inv(G[g]);
             Lc = cs_reml(n, dimZWG, nG, p, y,
               Bpinv, W, tW, rfxlvls, rfxlL,
@@ -220,9 +247,9 @@ if(loglik == 0.0){
           }  // end if fd > 0  
       
           //// if either BACKWARD or CENTRAL difference method
-          if(fd < 2){
+          if(fdmth[g] < 2){
             cs_spfree(Ginv[g]);    
-            G[g]->x[0] = nu[g] - h;   // TODO fix x[0] when G can be a matrix
+            G[g]->x[0] = nu[g] - hvec[g];   // TODO fix x[0] when G can be a matrix
             Ginv[g] = cs_inv(G[g]);
             Lc = cs_reml(n, dimZWG, nG, p, y,
               Bpinv, W, tW, rfxlvls, rfxlL,
@@ -265,12 +292,12 @@ if(loglik == 0.0){
       } else{
          // replace elements in R with finite difference pertubation(s)
           //// if either FORWARD or CENTRAL difference method
-          if(fd > 0){
+          if(fdmth[g] > 0){
             cs_spfree(Rinv);
             cs_spfree(tWKRinv);
             cs_spfree(tWKRinvW);
                 
-            R->x[0] = nu[g] + h;   // TODO fix x[0] when R can be a matrix
+            R->x[0] = nu[g] + hvec[p + g];   //FIXME x[0] when R can be a matrix
             Rinv = cs_inv(R);
             cs_kroneckerIupdate(Rinv, dimZWG[2], KRinv); 
             // Components of Meyer 1989 eqn 2
@@ -302,12 +329,12 @@ if(loglik == 0.0){
           }  // end if fd > 0  
       
           //// if either BACKWARD or CENTRAL difference method
-          if(fd < 2){
+          if(fdmth[g] < 2){
             cs_spfree(Rinv);
             cs_spfree(tWKRinv);
             cs_spfree(tWKRinvW);
                 
-            R->x[0] = nu[g] - h;   // TODO fix x[0] when R can be a matrix
+            R->x[0] = nu[g] - hvec[g];   //FIXME x[0] when R can be a matrix
             Rinv = cs_inv(R);
             cs_kroneckerIupdate(Rinv, dimZWG[2], KRinv); 
             // Components of Meyer 1989 eqn 2
@@ -353,7 +380,7 @@ if(loglik == 0.0){
   //// forward = [f(x+h) - f(x)] / h
   // unpack/calculate derivativs of log-likelihood from differences 
   for(g = 0; g < p; g++){
-    dLdnu[g] = (fxL[g] - fxU[g]) / (denomSC * h);  
+    dLdnu[g] = (fxL[g] - fxU[g]) / (hvec[p + g] + hvec[g]); 
   }
  
   //////////////////////////////////////////////////////////////////////////////
@@ -378,6 +405,8 @@ if(loglik == 0.0){
   delete [] r;
   delete [] fxL;
   delete [] fxU;
+  delete [] hvec;
+  delete [] fdmth;
 
  return(1);
 }

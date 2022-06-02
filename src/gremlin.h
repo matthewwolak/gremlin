@@ -56,7 +56,7 @@ fd = 1; central (both backwards and forward finite differences)
 fd = 2; forward finite differences       
       */
 csi cs_gradFun_fd(double *nu, csi fd, double h,
-	double *dLdnu, double lL, csi *con,
+	double *dLdnu, double lL, csi *con, double *bound, int v,
 	csi n, csi *dimZWG, csi nG, csi p, double *y,
 	cs *Bpinv, cs *W, cs *tW, csi *rfxlvls, double rfxlL,
 	csi *ndgeninv, cs **geninv, cs *KRinv,
