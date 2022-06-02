@@ -89,7 +89,15 @@ if((i == 0) && (v > 3)){
   // Update Cholesky factorization of C
   Lc = cs_chol(C, sLc);  //TODO update when i>0? (cs_updown), but then initially make Lc when i=0
   if(Lc == NULL){
-    error("\nMixed Model Coefficient matrix (C) singular: possibly caused by a bad combination of G and R (co)variance parameters");
+    Rprintf("\ncs_reml: Mixed Model Coefficient matrix (C) singular, possibly caused by a bad combination of G and R (co)variance parameters");
+
+    // Cholesky factorization did not work
+    //// set log-likelihood to 0.0 to flag the error in gremlin.cc then exit
+      *loglik = 0.0;
+      cs_spfree(C);
+      if(lmbda == 0) cs_spfree(tyRinv);
+
+    return (Lc);
   }
 
 if(v > 3){

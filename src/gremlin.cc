@@ -557,6 +557,7 @@ if(v[0] > 3){
 }
 
 
+        // fdit 3 is trace/analytical gradient calculation
         if(fdit[i] == 3){
           if(!cs_gradFun(nu, dLdnu,
 	      tugug, trace, con,
@@ -618,7 +619,7 @@ if(v[0] > 3){
       //// specify 1 way regardless of lambda
       if(fdit[i] < 3){
         if(!cs_gradFun_fd(nu, fdit[i], h,
-            dLdnu, loglik, con,
+            dLdnu, loglik, con, bound, v[0],
             ny[0], dimZWG, nG, p[0], y,
             Bpinv, W, tW, rfxlvls, rfxlL[0],
             ndgeninv, geninv, KRinv,
