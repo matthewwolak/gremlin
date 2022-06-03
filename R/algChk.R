@@ -53,7 +53,7 @@ algChk  <- function(algit, maxit, ctrl, mc){
   if(length(AI <- grep("(^|\\s)AI($|\\s)", algit, ignore.case = FALSE)) > 0){
     algit[AI] <- "AIcfd"  
   }
-  if(length(algit) == 1) algit <- rep(algit, maxit)
+  if(length(algit) < maxit) algit <- rep_len(algit, length.out = maxit)
   
   # Now check for first and second derivative calculations/algorithms:
   fdit <- sdit <- rep(NA, maxit)
