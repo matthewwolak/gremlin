@@ -3,7 +3,8 @@
 #' Change default settings for gremlin models.
 #'
 #' @aliases gremlinControl
-#' @param cctol Convergence criteria tolerances (Meyer 2007, 2019).
+#' @param cctol Convergence criteria tolerances (Meyer 2007, 2019). See details
+#'   about the convergence checks in \code{\link[gremlin]{ccFun}}.
 #' @param ezero Effective zero to be used, values less than this number are
 #'   treated as zero and fixed to this value.
 #' @param einf Effective infinite value to be used, values are limited to a
