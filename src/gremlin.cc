@@ -521,24 +521,38 @@ if(v[0] > 3){
 
         if(!tugugFun(tugug, w, nG, rfxlvls, con,
 	    nffx, ndgeninv, geninv, BLUXs)){
-          error("\nUnsuccessful tugug calculation: AI algorithm in iteration %i", i);
-        }
+          if((v[0] > 1) && (vitout == 0)){
+            Rprintf("\nUnsuccessful tugug calculation iteration %i", i);
+              Rprintf("\n\tSwitching to finite difference algorithm");
+          }
+          fdit[i] = 1;  // switch algorithm to central finite difference method
+        }  // end if tugugFun unsuccessful
+        
 if(v[0] > 3){
   took = simple_toc(t);
   Rprintf("\n\t    %6.6f sec.: calculate tugug(s)", took);
   simple_tic(t);
 }
+      }  // end if analytical gradients
+      
+      
+      if(fdit[i] == 3){  
 
         if(!traceFun(trace, w, nG, rfxlvls,
 	    nffx, ndgeninv, geninv, BLUXs->m, Lc->L, sLc->pinv)){
-          error("\nUnsuccessful trace calculation: AI algorithm in iteration %i", i);
-        }
+          if((v[0] > 1) && (vitout == 0)){
+            Rprintf("\nUnsuccessful trace calculation iteration %i", i);
+              Rprintf("\n\tSwitching to finite difference algorithm");
+          }
+          fdit[i] = 1;  // switch algorithm to central finite difference method
+        }  // end if traceFun unsuccessful
+        
 if(v[0] > 3){
   took = simple_toc(t);
   Rprintf("\n\t    %6.6f sec.: calculate trace(s)", took);
   simple_tic(t);
 }
-      }  // end if gradient via analytical (instead of finite difference)
+      }  // end if analytical gradients
       
       
            
@@ -548,8 +562,12 @@ if(v[0] > 3){
 	      y, W, tW, ny[0], p[0], nG, rfxlvls, nffx, Lc->L, sLc->pinv,
 	      0, sigma2e);
 	if(AI == 0){
-          error("\nUnsuccessful AI algorithm iteration %i", i);
-        }
+	  if((v[0] > 1) && (vitout == 0)){
+            Rprintf("\nUnsuccessful AI algorithm in iteration %i", i);
+              Rprintf("\n\tSwitching to EM algorithm");
+          }
+          algit[i] = 0;  // switch algorithm to EM
+        }  // end if AI 0
 if(v[0] > 3){
   took = simple_toc(t);
   Rprintf("\n\t    %6.6f sec.: calculate AI matrix", took);
@@ -565,7 +583,11 @@ if(v[0] > 3){
               sigma2e,    // 1.0 if lambda=FALSE
 	      0, res)){      // 0 if lambda=TRUE
 	      
-            error("\nUnsuccessful gradient calculation iteration %i", i);
+            if((v[0] > 1) && (vitout == 0)){
+              Rprintf("\nUnsuccessful gradient calculation iteration %i", i);
+                Rprintf("\n\tSwitching to EM algorithm");
+            }
+              algit[i] = 0;  // switch algorithm to EM
           }  // end if cs_gradFun
 if(v[0] > 3){
   took = simple_toc(t);
@@ -582,8 +604,12 @@ if(v[0] > 3){
 	      res, W, tW, ny[0], p[0], nG, rfxlvls, nffx, Lc->L, sLc->pinv,
 	      nG, 1.0);
 	  if(AI == NULL){
-          error("\nUnsuccessful AI algorithm in iteration %i", i);
-          }
+	    if((v[0] > 1) && (vitout == 0)){
+              Rprintf("\nUnsuccessful AI algorithm in iteration %i", i);
+                Rprintf("\n\tSwitching to EM algorithm");
+            }
+            algit[i] = 0;  // switch algorithm to EM
+          }  // end if AI NULL
 
 if(v[0] > 3){
   took = simple_toc(t);
@@ -599,8 +625,12 @@ if(v[0] > 3){
 	      ny[0], nG, rfxlvls, nffx,
               1.0,    // 1.0 if lambda=FALSE
 	      nG, res)){      // 0 if lambda=TRUE
-            error("\nUnsuccessful gradient calculation iteration %i", i);
-          }  // end if cs_gradFun
+            if((v[0] > 1) && (vitout == 0)){
+              Rprintf("\nUnsuccessful gradient calculation iteration %i", i);
+                Rprintf("\n\tSwitching to EM algorithm");
+            }
+              algit[i] = 0;  // switch algorithm to EM
+            }  // end if cs_gradFun
 
 if(v[0] > 3){
   took = simple_toc(t);
@@ -628,7 +658,12 @@ if(v[0] > 3){
             tyRinvy,
             nminffx[0],
             nnzGRs, dimGRs, iGRs, lambda[0])){      // 0 if lambda=TRUE
-          error("\nUnsuccessful finite difference gradient calculation iteration %i", i);
+    if((v[0] > 1) && (vitout == 0)){
+      Rprintf("\nUnsuccessful finite difference gradient calculation iteration %i",
+        i);
+        Rprintf("\n\tSwitching to EM algorithm");
+    }
+          algit[i] = 0;  // switch algorithm to EM
         }  // end if cs_gradFun_fd
 
 if(v[0] > 3){
@@ -650,15 +685,16 @@ if(v[0] > 3){
       //////(though gremlin uses `+` instead of J & T '95 `-` because
       ////// gremlin multiplies gradient by -0.5 in `gradFun()`)
 
-      for(k = 0; k < p[0]; k++) newnu[k] = 0.0;  // clear
+      if(algit[i] > 0){  // maybe switched to EM because bad AI/gradient above
+        for(k = 0; k < p[0]; k++) newnu[k] = 0.0;  // clear
 
-      if(!qNewtRhap(nu, newnu, dLdnu, AI,
+        if(!qNewtRhap(nu, newnu, dLdnu, AI,
 		p[0], con, wchBd, f, ezero, v[0])){
-        // AI algorithm failed: do EM
-        if(v[0] > 1 && vitout == 0) Rprintf("\n\t\tAI failed, switching to EM");
-        algit[i] = 0;  // switch algorithm to EM
-      } 
-
+          // AI algorithm failed: do EM
+          if(v[0] > 1 && vitout == 0) Rprintf("\n\t\tAI failed, switching to EM");
+          algit[i] = 0;  // switch algorithm to EM
+        } 
+      }  // end if AI
 
       // if AI working so far
       // calculate `dnu` - proposed change in nu parameters (`Hinv %*% grad`)
@@ -943,7 +979,7 @@ if(v[0] > 3){
 	      y, W, tW, ny[0], p[0], nG, rfxlvls, nffx, Lc->L, sLc->pinv,
 	      0, sigma2e);
 	if(AI == NULL){
-          error("\nUnsuccessful AI algorithm in iteration %i", i);
+          Rprintf("\nUnsuccessful final AI calculation");
         }
 
 if(v[0] > 3){
@@ -959,7 +995,7 @@ if(v[0] > 3){
 	      res, W, tW, ny[0], p[0], nG, rfxlvls, nffx, Lc->L, sLc->pinv,
 	      nG, 1.0);
 	if(AI == NULL){
-          error("\nUnsuccessful AI algorithm in iteration %i", i);
+          Rprintf("\nUnsuccessful final AI calculation");
         }
 if(v[0] > 3){
   took = simple_toc(t); 
