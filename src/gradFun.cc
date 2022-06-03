@@ -100,7 +100,7 @@ csi cs_gradFun_fd(double *nu, csi fd, double h,
 	int *nnzGRs, int *dimGRs, int *iGRs, csi lmbda
 ){
 
-  int     g, k, si, dimM;
+  int     g, k, si, dimM, err;
   double  tyPy, logDetC, sigma2e, loglik;
           
   cs      *R, *Rinv, *tWKRinv, *tWKRinvW, *ttWKRinvW;
@@ -122,7 +122,7 @@ csi cs_gradFun_fd(double *nu, csi fd, double h,
   if(!lL || !nu) return (0);    // check arguments
   
   sigma2e = (lmbda == 1) ? 0.0 : 1.0;
-
+  err = 0;    // if an error occurs, hold here and return 0 instead of 1 at end
 
   for(g = 0; g < p; g++){
     // seed upper and lower log-likelihood (lL) vectors with current model lL
@@ -239,15 +239,17 @@ if(v > 0){
               &loglik,
               1, 0, 0, lmbda);      
 if(loglik == 0.0){
-  error("\nUnsuccessful REML calculation: finite difference gradient function component %i",
+  err = 1;
+  Rprintf("\nUnsuccessful REML calculation: finite difference gradient function component %i",
     g);
 }
             cs_nfree(Lc);  
+            if(err == 1) break;  // break out of for g
             fxL[g] = loglik;  // Either Forward or Central diff. lL
           }  // end if fd > 0  
       
           //// if either BACKWARD or CENTRAL difference method
-          if(fdmth[g] < 2){
+          if((fdmth[g] < 2) && (err == 0)){
             cs_spfree(Ginv[g]);    
             G[g]->x[0] = nu[g] - hvec[g];   // TODO fix x[0] when G can be a matrix
             Ginv[g] = cs_inv(G[g]);
@@ -263,10 +265,12 @@ if(loglik == 0.0){
               &loglik,
               1, 0, 0, lmbda);      
 if(loglik == 0.0){
-  error("\nUnsuccessful REML calculation: finite difference gradient function component %i",
+Rprintf("\nUnsuccessful REML calculation: finite difference gradient function component %i",
     g);
+  err = 1;
 }
-            cs_nfree(Lc);      
+            cs_nfree(Lc); 
+            if(err == 1) break; // break out of for g    
             fxU[g] = loglik;  // Either Backward or Central diff. lL
           }  // end if fd < 2 
       
@@ -283,7 +287,7 @@ if(loglik == 0.0){
 
 
   // Residual (co)variances when not on Lambda scale
-  if(lmbda == 0){
+  if((lmbda == 0) && (err == 0)){
 //FIXME change `[p]` below to be number of residual (co)variances
     // `g` is the gth component of the R-structure model
     for(g = nG; g < p; g++){
@@ -321,15 +325,17 @@ if(loglik == 0.0){
               &loglik,
               1, 0, 0, lmbda);      
 if(loglik == 0.0){
-  error("\nUnsuccessful REML calculation: finite difference gradient function component %i",
+Rprintf("\nUnsuccessful REML calculation: finite difference gradient function component %i",
     g);
+  err = 1;  
 }
-            cs_nfree(Lc);      
+            cs_nfree(Lc);  
+            if(err == 1) break;  // break out of for g    
             fxL[g] = loglik;  // Either Forward or Central diff. lL
           }  // end if fd > 0  
       
           //// if either BACKWARD or CENTRAL difference method
-          if(fdmth[g] < 2){
+          if((fdmth[g] < 2) && (err == 0)){
             cs_spfree(Rinv);
             cs_spfree(tWKRinv);
             cs_spfree(tWKRinvW);
@@ -358,10 +364,12 @@ if(loglik == 0.0){
               &loglik,
               1, 0, 0, lmbda);      
 if(loglik == 0.0){
-  error("\nUnsuccessful REML calculation: finite difference gradient function component %i",
+Rprintf("\nUnsuccessful REML calculation: finite difference gradient function component %i",
     g);
+  err = 1;
 }
-            cs_nfree(Lc);      
+            cs_nfree(Lc); 
+            if(err == 1) break;  // break out of for g     
             fxU[g] = loglik;  // Either Backward or Central diff. lL
           }  // end if fd < 2 
       
@@ -378,11 +386,12 @@ if(loglik == 0.0){
   //// backward = [f(x) - f(x-h)] / h
   //// central = [f(x+h) - f(x-h)] / 2h
   //// forward = [f(x+h) - f(x)] / h
-  // unpack/calculate derivativs of log-likelihood from differences 
-  for(g = 0; g < p; g++){
-    dLdnu[g] = (fxL[g] - fxU[g]) / (hvec[p + g] + hvec[g]); 
+  // unpack/calculate derivatives of log-likelihood from differences 
+  if(err == 0){
+    for(g = 0; g < p; g++){
+      dLdnu[g] = (fxL[g] - fxU[g]) / (hvec[p + g] + hvec[g]); 
+    }
   }
- 
   //////////////////////////////////////////////////////////////////////////////
   // Cleanup:
   cs_spfree(R);
@@ -408,7 +417,8 @@ if(loglik == 0.0){
   delete [] hvec;
   delete [] fdmth;
 
- return(1);
+ if(err == 0) return(1);
+   else return(0);
 }
 
 
