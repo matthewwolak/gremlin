@@ -1,0 +1,21 @@
+citHeader("To cite gremlin in publications use:")
+
+citEntry(entry = "Article",
+  title        = "{gremlin}: {R} package for mixed-effects model REML
+                 incorporating Generalized Inverses",
+  author       = personList(as.person("Matthew E. Wolak")),
+  journal      = "Zenodo",
+  year         = "2020",
+#  volume       = "3",
+#  number       = "5",
+#  pages        = "792-796",
+#  url          = "https://besjournals.onlinelibrary.wiley.com/doi/full...",
+  url          = "https://doi.org/10.5281/zenodo.3908463",
+
+  textVersion  =
+  paste("Matthew E. Wolak (2020).",
+        "gremlin: R package for mixed-effects model REML incorporating
+          Generalized Inverses.",
+        "Zenodo. https://doi.org/10.5281/zenodo.3908463")
+)
+
