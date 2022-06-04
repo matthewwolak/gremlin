@@ -117,6 +117,7 @@ void ugremlin(
 
   int 	 g, i, k, si, si2, vitout,
 	 itc = 0,
+	 errOrIntrpt = 0;    // logical if an error or interrupt signal
          dimM,      // GENERIC dimension of a matrix variable to be REUSED 
 	 nffx,
 	 bd;  
@@ -330,7 +331,9 @@ if(v[0] > 3){
 /* 
 could do a check to make sure R was inverted correctly:
   if(Rinv == NULL){
-    error("R-structure %i starting value(s) is/are improperly specified: check that all eigenvalues (`eigen(R)$values`) > 0 and that the cholesky decomposition can be formed (`chol(R)`)\n", nR);
+    Rprintf("R-structure %i starting value(s) is/are improperly specified: check that all eigenvalues (`eigen(R)$values`) > 0 and that the cholesky decomposition can be formed (`chol(R)`)\n", nR);
+    errOrIntrpt = 1;
+    break;
   }
 */
 
@@ -410,9 +413,11 @@ if(v[0] > 3){
       //// TODO Supernodal decomposition??? Can do it with Csparse? Need something else?
       // Symbolic Cholesky factorization of C
       sLc = cs_schol(1, C);
-      if(sLc == NULL){
-        error("FAILED: symbolic Cholesky factorization of Coefficient matrix (`C`)\n");
-      }
+if(sLc == NULL){
+  Rprintf("FAILED symbolic Cholesky factorization of Coefficient matrix (`C`)\n");
+  errOrIntrpt = 1;
+  break;
+}
       cs_spfree(C);  // make inside cs_reml so don't need again here 
 
 if(v[0] > 3){
@@ -438,9 +443,11 @@ if(v[0] > 3){
         nminffx[0],
         &loglik,
         i, v[0], vitout, lambda[0]); 
-    if(loglik == 0.0){
-      error("\nUnsuccessful REML calculation: iteration %i", i);
-    }
+if(loglik == 0.0){
+  Rprintf("\nUnsuccessful REML calculation: iteration %i", i);
+  errOrIntrpt = 1;
+  break;
+}
 
 
 
@@ -691,9 +698,11 @@ if(v[0] > 3){
         if(!qNewtRhap(nu, newnu, dLdnu, AI,
 		p[0], con, wchBd, f, ezero, v[0])){
           // AI algorithm failed: do EM
-          if(v[0] > 1 && vitout == 0) Rprintf("\n\t\tAI failed, switching to EM");
+          if((v[0] > 1) && (vitout == 0)){
+            Rprintf("\n\t\tAI failed, switching to EM");
+          }
           algit[i] = 0;  // switch algorithm to EM
-        } 
+        }  // end if !qNewtRhap()
       }  // end if AI
 
       // if AI working so far
@@ -772,7 +781,9 @@ if(v[0] > 3){
           if(!qNewtRhap(nu, newnu, dLdnu, AI,
      		        p[0], con, wchBd, f, ezero, v[0])){ 
             // AI algorithm failed: do EM
-            if(v[0] > 1 && vitout == 0) Rprintf("\n\t\tAI failed, switching to EM");
+            if((v[0] > 1) && (vitout == 0)){
+              Rprintf("\n\t\tAI failed, switching to EM");
+            }
             algit[i] = 0;  // switch algorithm to EM
           } 
 
@@ -848,12 +859,16 @@ if(v[0] > 3){
 
       if(!tugugFun(tugug, w, nG, rfxlvls, con,
 	    nffx, ndgeninv, geninv, BLUXs)){
-        error("\nUnsuccessful tugug calculation: EM algorithm in iteration %i", i);
+        Rprintf("\nUnsuccessful tugug calculation: EM algorithm in iteration %i", i);
+        errOrIntrpt = 1;
+        break;
       }
 
       if(!traceFun(trace, w, nG, rfxlvls,
 	    nffx, ndgeninv, geninv, BLUXs->m, Lc->L, sLc->pinv)){
-        error("\nUnsuccessful trace calculation: EM algorithm in iteration %i", i);
+        Rprintf("\nUnsuccessful trace calculation: EM algorithm in iteration %i", i);
+        errOrIntrpt = 1;
+        break;
       }
 
       // calculate EM for G (co)variances:
@@ -961,26 +976,27 @@ if(v[0] > 3){
   //////////////////////////////////////////////////////////////////////////////
 
 
-
-  // Calculate Cinv_ii and AI
-  cs_chol2inv_ii(Lc->L, sLc->pinv, Cinv_ii, 0);
+  // only do if entire for loop above proceeded without error or interruption
+  if(errOrIntrpt == 0){
+    // Calculate Cinv_ii and AI
+    cs_chol2inv_ii(Lc->L, sLc->pinv, Cinv_ii, 0);
 if(v[0] > 3){
   took = simple_toc(t); 
   Rprintf("\n\t    %6.4f sec.: calculate Cinv_ii", took);
   simple_tic(t); 
 }
 
-  //// Average Information
-  ////// only need to do if did NOT do AI
-  if(algit[i] != 1){  
-    if(lambda[0] == 1){
-      cs_spfree(AI);  //TODO how pass if not initialized
-      AI = cs_ai(BLUXs, Ginv, R, 0, 0,
+    //// Average Information
+    ////// only need to do if did NOT do AI
+    if(algit[i] != 1){  
+      if(lambda[0] == 1){
+        cs_spfree(AI);  //TODO how pass if not initialized
+        AI = cs_ai(BLUXs, Ginv, R, 0, 0,
 	      y, W, tW, ny[0], p[0], nG, rfxlvls, nffx, Lc->L, sLc->pinv,
 	      0, sigma2e);
-	if(AI == NULL){
-          Rprintf("\nUnsuccessful final AI calculation");
-        }
+	  if(AI == NULL){
+            Rprintf("\nUnsuccessful final AI calculation");
+          }
 
 if(v[0] > 3){
   took = simple_toc(t);
@@ -989,23 +1005,23 @@ if(v[0] > 3){
 }
        
 
-    }else{
-      cs_spfree(AI);  //TODO how pass if not initialized
-        AI = cs_ai(BLUXs, Ginv, R, KRinv, tWKRinv,
+      }else{
+        cs_spfree(AI);  //TODO how pass if not initialized
+          AI = cs_ai(BLUXs, Ginv, R, KRinv, tWKRinv,
 	      res, W, tW, ny[0], p[0], nG, rfxlvls, nffx, Lc->L, sLc->pinv,
 	      nG, 1.0);
-	if(AI == NULL){
-          Rprintf("\nUnsuccessful final AI calculation");
-        }
+	  if(AI == NULL){
+            Rprintf("\nUnsuccessful final AI calculation");
+          }
 if(v[0] > 3){
   took = simple_toc(t); 
   Rprintf("\n\t    %6.4f sec.: calculate AI", took);
   simple_tic(t); 
 }
 
-    }  // end if/else lambda
-  }  // end if algit!=AI
-
+      }  // end if/else lambda
+    }  // end if algit!=AI
+  }  // end if NO errors/interrupts
 
 if(v[0] > 3) simple_tic(t);
 
@@ -1030,8 +1046,9 @@ if(v[0] > 3) simple_tic(t);
 
 
   // return permutation matrix of symbolic Cholesky factorization of C
-  for(k = 0; k < BLUXs->m; k++) sLcPinv[k] += sLc->pinv[k];
-
+  if(CS_CSC(AI)){
+    for(k = 0; k < BLUXs->m; k++) sLcPinv[k] += sLc->pinv[k];
+  }
 
   //////////////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
