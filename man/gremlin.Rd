@@ -252,7 +252,7 @@ A \code{list} containing an object of class \code{grMod} and, if a
     \item{vit }{See the parameter described above.}
     \item{v }{See the parameter described above.}
     \item{cctol }{A \code{numeric} vector of convergence criteria thresholds.
-      See \code{\link{gremlinControl}} for more details.}
+      See \code{\link{gremlinControl}} and \code{\link{ccFun}} for details.}
     \item{ezero, einf }{\code{numeric} values for the effective numbers to
       use as \dQuote{zero} and maximum negative or positive numbers. Values
       less than \code{ezero} are treated as zero and fixed to this value.

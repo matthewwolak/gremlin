@@ -117,8 +117,8 @@ void ugremlin(
 
   int 	 g, i, k, si, si2, vitout,
 	 itc = 0,
-	 errOrIntrpt = 0;    // logical if an error or interrupt signal
-         dimM,      // GENERIC dimension of a matrix variable to be REUSED 
+	 errOrIntrpt = 0,  // logical if an error or interrupt signal
+         dimM,            // GENERIC dimension of a matrix variable to be REUSED 
 	 nffx,
 	 bd;  
 

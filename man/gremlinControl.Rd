@@ -16,7 +16,8 @@ gremlinControl(
 )
 }
 \arguments{
-\item{cctol}{Convergence criteria tolerances (Meyer 2007, 2019).}
+\item{cctol}{Convergence criteria tolerances (Meyer 2007, 2019). See details
+about the convergence checks in \code{\link[gremlin]{ccFun}}.}
 
 \item{ezero}{Effective zero to be used, values less than this number are
 treated as zero and fixed to this value.}
