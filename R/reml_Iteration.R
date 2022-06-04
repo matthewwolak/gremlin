@@ -241,7 +241,9 @@ remlIt.gremlinR <- function(grMod, ...){
     colnames(itMat) <- c(paste0(names(thetav), "_nu"),
 	paste0(names(thetav), "_theta"),
 	"sigma2e", "tyPy", "logDetC", "loglik", "itTime")
-  Ic <- Diagonal(x = 1, n = nrow(grMod$Cinv_ii))
+  if(any(grMod$fdit == "tr")){	
+    Ic <- Diagonal(x = 1, n = nrow(grMod$sln))
+  }
 
 
   ############################################
@@ -641,8 +643,22 @@ stop(cat("\nNot allowing `NR` right now"))
 
 
   # Calculate Cinv_ii and AI for last set of parameters
-  grMod$Cinv_ii <- matrix(diag(solve(a = sLc, b = Ic, system = "A")), ncol = 1)
+  if(grMod$Cinv_ii[1] < 0){
+    k <- grMod$modMats$nb
+    Ik <- rbind(Diagonal(x = 1, n = k), 
+      Matrix(0, nrow = nrow(grMod$sln) - k,
+        ncol = k,
+        sparse = TRUE))
+    for(c in 1:k){
+      grMod$Cinv_ii[c] <- solve(a = sLc, b = Ik[, c],
+        system = "A")[c, , drop = TRUE]
+    }
 
+  } else{
+      I <- Diagonal(x = 1, n = nrow(grMod$sln))
+      grMod$Cinv_ii <- matrix(diag(solve(a = sLc, b = I, system = "A")), ncol = 1)
+    }
+    
   ## AI
   if(grMod$sdit[i] != "AI"){
     if(lambda){

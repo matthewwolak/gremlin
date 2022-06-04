@@ -75,7 +75,7 @@ csi gr_cs_lltsolve (const cs *L, double *x, csi k);
 
 // replaces elements in Cinv_ii inverse diagonals as double
 //// Returns 1=success else 0
-csi cs_chol2inv_ii(const cs *L, const csi *Pinv, double *Cinv_ii, int r);  
+csi cs_chol2inv_ii(const cs *L, const csi *Pinv, double *Cinv_ii, csi r, csi n);  
 
 
 /* return 1 if successful else returns 0

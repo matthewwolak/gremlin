@@ -8,22 +8,23 @@ backwards solve:  Lt Ainv_j = b_j (Lt is transpose of L)
 */
 /* replaces Cinv_ii with diagonals from inverted matrix  */
 // `r` tells what row to start from so can only get diagonals of part of matrix
+// `n` tells what row to end with (e.g., so only get fixed effects diagonals)
 
-csi cs_chol2inv_ii(const cs *L, const csi *Pinv, double *Cinv_ii, int r){  
+csi cs_chol2inv_ii(const cs *L, const csi *Pinv, double *Cinv_ii, csi r, csi n){  
 
-  csi	 i, j, k, n, *Lp, *Li;
+  csi	 i, j, k, Ln, *Lp, *Li;
   double *b, *Lx;
 
-  n = L->n;
+  Ln = L->n;
   Lp = L->p; Li = L->i; Lx = L->x;
-  b = cs_malloc(n, sizeof (double));
+  b = cs_malloc(Ln, sizeof (double));
 
   for(k = r; k < n; k++){
-    for(i = 0; i < n; i++) b[i] = 0.0;  // clear b
+    for(i = 0; i < Ln; i++) b[i] = 0.0;  // clear b
     // initiate jth column of identity matrix  
     b[Pinv[k]] += 1.0;           /* essentially `cs_ipvec` */
     // forward solve (e.g., cs_lsolve) b = L\b
-    for(j = Pinv[k]; j < n; j++){
+    for(j = Pinv[k]; j < Ln; j++){
       if(b[j] != 0.0){
         b[j] /= Lx[Lp[j]];  // set diagonal ( 1 / L[k,k])
         // for loop to determine off-diagonal contributions
@@ -35,7 +36,7 @@ csi cs_chol2inv_ii(const cs *L, const csi *Pinv, double *Cinv_ii, int r){
  
     // back solve (e.g., cs_ltsolve) b = L' \ b
     //// only need to find diagonal element for Cinv_ii[k] so stop at diagonal
-    for(j = n-1; j >= Pinv[k]; j--){
+    for(j = Ln-1; j >= Pinv[k]; j--){
       for(i = Lp[j]+1; i < Lp[j+1]; i++){
         b[j] -= Lx[i] * b[Li[i]];
       }

@@ -19,6 +19,8 @@
 #'   subsequent parameters in the REML iterations.
 #' @param algArgs A \code{list} of function arguments to be given to functions
 #'   named in the \code{algorithm} argument.
+#' @param rfxCinv A \code{logical} indicating whether the sampling variances
+#'   of the random effects (i.e., BLUPS) should be calculated.
 #'
 #' @return A \code{list} of class \code{gremlinControl} to be used by
 #'   \code{gremlinSetup} and later functions when fitting the model.
@@ -37,13 +39,15 @@
 gremlinControl <- function(cctol = c(5e-4, 1e-5, 1e-2, NULL),
 	ezero = 1e-8, einf = 1e30, step = 0.3, h = .Machine$double.eps^(1/3),
 	lambda = FALSE,
-	algorithm = NULL, algArgs = list()){
+	algorithm = NULL, algArgs = list(),
+	rfxCinv = FALSE){
 
   stopifnot(is.list(algArgs))
 
  return(structure(list(cctol = cctol, ezero = ezero, einf = einf, step = step,
 		h = h, lambda = lambda,
-		algorithm = algorithm, algArgs = algArgs),
+		algorithm = algorithm, algArgs = algArgs,
+		rfxCinv = rfxCinv),
 	class = c("gremlinControl")))
 }  #<-- end `gremlinControl()`
 

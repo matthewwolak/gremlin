@@ -979,7 +979,13 @@ if(v[0] > 3){
   // only do if entire for loop above proceeded without error or interruption
   if(errOrIntrpt == 0){
     // Calculate Cinv_ii and AI
-    cs_chol2inv_ii(Lc->L, sLc->pinv, Cinv_ii, 0);
+    // only calculate fixed effects if Cinv_ii[0] < 0
+    if(Cinv_ii[0] < 0){
+      cs_chol2inv_ii(Lc->L, sLc->pinv, Cinv_ii, 0, nffx);
+    } else{
+        // otherwise calculate all fixed/random effects sampling variances
+        cs_chol2inv_ii(Lc->L, sLc->pinv, Cinv_ii, 0, Lc->L->n);
+      } // end if/else for Cinv_ii
 if(v[0] > 3){
   took = simple_toc(t); 
   Rprintf("\n\t    %6.4f sec.: calculate Cinv_ii", took);
