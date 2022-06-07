@@ -856,7 +856,7 @@ gremlinSetup <- function(formula, random = NULL, rcov = ~ units,
 		vit = vit, v = v,
 		cctol = control$cctol,
 		ezero = control$ezero, einf = control$einf,
-		step = control$step, h = control$h),
+		step = control$step, h = control$h, rfxCinv = control$rfxCinv),
 	class = c("grMod", "gremlin"),
 	startTime = startTime))
 }  #<-- end `gremlinSetup()`
