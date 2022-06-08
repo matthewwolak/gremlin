@@ -42,7 +42,7 @@ algChk  <- function(algit, maxit, ctrl, mc){
       "not valid - dropped from the list\n"))
     algit <- algit[-which(algMatch == 0)]
   }
-  if(is.null(mc$algit)){
+  if(is.null(mc$algit) & is.null(algit)){
 #    algit <- c(rep("EM", min(maxit, 2)), rep("AIcfd", max(0, maxit-2)))
     algit <- c("AIcfd")
   } else algit <- algChoices[algMatch]
