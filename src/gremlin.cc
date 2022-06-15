@@ -97,14 +97,14 @@ void ugremlin(
 
   cs	 *Bpinv, *W, *tW,
 	 *R, *Rinv, *KRinv, *tWKRinv, *tWKRinvW, *ttWKRinvW,
-	 *Ctmp, *C,
+	 *Ctmp, *C, *prtCinv,
 	 *RHS, *tmpBLUXs, *BLUXs,
 	 *AI;
 	 //TODO when implement Newton Decrement method need *invAI;
 
   css    *sLc;
   csn    *Lc;
-
+  
   int    nG = nGR[0];
 
   cs*    *geninv = new cs*[nG];
@@ -118,7 +118,7 @@ void ugremlin(
   int 	 g, i, k, si, si2, vitout,
 	 itc = 0,
 	 errOrIntrpt = 0,  // logical if an error or interrupt signal
-         dimM,            // GENERIC dimension of a matrix variable to be REUSED 
+         dimM,            // GENERIC matrix dimension variable to be REUSED 
 	 nffx,
 	 bd;  
 
@@ -130,10 +130,12 @@ void ugremlin(
     for(k = 0; k < p[0]; k++) con[k] = conv[k];  // to retain original values
 
   // first p[0]=Lwr. Bounds, second p[0]=Upr. Bounds
-  int    *wchBd = new int[2*p[0]];  
+  int    *wchBd = new int[ 2*p[0] ];  
     for(k = 0; k < 2*p[0]; k++) wchBd[k] = 0;  // initialize entire vector
 
-  double  *w = new double[dimZWG[3]];
+  int    *Zdiagp = new int[ dimZWG[3] ];  // location of diagonals in prtCinv
+
+  double  *w = new double[ dimZWG[3] ];  // length=ncol(W) = BLUXs->m
 
   g = (lambda[0]) ? nG : nG+1;
     double  *tugug = new double[g];  // includes crossprod(residual) when !lambda
@@ -372,7 +374,8 @@ could do a check to make sure R was inverted correctly:
       tWKRinvW = cs_multiply(tWKRinv, W);
     }
      
-    // Now take transpose of transpose to correctly order (don't ask why)
+    // Now take transpose of transpose to correctly order
+    //// (cs_transpose sorts, do twice so end with column ordered matrix)
     ttWKRinvW = cs_transpose(tWKRinvW, true);
     cs_spfree(tWKRinvW);
     tWKRinvW = cs_transpose(ttWKRinvW, true);
@@ -451,12 +454,24 @@ if(loglik == 0.0){
 
 
 
-
     //XXX	**** END LOG-LIKELIHOOD CALCULATION **** 		XXX
     /**************************************************************************/
 
 
+
+
+
     simple_tic(t);
+    if(i == 0){ 
+      // setup partial inverse of C (placeholder object) (need Lc first)
+      //// allocate enough space for twice size of L (include diagonals twice)
+      k = 2 * Lc->L->p[ dimZWG[3] ];
+      prtCinv = cs_spalloc(dimZWG[3], dimZWG[3], k, 1, 0);
+
+    }  // end if i=0 setup of prtCinv
+
+
+
     /* `itc` elements for each iteration:
     nus | sigma2e | tyPy | logDetC | loglik | time
     */
@@ -540,13 +555,35 @@ if(v[0] > 3){
   Rprintf("\n\t    %6.6f sec.: calculate tugug(s)", took);
   simple_tic(t);
 }
-      }  // end if analytical gradients
+      }  // end fdit=3 analytical gradients
       
+ 
       
-      if(fdit[i] == 3){  
+      if(fdit[i] == 3){  // keep checking in case error above and switched to FD 
+      
+        if(!cs_chol2inv_ii(Lc->L, sLc->pinv, prtCinv, Zdiagp, Cinv_ii, i)){
+          if((v[0] > 1) && (vitout == 0)){
+            Rprintf("\nValue not >0 on diagonal of Cholesky: iteration %i", i);
+              Rprintf("\n\tSwitching to finite difference algorithm");
+          }
+          fdit[i] = 1;  // switch algorithm to central finite difference method
+        }
+     
+if(v[0] > 3){
+  took = simple_toc(t);
+  Rprintf("\n\t    %6.6f sec.: cs_chol2inv_ii", took);
+  simple_tic(t);
+}
 
-        if(!traceFun(trace, w, nG, rfxlvls,
-	    nffx, ndgeninv, geninv, BLUXs->m, Lc->L, sLc->pinv)){
+      }  // end fdit=3 analytical gradients
+
+
+        
+      if(fdit[i] == 3){  // keep checking in case error above and switched to FD 
+      
+        if(!traceFun(trace, nG, rfxlvls,
+	    nffx, ndgeninv, geninv, BLUXs->m,
+	    prtCinv, sLc->pinv, Cinv_ii)){
           if((v[0] > 1) && (vitout == 0)){
             Rprintf("\nUnsuccessful trace calculation iteration %i", i);
               Rprintf("\n\tSwitching to finite difference algorithm");
@@ -556,10 +593,11 @@ if(v[0] > 3){
         
 if(v[0] > 3){
   took = simple_toc(t);
-  Rprintf("\n\t    %6.6f sec.: calculate trace(s)", took);
+  Rprintf("\n\t    %6.6f sec.: traceFun calculate trace(s)", took);
   simple_tic(t);
 }
-      }  // end if analytical gradients
+
+      }  // end fdit=3 analytical gradients
       
       
            
@@ -864,9 +902,19 @@ if(v[0] > 3){
         break;
       }
 
-      if(!traceFun(trace, w, nG, rfxlvls,
-	    nffx, ndgeninv, geninv, BLUXs->m, Lc->L, sLc->pinv)){
-        Rprintf("\nUnsuccessful trace calculation: EM algorithm in iteration %i", i);
+
+      //TODO/FIXME: think of way to catch prtCinv already made in this iteration
+      if(!cs_chol2inv_ii(Lc->L, sLc->pinv, prtCinv, Zdiagp, Cinv_ii, i)){
+        Rprintf("\nValue not >0 on diagonal of Cholesky: EM in iteration %i", i);
+        errOrIntrpt = 1;
+        break;
+      }
+
+      
+      if(!traceFun(trace, nG, rfxlvls,
+           nffx, ndgeninv, geninv, BLUXs->m,
+	   prtCinv, sLc->pinv, Cinv_ii)){
+        Rprintf("\nUnsuccessful trace calculation: EM in iteration %i", i);
         errOrIntrpt = 1;
         break;
       }
@@ -962,12 +1010,12 @@ if(v[0] > 3){
     if(algit[i] == 0) cc[4]++;  
     if(cc[4] > 2){
       if(v[0] > 0) Rprintf("\n***  REML converged  ***\n\n"); 
-      i++;     
+      maxit[0] = i + 1;    // record number of iterations
       break;
     }
 
   }  // end i for loop
-  maxit[0] = i;    // record number of iterations
+  
 
   //////////////////////////////////////////////////////////////////////////////
   //XXX									     XXX
@@ -976,46 +1024,45 @@ if(v[0] > 3){
   //////////////////////////////////////////////////////////////////////////////
 
 
-  // only do if entire for loop above proceeded without error or interruption
-  if(errOrIntrpt == 0){
-    // Calculate Cinv_ii and AI
-    // only calculate fixed effects if Cinv_ii[0] < 0
-    if(Cinv_ii[0] < 0){
-      cs_chol2inv_ii(Lc->L, sLc->pinv, Cinv_ii, 0, nffx);
-    } else{
-        // otherwise calculate all fixed/random effects sampling variances
-        cs_chol2inv_ii(Lc->L, sLc->pinv, Cinv_ii, 0, Lc->L->n);
-      } // end if/else for Cinv_ii
+  // only do if:
+  //// entire REML for loop proceeded without error/interruption
+  //// AND
+  //// AI+finite difference (first derivatives) used in last iteration
+  ////// (no Cinv_ii calculated from last parameter values)
+
+  // Calculate Cinv_ii
+  if((errOrIntrpt == 0) && (fdit[ maxit[0]-1 ] < 3)){
+    cs_chol2inv_ii(Lc->L, sLc->pinv, prtCinv, Zdiagp, Cinv_ii, 1);     
 if(v[0] > 3){
   took = simple_toc(t); 
   Rprintf("\n\t    %6.4f sec.: calculate Cinv_ii", took);
   simple_tic(t); 
 }
-
-    //// Average Information
-    ////// only need to do if did NOT do AI
-    if(algit[i] != 1){  
-      if(lambda[0] == 1){
-        cs_spfree(AI);  //TODO how pass if not initialized
-        AI = cs_ai(BLUXs, Ginv, R, 0, 0,
-	      y, W, tW, ny[0], p[0], nG, rfxlvls, nffx, Lc->L, sLc->pinv,
-	      0, sigma2e);
-	  if(AI == NULL){
-            Rprintf("\nUnsuccessful final AI calculation");
-          }
-
+  }  // end no errors/interrupts and finite difference algorithm
+  
+  
+  // Average Information
+  //// only need to do if did NOT do AI
+  if((errOrIntrpt == 0) && (algit[ maxit[0]-1 ] != 1)){
+    if(lambda[0] == 1){
+      cs_spfree(AI);  //TODO how pass if not initialized
+      AI = cs_ai(BLUXs, Ginv, R, 0, 0,
+          y, W, tW, ny[0], p[0], nG, rfxlvls, nffx, Lc->L, sLc->pinv,
+          0, sigma2e);
+        if(AI == NULL){
+          Rprintf("\nUnsuccessful final AI calculation");
+        }
 if(v[0] > 3){
   took = simple_toc(t);
   Rprintf("\n\t    %6.4f sec.: calculate AI", took);
   simple_tic(t);
 }
        
-
-      }else{
+    } else{  // when lambda=0
         cs_spfree(AI);  //TODO how pass if not initialized
           AI = cs_ai(BLUXs, Ginv, R, KRinv, tWKRinv,
-	      res, W, tW, ny[0], p[0], nG, rfxlvls, nffx, Lc->L, sLc->pinv,
-	      nG, 1.0);
+            res, W, tW, ny[0], p[0], nG, rfxlvls, nffx, Lc->L, sLc->pinv,
+	    nG, 1.0);
 	  if(AI == NULL){
             Rprintf("\nUnsuccessful final AI calculation");
           }
@@ -1026,8 +1073,12 @@ if(v[0] > 3){
 }
 
       }  // end if/else lambda
-    }  // end if algit!=AI
-  }  // end if NO errors/interrupts
+  }  // end if NO errors/interrupts and algit!=AI
+
+
+
+
+
 
 if(v[0] > 3) simple_tic(t);
 
@@ -1037,22 +1088,24 @@ if(v[0] > 3) simple_tic(t);
 
 
   //// return AI
-  if(CS_CSC(AI)){
+  if((CS_CSC(AI) && errOrIntrpt == 0)){
     for(k = 0; k < p[0]; k++){
       for(g = AI->p[k]; g < AI->p[k+1]; g++){
         i = AI->i[g];
         AIvec[k*p[0]+i] += AI->x[g];
       }
     }
-    cs_spfree(AI);
-  }  // end if AI NOT NULL
-
+  }
+  if(CS_CSC(AI)) cs_spfree(AI);
+  // end if AI NOT NULL
+  
+  
   // return constraint codes from final iteration
   for(k = 0; k < p[0]; k++) conv[k] = con[k];  // to retain original values
 
 
   // return permutation matrix of symbolic Cholesky factorization of C
-  if(CS_CSC(AI)){
+  if(sLc != NULL){
     for(k = 0; k < BLUXs->m; k++) sLcPinv[k] += sLc->pinv[k];
   }
 
@@ -1079,7 +1132,7 @@ if(v[0] > 3) simple_tic(t);
   cs_spfree(tWKRinvW);
   // ttWKRinvW freed just after it is made so do not free here
   //free C just after making it/sLc - have room for a C in cs_reml
-  cs_spfree(Ctmp);  
+  cs_spfree(Ctmp); cs_spfree(prtCinv);
   cs_spfree(RHS); cs_spfree(tmpBLUXs); cs_spfree(BLUXs);
 
   cs_sfree(sLc);
@@ -1105,6 +1158,7 @@ if(v[0] > 3) simple_tic(t);
   delete [] con;
   delete [] cc;
   delete [] rfxlvls;
+  delete [] Zdiagp;
 
 
 if(v[0] > 3){

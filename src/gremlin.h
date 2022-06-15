@@ -75,7 +75,8 @@ csi gr_cs_lltsolve (const cs *L, double *x, csi k);
 
 // replaces elements in Cinv_ii inverse diagonals as double
 //// Returns 1=success else 0
-csi cs_chol2inv_ii(const cs *L, const csi *Pinv, double *Cinv_ii, csi r, csi n);  
+csi cs_chol2inv_ii(const cs *L, const csi *Pinv,
+	cs *Z, int *Zdiagp, double *Cinv_ii, int itErr);  
 
 
 /* return 1 if successful else returns 0
@@ -89,9 +90,10 @@ csi tugugFun(double *tugug, double *w, csi nG, csi *rfxlvls, csi *con,
 /* return 1 if successful else returns 0
        trace overwritten with output
 */
-csi traceFun(double *trace, double *w,
+csi traceFun(double *trace,
 	csi nG, csi *rfxlvls, csi nb, csi *ndgeninv, cs **geninv,
-	csi nsln, const cs *Lc, const csi *Pinv);
+	csi nsln, const cs *Cinv, const csi *Pinv, double *Cinv_ii);
+
 
 /* B  returned = the reduced matrix of A according to drop */
 cs *cs_droprowcol(const cs *A, csi *drop);
