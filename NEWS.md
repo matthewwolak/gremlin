@@ -18,10 +18,7 @@
   
   - Changed default convergence check criteria (`cctol`)
     - Models using previous values tended to only improve precision of estimates well beyond what was meaningful.
-    
-  - Made default to _NOT_ calculate variance of random effect estimates (i.e., BLUPs)
-    - current methods (diagonals of __C^{-1}__) essentially require partially making matrix inverse of coefficient matrix __C__.
-    
+        
 
 # 1.0.1 Released to CRAN 2020 June 25
 

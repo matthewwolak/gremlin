@@ -594,7 +594,7 @@ update.gremlin <- function(object, ...){
     if(diffMod){
       call[["control"]] <- new_args[["control"]]
     } else{
-        for(arg in c("cctol", "ezero", "einf", "step", "h", "lambda", "rfxCinv")){
+        for(arg in c("cctol", "ezero", "einf", "step", "h", "lambda")){
           object$grMod[arg] <- new_args$control[arg]
         }  #<-- end for arg
       }  #<-- end if/else diffMod
@@ -617,13 +617,7 @@ update.gremlin <- function(object, ...){
   } else{
       # need to re-set `sln` and `Cinv_ii` to zeroes so c++ calculations work
       object$grMod$sln[] <- rep(0, length(object$grMod$sln))
-      if(object$grMod$rfxCinv){
-        object$grMod$Cinv_ii <- matrix(rep(0, length(object$grMod$sln)), ncol = 1)
-      } else{
-          object$grMod$Cinv_ii <- matrix(c(-1,
-              rep(0, object$grMod$modMats$nb - 1)),
-            ncol = 1)
-        }
+      object$grMod$Cinv_ii <- matrix(rep(0, length(object$grMod$sln)), ncol = 1)
       grModOut <- remlIt(object$grMod)
         # If model has not changed PREpend previous itMat to latest
         grModOut$itMat <- rbind(object$itMat, grModOut$itMat)
@@ -812,10 +806,7 @@ gremlinSetup <- function(formula, random = NULL, rcov = ~ units,
         dimsZg <- sapply(seq_len(modMats$nG),
 	  FUN = function(g){slot(modMats$Zg[[g]], "Dim")})
       }
-    sln <- matrix(0, nrow = modMats$nb + sum(dimsZg[2, ]), ncol = 1)
-    if(control$rfxCinv){
-      Cinv_ii <- sln
-    } else Cinv_ii <- matrix(c(-1, rep(0, modMats$nb - 1)), ncol = 1)
+    sln <- Cinv_ii <- matrix(0, nrow = modMats$nb + sum(dimsZg[2, ]), ncol = 1)
     r <- matrix(0, nrow = modMats$ny, ncol = 1)
     if(lambda){
       tWW <- crossprod(W)
@@ -856,7 +847,7 @@ gremlinSetup <- function(formula, random = NULL, rcov = ~ units,
 		vit = vit, v = v,
 		cctol = control$cctol,
 		ezero = control$ezero, einf = control$einf,
-		step = control$step, h = control$h, rfxCinv = control$rfxCinv),
+		step = control$step, h = control$h),
 	class = c("grMod", "gremlin"),
 	startTime = startTime))
 }  #<-- end `gremlinSetup()`
