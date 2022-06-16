@@ -149,15 +149,22 @@ remlIt.default <- function(grMod, ...){
   #### can directly use R's `grMod$sLc`, but will need to figure out how to give c++'s `cs_schol()` a pinv (need to reconstruct `sLc` in c++ around pinv (see old code on how I may have done this when I made sLc from sLm)
   grMod$sLcPinv <- Cout[[45]]
 
-  intfacalgitOut <- Cout[[35]][1:i]
-    intfacalgit0 <- which(intfacalgit == 0) #<-- create an index to use several times
-    # change derivative values to NA for iteration when AI fail, switch to EM
-    grMod$fdit[intfacalgit0] <- NA
-    grMod$sdit[intfacalgit0] <- NA
+  intfacalgitOut <- Cout[[35]][1:i] + 1
+  if(any(intfacalgitOut > 2)) warning("unrecognized algorithm outputted")
+  intfacfditOut <- Cout[[36]][1:i] + 1
+  if(any(intfacfditOut > 5)){
+    warning("unrecognized first derivative algorithm outputted")
+  }
+    intfacalgitEM <- which(intfacalgitOut == 1) #<-- index used several times
+    intfacalgitAI <- which(intfacalgitOut == 2) #<-- index used several times
+    # change second derivative values to NA for iterations AI fail, switch to EM
+    grMod$sdit[1:i][intfacalgitEM] <- NA
+    # change first derivative values for iterations AI fail, switch to EM
+    grMod$fdit[1:i][intfacalgitEM] <- levels(grMod$fdit)[5]
     # remake algit values
-    grMod$algit[intfacalgit0] <- "EM"
-    grMod$algit[which(intfacalgit > 0)] <- with(grMod,
-      paste0(sdit[which(intfacalgit > 0)], fdit[which(intfacalgit > 0)]))
+    grMod$algit[1:i][intfacalgitEM] <- "EM"
+    grMod$algit[1:i][intfacalgitAI] <- with(grMod,
+      paste0(sdit[1:i][intfacalgitAI], fdit[1:i][intfacalgitAI]))
       
   itMat <- matrix(Cout[[34]][1:(i*(grMod$p+5))], nrow = i, ncol = grMod$p+5,
            byrow = TRUE)
