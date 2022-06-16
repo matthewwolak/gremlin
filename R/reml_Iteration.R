@@ -91,15 +91,14 @@ remlIt.default <- function(grMod, ...){
 	as.integer(c(grMod$dimsZg)),
 	as.integer(dimZWG), 			# Z, W, and geninv Dims
 	as.integer(nnzWG), 			# No. nnz in W and geninvs
-	as.integer(grMod$W@i), 					     #W
+	as.integer(grMod$W@i), 			#W
 	as.integer(grMod$W@p),
 	as.double(grMod$W@x),
-	as.integer(geninv_i), #geninv (generalized inverses)
-
+	as.integer(geninv_i), 			#geninv (generalized inverses)
 	as.integer(geninv_p),
 	as.double(geninv_x),
-	as.double(grMod$rfxIncContrib2loglik),		# Random Fx contribution to log-Likelihood
-        as.integer(grMod$lambda),		# TRUE/FALSE lambda (variance ratio?)
+	as.double(grMod$rfxIncContrib2loglik),	# Random Fx contribution to log-Likelihood
+        as.integer(grMod$lambda),	# TRUE/FALSE lambda (variance ratio?)
 	as.integer(grMod$p),				#p=No. nu params
 	as.integer(c(length(grMod$thetaG), length(grMod$thetaR))), #No. G and R nus
 	as.integer(unlist(lapply(gnu, FUN = function(g) g@Dim[[1L]]))),#dim GRs
@@ -107,9 +106,9 @@ remlIt.default <- function(grMod, ...){
 	as.integer(unlist(lapply(gnu, FUN = function(g) g@p))),	      #p GRs
 	as.integer(unlist(lapply(gnu, FUN = function(g) length(g@x)))), #no. non-zero GRs
 	as.double(unlist(lapply(gnu, FUN = function(g) g@x))),	#nu vector
-        as.integer(as.integer(grMod$conv)-1),   # constraint codes (F=0)
+        as.integer(as.integer(grMod$conv)-1),   	# constraint codes (F=0)
         as.double(c(bounds)),			#boundaries (1:p=LB | p+1:2p=UB
-	as.integer(length(grMod$Bpinv@x)),		#Bpinv (fixed fx prior inverse)
+	as.integer(length(grMod$Bpinv@x)),	#Bpinv (fixed fx prior inverse)
 	as.integer(grMod$Bpinv@i),
 	as.integer(grMod$Bpinv@p),
 	as.double(grMod$Bpinv@x),
@@ -126,7 +125,6 @@ remlIt.default <- function(grMod, ...){
 	as.double(grMod$cctol),				#convergence tol.
 	as.double(grMod$ezero),				#effective 0
         as.double(grMod$einf),				#effective +/- max. values
-#uni?
 	as.integer(grMod$v),				#verbosity
 	as.integer(grMod$vit),				#when to output status
 	as.double(grMod$h),				#finite difference h value
