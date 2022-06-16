@@ -57,16 +57,18 @@ algChk  <- function(algit, maxit, ctrl, mc){
   
   # Now check for first and second derivative calculations/algorithms:
   fdit <- sdit <- rep(NA, maxit)
-    fdit[grep("bfd", algit)] <- "bfd" #1
-    fdit[grep("cfd", algit)] <- "cfd" #2
-    fdit[grep("ffd", algit)] <- "ffd" #3
-    fdit[grep("tr", algit)] <- "tr"   #4
+    fdit[grep("bfd", algit)] <- "bfd"   #1
+    fdit[grep("cfd", algit)] <- "cfd"   #2
+    fdit[grep("ffd", algit)] <- "ffd"   #3
+    fdit[grep("tr", algit)] <- "tr"     #4
+    fdit[grep("EM", algit)] <- "dfree"  #5
 
   sdit[grep("AI", algit)] <- "AI"
   #TODO something for either ctrl$alg or bobyqa/NR/etc.
           
  return(list(algit = algit,
-   fdit = factor(fdit, levels = c("bfd", "cfd", "ffd", "tr"), ordered = TRUE),
+   fdit = factor(fdit,
+     levels = c("bfd", "cfd", "ffd", "tr", "dfree"), ordered = TRUE),
    sdit = sdit))
 } 
 
