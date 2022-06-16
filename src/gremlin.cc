@@ -118,9 +118,10 @@ void ugremlin(
   int 	 g, i, k, si, si2, vitout,
 	 itc = 0,
 	 errOrIntrpt = 0,  // logical if an error or interrupt signal
-         dimM,            // GENERIC matrix dimension variable to be REUSED 
+         dimM,             // GENERIC matrix dimension variable to be REUSED 
 	 nffx,
-	 bd;  
+	 bd,
+	 CinvX = 0;	  // logical if non-zeroes/X slot of prtCinv filled  
 
   int	 *rfxlvls = new int[nG];
 
@@ -561,13 +562,13 @@ if(v[0] > 3){
       
       if(fdit[i] == 3){  // keep checking in case error above and switched to FD 
       
-        if(!cs_chol2inv_ii(Lc->L, sLc->pinv, prtCinv, Zdiagp, Cinv_ii, i)){
+        if(!cs_chol2inv_ii(Lc->L, sLc->pinv, prtCinv, Zdiagp, Cinv_ii, CinvX)){
           if((v[0] > 1) && (vitout == 0)){
             Rprintf("\nValue not >0 on diagonal of Cholesky: iteration %i", i);
               Rprintf("\n\tSwitching to finite difference algorithm");
           }
           fdit[i] = 1;  // switch algorithm to central finite difference method
-        }
+        } else CinvX++ ;
      
 if(v[0] > 3){
   took = simple_toc(t);
@@ -904,11 +905,11 @@ if(v[0] > 3){
 
 
       //TODO/FIXME: think of way to catch prtCinv already made in this iteration
-      if(!cs_chol2inv_ii(Lc->L, sLc->pinv, prtCinv, Zdiagp, Cinv_ii, i)){
+      if(!cs_chol2inv_ii(Lc->L, sLc->pinv, prtCinv, Zdiagp, Cinv_ii, CinvX)){
         Rprintf("\nValue not >0 on diagonal of Cholesky: EM in iteration %i", i);
         errOrIntrpt = 1;
         break;
-      }
+      } else CinvX++ ;
 
       
       if(!traceFun(trace, nG, rfxlvls,
@@ -1032,10 +1033,10 @@ if(v[0] > 3){
 
   // Calculate Cinv_ii
   if((errOrIntrpt == 0) && (fdit[ maxit[0]-1 ] < 3)){
-    cs_chol2inv_ii(Lc->L, sLc->pinv, prtCinv, Zdiagp, Cinv_ii, 1);     
+    CinvX = cs_chol2inv_ii(Lc->L, sLc->pinv, prtCinv, Zdiagp, Cinv_ii, CinvX);     
 if(v[0] > 3){
   took = simple_toc(t); 
-  Rprintf("\n\t    %6.4f sec.: calculate Cinv_ii", took);
+  Rprintf("\n\t    %6.4f sec.: post REML iterations calculate Cinv_ii", took);
   simple_tic(t); 
 }
   }  // end no errors/interrupts and finite difference algorithm
