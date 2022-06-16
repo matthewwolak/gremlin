@@ -347,7 +347,7 @@ remlIt.gremlinR <- function(grMod, ...){
     #    AI with either analytical or
     ##  finite difference first derivatives
     ########################################
-    if(grMod$sdit[i] == "AI"){
+    if(grMod$algit[i] == "AI"){
       if(grMod$v > 1 && vitout == 0) cat("\n\tAI to find next nu")
 #FIXME Currently, only allow when not: 
 if(nrow(theta[[thetaR]]) != 1){
@@ -390,7 +390,7 @@ if(nrow(theta[[thetaR]]) != 1){
                 thetaR,   #<-- NULL if lambda==TRUE
 	        sigma2e = NULL)
 
-	  if(grMod$sdit[i] == "tr"){  #<-- analytical first derivatives      
+	  if(grMod$fdit[i] == "tr"){  #<-- analytical first derivatives      
 	    dLdnu <- gradFun(nuv, thetaG, grMod$modMats, Cinv, grMod$sln,
   	      sigma2e = NULL, grMod$r, grMod$nminfrfx)
 
@@ -453,7 +453,8 @@ if(nrow(theta[[thetaR]]) != 1){
             grMod$modMats, grMod$nminffx, sLc, grMod$ndgeninv, grMod$sln, grMod$r)
           nuvout <- emOut$nuv
           grMod$algit[i] <- "EM"
-          grMod$fdit[i] <- grMod$sdit[i] <- NA
+          grMod$fdit[i] <- "dfree"
+          grMod$sdit[i] <- NA
 
       } else{  #<-- end if Hessian cannot be inverted
           Hinv <- solve(H)
@@ -609,7 +610,7 @@ stop(cat("\nNot allowing `NR` right now"))
     itTime <- Sys.time() - stItTime
     if(grMod$v > 0 && vitout == 0){
       if(grMod$v > 2){
-        if(grMod$sdit[i] == "AI"){
+        if(grMod$algit[i] == "AI"){
           sgd <- matrix(NA, nrow = p, ncol = p+2)  #<--`sgd` = summary.gremlinDeriv 
             dimnames(sgd) <- list(row.names(dLdnu),
               c("gradient", "", "AI", rep("", p-1)))
@@ -665,7 +666,7 @@ stop(cat("\nNot allowing `NR` right now"))
     }
     
   ## AI
-  if(grMod$sdit[i] != "AI"){
+  if(grMod$algit[i] != "AI"){
     if(lambda){
       AI <- ai(nuv, skel, thetaG,
 	     grMod$modMats, grMod$W, sLc, grMod$sln, grMod$r,
