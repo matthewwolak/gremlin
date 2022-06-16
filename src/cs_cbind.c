@@ -30,7 +30,7 @@ cs *cs_cbind(const cs *A, const cs *B){
     }
     Cp [cn] = cnz ;			//finalize the last column of C
     cs_sprealloc (C, 0) ;		// remove extra space from C 
-    return (cs_done (C, NULL, NULL, 1)) ;	/* success; free workspace, return C */
+    return (cs_done (C, NULL, NULL, 1)) ;  // success; free workspace, return C
 }
 
 

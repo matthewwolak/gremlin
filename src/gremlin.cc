@@ -467,7 +467,7 @@ if(loglik == 0.0){
       // setup partial inverse of C (placeholder object) (need Lc first)
       //// allocate enough space for twice size of L (include diagonals twice)
       k = 2 * Lc->L->p[ dimZWG[3] ];
-      prtCinv = cs_spalloc(dimZWG[3], dimZWG[3], k, 1, 0);
+      prtCinv = cs_spalloc(dimZWG[3], dimZWG[3], k, true, false);
 
     }  // end if i=0 setup of prtCinv
 
