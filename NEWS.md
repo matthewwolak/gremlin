@@ -1,7 +1,12 @@
 # 1.1.0
 ## NEW
+  - added c++ code to use the Takahashi et al. algorithm for obtaining the partial inverse of the coefficient matrix
+    - This switch means almost a 20-fold speedup when using analytical first derivatives (i.e., need to calculate "trace" terms)
+    - Speedup comes from only calculating elements of inverse matrix (__C-inverse__) following the non-zero pattern determined for the Cholesky decomposition of the __C__ matrix.
+    - follows the SuiteSparse Matlab_Tools `sparseinv` by Tim Davis, but sparseinv works on __LDL'__ factorization of __C__ whereas I changed this to work on __LL'__ factorization of __C__.
+        - Takahashi, Fagan, & Chin. 1973. Formation of a sparse bus impedance matrix and its application to short circuit study. 8th PICA Conference Proceedings, Minneapolis, MN.
+
   - add finite difference algorithm to obtain first derivatives of likelihood function
-    - made this part of the default algorithm (second derivatives from AI with first derivatives via finite differencing)
     - introduced a parameter (`h`) inside `gremlinControl()` to set the "difference" or amount to alter parameters to calculate change in log-likelihood.
     
   - created a REML function inside the c++ code (`cs_reml`) to calculate log-likelihood

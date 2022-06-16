@@ -43,15 +43,13 @@ algChk  <- function(algit, maxit, ctrl, mc){
     algit <- algit[-which(algMatch == 0)]
   }
   if(is.null(mc$algit) & is.null(algit)){
-#    algit <- c(rep("EM", min(maxit, 2)), rep("AIcfd", max(0, maxit-2)))
-    algit <- c("AIcfd")
+    algit <- c(rep("EM", min(maxit, 1)), rep("AItr", max(0, maxit-1)))
   } else algit <- algChoices[algMatch]
-#  if(length(algit) == 0) algit <- c(rep("EM", min(maxit, 2)),
-#                                    rep("AIcfd", max(0, maxit-2)))
-  if(length(algit) == 0) algit <- c("AIcfd")
+  if(length(algit) == 0) algit <- c(rep("EM", min(maxit, 1)),
+                                    rep("AItr", max(0, maxit-1)))
   # Swap out "AI" for explicit/default first derivative method
   if(length(AI <- grep("(^|\\s)AI($|\\s)", algit, ignore.case = FALSE)) > 0){
-    algit[AI] <- "AIcfd"  
+    algit[AI] <- "AItr"  
   }
   if(length(algit) < maxit) algit <- rep_len(algit, length.out = maxit)
   
