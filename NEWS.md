@@ -9,7 +9,7 @@
   - add finite difference algorithm to obtain first derivatives of likelihood function
     - introduced a parameter (`h`) inside `gremlinControl()` to set the "difference" or amount to alter parameters to calculate change in log-likelihood.
     
-  - created a REML function inside the c++ code (`cs_reml`) to calculate log-likelihood
+  - created a REML function inside the c++ code (`reml`) to calculate log-likelihood
     - moved log-likelihood calculation out of main program and reduced amount of repeated code.
     
 

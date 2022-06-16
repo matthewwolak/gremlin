@@ -2,7 +2,7 @@
 
 
 /* replaces AI */
-cs *cs_ai(cs *BLUXs, cs **Ginv,
+cs *ai(cs *BLUXs, cs **Ginv,
         cs *R, cs *KRinv, cs *tWKRinv,
         double *rory,  // residuals if lambda=FALSE else y if lambda=TRUE
         cs *W, cs *tW, csi n, csi p, csi nG, csi *rfxlvls, csi nb,

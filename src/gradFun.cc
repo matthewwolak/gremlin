@@ -1,7 +1,7 @@
 #include "gremlin.h"
 
 
-// `cs_gradFun` function first, followed by `cs_gradFun_fd` function
+// `gradFun` function first, followed by `gradFun_fd` function
 
 
 
@@ -14,7 +14,7 @@ XXX eqn. 2.44 is the score/gradient! for a varcomp
 /* return 1 if successful else returns 0
        dLdnu overwritten with output
        					 */
-csi cs_gradFun(double *nu, double *dLdnu, 
+csi gradFun(double *nu, double *dLdnu, 
         double *tugug, double *trace, csi *con,
 	csi n, csi nG, csi *rfxlvls, csi nb,
 	double sigma2e,    // 1.0 if lambda=FALSE
@@ -88,7 +88,7 @@ fd = 0; backwards finite differences
 fd = 1; central (both backwards and forward finite differences)
 fd = 2; forward finite differences       
       					 */
-csi cs_gradFun_fd(double *nu, csi fd, double h,
+csi gradFun_fd(double *nu, csi fd, double h,
 	double *dLdnu, double lL, csi *con, double *bound, int v,
 	csi n, csi *dimZWG, csi nG, csi p, double *y,
 	cs *Bpinv, cs *W, cs *tW, csi *rfxlvls, double rfxlL,
@@ -227,7 +227,7 @@ if(v > 0){
             cs_spfree(Ginv[g]);    
             G[g]->x[0] = nu[g] + hvec[p + g]; //FIXME x[0] when G can be a matrix
             Ginv[g] = cs_inv(G[g]);
-            Lc = cs_reml(n, dimZWG, nG, p, y,
+            Lc = reml(n, dimZWG, nG, p, y,
               Bpinv, W, tW, rfxlvls, rfxlL,
               R, Rinv, G, Ginv, ndgeninv, geninv,
               KRinv, KGinv, tWKRinv, tWKRinvW, Ctmp,
@@ -253,7 +253,7 @@ if(loglik == 0.0){
             cs_spfree(Ginv[g]);    
             G[g]->x[0] = nu[g] - hvec[g];   // TODO fix x[0] when G can be a matrix
             Ginv[g] = cs_inv(G[g]);
-            Lc = cs_reml(n, dimZWG, nG, p, y,
+            Lc = reml(n, dimZWG, nG, p, y,
               Bpinv, W, tW, rfxlvls, rfxlL,
               R, Rinv, G, Ginv, ndgeninv, geninv,
               KRinv, KGinv, tWKRinv, tWKRinvW, Ctmp,
@@ -313,7 +313,7 @@ Rprintf("\nUnsuccessful REML calculation: finite difference gradient function co
             tWKRinvW = cs_transpose(ttWKRinvW, true);
             cs_spfree(ttWKRinvW);
 
-            Lc = cs_reml(n, dimZWG, nG, p, y,
+            Lc = reml(n, dimZWG, nG, p, y,
               Bpinv, W, tW, rfxlvls, rfxlL,
               R, Rinv, G, Ginv, ndgeninv, geninv,
               KRinv, KGinv, tWKRinv, tWKRinvW, Ctmp,
@@ -352,7 +352,7 @@ Rprintf("\nUnsuccessful REML calculation: finite difference gradient function co
             tWKRinvW = cs_transpose(ttWKRinvW, true);
             cs_spfree(ttWKRinvW);
 
-            Lc = cs_reml(n, dimZWG, nG, p, y,
+            Lc = reml(n, dimZWG, nG, p, y,
               Bpinv, W, tW, rfxlvls, rfxlL,
               R, Rinv, G, Ginv, ndgeninv, geninv,
               KRinv, KGinv, tWKRinv, tWKRinvW, Ctmp,
@@ -398,7 +398,7 @@ Rprintf("\nUnsuccessful REML calculation: finite difference gradient function co
   cs_spfree(Rinv);
   if(lmbda == 0) cs_spfree(tWKRinv);
   cs_spfree(tWKRinvW);
-  // Lc always "freed" just after making with cs_reml
+  // Lc always "freed" just after making with reml()
   
   //
   for(g = 0; g < nG; g++){

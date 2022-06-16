@@ -232,7 +232,7 @@ if(v[0] > 3) simple_tic(t);
   }
 
   // initialize to zero: will change for lambda=TRUE else always be passed to reml
-  //// as 0.0 to be calculated within cs_reml() for each G/R
+  //// as 0.0 to be calculated within reml() for each G/R
   tyRinvy = 0.0;
   if(lambda[0] == 1){
     // below don't change between REML iterations for lambda=TRUE
@@ -422,7 +422,7 @@ if(sLc == NULL){
   errOrIntrpt = 1;
   break;
 }
-      cs_spfree(C);  // make inside cs_reml so don't need again here 
+      cs_spfree(C);  // make inside reml() so don't need again here 
 
 if(v[0] > 3){
   took = simple_toc(t);
@@ -436,7 +436,7 @@ if(v[0] > 3){
     
 
 
-    Lc = cs_reml(ny[0], dimZWG, nG, p[0], y,
+    Lc = reml(ny[0], dimZWG, nG, p[0], y,
         Bpinv, W, tW, rfxlvls, rfxlL[0],
         R, Rinv, G, Ginv, ndgeninv, geninv,
         KRinv, KGinv, tWKRinv, tWKRinvW, Ctmp,
@@ -562,7 +562,7 @@ if(v[0] > 3){
       
       if(fdit[i] == 3){  // keep checking in case error above and switched to FD 
       
-        if(!cs_chol2inv_ii(Lc->L, sLc->pinv, prtCinv, Zdiagp, Cinv_ii, CinvX)){
+        if(!chol2inv_ii(Lc->L, sLc->pinv, prtCinv, Zdiagp, Cinv_ii, CinvX)){
           if((v[0] > 1) && (vitout == 0)){
             Rprintf("\nValue not >0 on diagonal of Cholesky: iteration %i", i);
               Rprintf("\n\tSwitching to finite difference algorithm");
@@ -572,7 +572,7 @@ if(v[0] > 3){
      
 if(v[0] > 3){
   took = simple_toc(t);
-  Rprintf("\n\t    %6.6f sec.: cs_chol2inv_ii", took);
+  Rprintf("\n\t    %6.6f sec.: chol2inv_ii", took);
   simple_tic(t);
 }
 
@@ -604,7 +604,7 @@ if(v[0] > 3){
            
       if(lambda[0] == 1){
         cs_spfree(AI);  //TODO how pass if not initialized
-        AI = cs_ai(BLUXs, Ginv, R, 0, 0,
+        AI = ai(BLUXs, Ginv, R, 0, 0,
 	      y, W, tW, ny[0], p[0], nG, rfxlvls, nffx, Lc->L, sLc->pinv,
 	      0, sigma2e);
 	if(AI == 0){
@@ -623,7 +623,7 @@ if(v[0] > 3){
 
         // fdit 3 is trace/analytical gradient calculation
         if(fdit[i] == 3){
-          if(!cs_gradFun(nu, dLdnu,
+          if(!gradFun(nu, dLdnu,
 	      tugug, trace, con,
 	      ny[0], nG, rfxlvls, nffx,
               sigma2e,    // 1.0 if lambda=FALSE
@@ -634,7 +634,7 @@ if(v[0] > 3){
                 Rprintf("\n\tSwitching to EM algorithm");
             }
               algit[i] = 0;  // switch algorithm to EM
-          }  // end if cs_gradFun
+          }  // end if gradFun
 if(v[0] > 3){
   took = simple_toc(t);
   Rprintf("\n\t    %6.4f sec.: calculate gradient", took);
@@ -646,7 +646,7 @@ if(v[0] > 3){
       } else{
           // when lambda = FALSE
           cs_spfree(AI);
-          AI = cs_ai(BLUXs, Ginv, R, KRinv, tWKRinv,
+          AI = ai(BLUXs, Ginv, R, KRinv, tWKRinv,
 	      res, W, tW, ny[0], p[0], nG, rfxlvls, nffx, Lc->L, sLc->pinv,
 	      nG, 1.0);
 	  if(AI == NULL){
@@ -666,7 +666,7 @@ if(v[0] > 3){
 
           // fdit 3 is trace/analytical gradient calculation
           if(fdit[i] == 3){
-            if(!cs_gradFun(nu, dLdnu,
+            if(!gradFun(nu, dLdnu,
 	      tugug, trace, con,
 	      ny[0], nG, rfxlvls, nffx,
               1.0,    // 1.0 if lambda=FALSE
@@ -676,7 +676,7 @@ if(v[0] > 3){
                 Rprintf("\n\tSwitching to EM algorithm");
             }
               algit[i] = 0;  // switch algorithm to EM
-            }  // end if cs_gradFun
+            }  // end if gradFun
 
 if(v[0] > 3){
   took = simple_toc(t);
@@ -694,7 +694,7 @@ if(v[0] > 3){
       // fdit=0-2 is finite differences for the gradient calculation
       //// specify 1 way regardless of lambda
       if(fdit[i] < 3){
-        if(!cs_gradFun_fd(nu, fdit[i], h,
+        if(!gradFun_fd(nu, fdit[i], h,
             dLdnu, loglik, con, bound, v[0],
             ny[0], dimZWG, nG, p[0], y,
             Bpinv, W, tW, rfxlvls, rfxlL[0],
@@ -710,7 +710,7 @@ if(v[0] > 3){
         Rprintf("\n\tSwitching to EM algorithm");
     }
           algit[i] = 0;  // switch algorithm to EM
-        }  // end if cs_gradFun_fd
+        }  // end if gradFun_fd
 
 if(v[0] > 3){
   took = simple_toc(t);
@@ -905,7 +905,7 @@ if(v[0] > 3){
 
 
       //TODO/FIXME: think of way to catch prtCinv already made in this iteration
-      if(!cs_chol2inv_ii(Lc->L, sLc->pinv, prtCinv, Zdiagp, Cinv_ii, CinvX)){
+      if(!chol2inv_ii(Lc->L, sLc->pinv, prtCinv, Zdiagp, Cinv_ii, CinvX)){
         Rprintf("\nValue not >0 on diagonal of Cholesky: EM in iteration %i", i);
         errOrIntrpt = 1;
         break;
@@ -1033,7 +1033,7 @@ if(v[0] > 3){
 
   // Calculate Cinv_ii
   if((errOrIntrpt == 0) && (fdit[ maxit[0]-1 ] < 3)){
-    CinvX = cs_chol2inv_ii(Lc->L, sLc->pinv, prtCinv, Zdiagp, Cinv_ii, CinvX);     
+    CinvX = chol2inv_ii(Lc->L, sLc->pinv, prtCinv, Zdiagp, Cinv_ii, CinvX);     
 if(v[0] > 3){
   took = simple_toc(t); 
   Rprintf("\n\t    %6.4f sec.: post REML iterations calculate Cinv_ii", took);
@@ -1047,7 +1047,7 @@ if(v[0] > 3){
   if((errOrIntrpt == 0) && (algit[ maxit[0]-1 ] != 1)){
     if(lambda[0] == 1){
       cs_spfree(AI);  //TODO how pass if not initialized
-      AI = cs_ai(BLUXs, Ginv, R, 0, 0,
+      AI = ai(BLUXs, Ginv, R, 0, 0,
           y, W, tW, ny[0], p[0], nG, rfxlvls, nffx, Lc->L, sLc->pinv,
           0, sigma2e);
         if(AI == NULL){
@@ -1061,7 +1061,7 @@ if(v[0] > 3){
        
     } else{  // when lambda=0
         cs_spfree(AI);  //TODO how pass if not initialized
-          AI = cs_ai(BLUXs, Ginv, R, KRinv, tWKRinv,
+          AI = ai(BLUXs, Ginv, R, KRinv, tWKRinv,
             res, W, tW, ny[0], p[0], nG, rfxlvls, nffx, Lc->L, sLc->pinv,
 	    nG, 1.0);
 	  if(AI == NULL){
@@ -1132,7 +1132,7 @@ if(v[0] > 3) simple_tic(t);
   }
   cs_spfree(tWKRinvW);
   // ttWKRinvW freed just after it is made so do not free here
-  //free C just after making it/sLc - have room for a C in cs_reml
+  //free C just after making it/sLc - have room for a C in reml()
   cs_spfree(Ctmp); cs_spfree(prtCinv);
   cs_spfree(RHS); cs_spfree(tmpBLUXs); cs_spfree(BLUXs);
 

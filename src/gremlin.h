@@ -13,7 +13,7 @@ extern "C" {
 
 /* returns log-likelihood if successful, 0 if not
    Replaces all objects that are updated based on changed `nu` values */
-csn *cs_reml(csi n, csi *dimZWG, csi nG, csi p, double *y,
+csn *reml(csi n, csi *dimZWG, csi nG, csi p, double *y,
 	cs *Bpinv, cs *W, cs *tW, csi *rfxlvls, double rfxlL,
 	cs *R, cs *Rinv, cs **G, cs  **Ginv, csi *ndgeninv, cs **geninv,
 	cs *KRinv, cs **KGinv, cs *tWKRinv, cs *tWKRinvW, cs *Ctmp,
@@ -28,7 +28,7 @@ csn *cs_reml(csi n, csi *dimZWG, csi nG, csi p, double *y,
 
 /* Average Information Algorithm:
     returns replaces AI */
-cs *cs_ai(cs *BLUXs, cs **Ginv,
+cs *ai(cs *BLUXs, cs **Ginv,
         cs *R, cs *KRinv, cs *tWKRinv,
         double *rory,  // residuals if lambda=FALSE else y if lambda=TRUE
         cs *W, cs *tW, csi n, csi p, csi nG, csi *rfxlvls, csi nb,
@@ -41,7 +41,7 @@ cs *cs_ai(cs *BLUXs, cs **Ginv,
 /* Analytical Gradient/Score (first derivative) function
      return 1 if successful else returns 0
      dLdnu overwritten with output */
-csi cs_gradFun(double *nu, double *dLdnu, 
+csi gradFun(double *nu, double *dLdnu, 
         double *tugug, double *trace, csi *con,
 	csi n, csi nG, csi *rfxlvls, csi nb,
 	double sigma2e,    // 1.0 if lambda=FALSE
@@ -55,7 +55,7 @@ fd = 0; backwards finite differences
 fd = 1; central (both backwards and forward finite differences)
 fd = 2; forward finite differences       
       */
-csi cs_gradFun_fd(double *nu, csi fd, double h,
+csi gradFun_fd(double *nu, csi fd, double h,
 	double *dLdnu, double lL, csi *con, double *bound, int v,
 	csi n, csi *dimZWG, csi nG, csi p, double *y,
 	cs *Bpinv, cs *W, cs *tW, csi *rfxlvls, double rfxlL,
@@ -75,7 +75,7 @@ csi gr_cs_lltsolve (const cs *L, double *x, csi k);
 
 // replaces elements in Cinv_ii inverse diagonals as double
 //// Returns 1=success else 0
-csi cs_chol2inv_ii(const cs *L, const csi *Pinv,
+csi chol2inv_ii(const cs *L, const csi *Pinv,
 	cs *Z, int *Zdiagp, double *Cinv_ii, int itErr);  
 
 

@@ -3,7 +3,7 @@
 
 /* returns log-likelihood if successful, 0 if not
    Replaces all objects that are updated based on changed `nu` values */
-csn *cs_reml(csi n, csi *dimZWG, csi nG, csi p, double *y,
+csn *reml(csi n, csi *dimZWG, csi nG, csi p, double *y,
 	cs *Bpinv, cs *W, cs *tW, csi *rfxlvls, double rfxlL,
 	cs *R, cs *Rinv, cs **G, cs **Ginv, csi *ndgeninv, cs **geninv,
 	cs *KRinv, cs **KGinv, cs *tWKRinv, cs *tWKRinvW, cs *Ctmp,
@@ -89,7 +89,7 @@ if((i == 0) && (v > 3)){
   // Update Cholesky factorization of C
   Lc = cs_chol(C, sLc);  //TODO update when i>0? (cs_updown), but then initially make Lc when i=0
   if(Lc == NULL){
-    Rprintf("\ncs_reml: Mixed Model Coefficient matrix (C) singular, possibly caused by a bad combination of G and R (co)variance parameters");
+    Rprintf("\nreml: Mixed Model Coefficient matrix (C) singular, possibly caused by a bad combination of G and R (co)variance parameters");
 
     // Cholesky factorization did not work
     //// set log-likelihood to 0.0 to flag the error in gremlin.cc then exit

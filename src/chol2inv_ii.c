@@ -18,7 +18,7 @@ Target is to only keep/return diagonal elements of inverse if L L' = A, this
 /* replaces Cinv_ii with diagonals from partially inverted matrix  */
 /* requires non-zero pattern of L + L' already known in matrix Z   */
 
-csi cs_chol2inv_ii(const cs *L, const csi *Pinv,
+csi chol2inv_ii(const cs *L, const csi *Pinv,
 	cs *Z, int *Zdiagp, double *Cinv_ii, int itErr){  
 
   csi     i, j, k, p, up, zp, Ln, *Lp, *Li, *Zp, *Zi, *Lmunch,
