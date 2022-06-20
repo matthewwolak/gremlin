@@ -246,10 +246,8 @@ remlIt.gremlinR <- function(grMod, ...){
     colnames(itMat) <- c(paste0(names(thetav), "_nu"),
 	paste0(names(thetav), "_theta"),
 	"sigma2e", "tyPy", "logDetC", "loglik", "itTime")
-  if(any(grMod$fdit == "tr")){	
-    Ic <- Diagonal(x = 1, n = nrow(grMod$sln))
-  }
-
+  prtCinv <- NULL
+  prtCinvIt <- 0  #<-- keep latest iteration in which prtCinv was calculated
 
   ############################################
   # 5d determine next varcomps to evaluate
@@ -331,6 +329,11 @@ remlIt.gremlinR <- function(grMod, ...){
 
     #################################
     # 5d Determine next (co)variance parameters to evaluate:
+    ## if any algorithms need the diagonals of Cinv, calculate for this iteration
+    if(grMod$fdit[i] == "tr" | grMod$algit[i] == "EM"){	
+      prtCinv <- chol2inv_ii(expand(sLc)$L, Z = prtCinv)
+      prtCinvIt <- i
+    }
 
     ############################
     #    EM
@@ -347,13 +350,13 @@ remlIt.gremlinR <- function(grMod, ...){
     #    AI with either analytical or
     ##  finite difference first derivatives
     ########################################
-    if(grMod$algit[i] == "AI"){
+    if(grMod$sdit[i] == "AI"){
       if(grMod$v > 1 && vitout == 0) cat("\n\tAI to find next nu")
 #FIXME Currently, only allow when not: 
 if(nrow(theta[[thetaR]]) != 1){
   stop(cat("\nAI algorithm currently only works for a single residual variance"))
 }
-      if(grMod$fdit[i] == "tr") Cinv <- solve(a = sLc, b = Ic, system = "A")
+
       if(grMod$fdit[i] != "tr"){
         # finite difference algorithm for first derivatives
         #TODO instead interface next line with gremlinControl$algArgs
@@ -372,16 +375,8 @@ if(nrow(theta[[thetaR]]) != 1){
   	      thetaR = NULL,
 	      sigma2e)  #<-- NULL if lambda==FALSE
 	if(grMod$fdit[i] == "tr"){  #<-- analytical first derivatives      
-          dLdnu <- gradFun(nuv, thetaG, grMod$modMats, Cinv, grMod$sln,
+          dLdnu <- gradFun(nuv, thetaG, grMod$modMats, prtCinv, grMod$sln,
 	    	      sigma2e = sigma2e, r = NULL, nminfrfx = NULL)
-#          dLdnu_TEST <- gradFun_TEST(nuv, thetaG,
-#	  	      grMod$modMats, sLc, grMod$ndgeninv, grMod$sln,	
-#		      sigma2e = sigma2e,   #<-- NULL if lambda==FALSE
-#		      thetaR = NULL, r = NULL, nminfrfx = NULL)  #<-- NULL if lambda==TRUE
-#          dLdnu_TEST2 <- gradFun_TEST2(nuv, thetaG,
-#	  	      grMod$modMats, sLc, grMod$ndgeninv, grMod$sln,	
-#		      sigma2e = sigma2e,   #<-- NULL if lambda==FALSE
-#		      thetaR = NULL, r = NULL, nminfrfx = NULL)  #<-- NULL if lambda==TRUE
         } #<-- end analytical first derivative choice
           
       } else{
@@ -391,13 +386,9 @@ if(nrow(theta[[thetaR]]) != 1){
 	        sigma2e = NULL)
 
 	  if(grMod$fdit[i] == "tr"){  #<-- analytical first derivatives      
-	    dLdnu <- gradFun(nuv, thetaG, grMod$modMats, Cinv, grMod$sln,
+	    dLdnu <- gradFun(nuv, thetaG, grMod$modMats, prtCinv, grMod$sln,
   	      sigma2e = NULL, grMod$r, grMod$nminfrfx)
 
-#	   dLdnu_TEST2 <- gradFun_TEST2(nuv, thetaG,
-#	  	      grMod$modMats, sLc, grMod$ndgeninv, grMod$sln,	
-#		      sigma2e = NULL,   #<-- NULL if lambda==FALSE
-#		      thetaR = thetaR, r = grMod$r, nminfrfx = grMod$nminfrfx) #<-- NULL if lambda==TRUE
           } #<-- end analytical first derivative choice
         }
 
@@ -610,11 +601,12 @@ stop(cat("\nNot allowing `NR` right now"))
     itTime <- Sys.time() - stItTime
     if(grMod$v > 0 && vitout == 0){
       if(grMod$v > 2){
-        if(grMod$algit[i] == "AI"){
+        if(grMod$algit[i] != "EM"){
           sgd <- matrix(NA, nrow = p, ncol = p+2)  #<--`sgd` = summary.gremlinDeriv 
             dimnames(sgd) <- list(row.names(dLdnu),
               c("gradient", "", "AI", rep("", p-1)))
           sgd[, 1] <- dLdnu
+#FIXME if get Hessian another way then need if statement about sdit          
           for(rc in 1:p) sgd[rc, 3:(p+2)] <- AI[rc, ]
           cat("\tstep reduction:", step, "\n")
           cat("\tH modification", round(f, 3), "\n")
@@ -649,24 +641,14 @@ stop(cat("\nNot allowing `NR` right now"))
 
 
   # Calculate Cinv_ii and AI for last set of parameters
-  if(grMod$Cinv_ii[1] < 0){
-    k <- grMod$modMats$nb
-    Ik <- rbind(Diagonal(x = 1, n = k), 
-      Matrix(0, nrow = nrow(grMod$sln) - k,
-        ncol = k,
-        sparse = TRUE))
-    for(c in 1:k){
-      grMod$Cinv_ii[c] <- solve(a = sLc, b = Ik[, c],
-        system = "A")[c, , drop = TRUE]
-    }
-
-  } else{
-      I <- Diagonal(x = 1, n = nrow(grMod$sln))
-      grMod$Cinv_ii <- matrix(diag(solve(a = sLc, b = I, system = "A")), ncol = 1)
-    }
+  ## Cinv_ii only if didn't calculate prtCinv for last iteration
+  if(prtCinvIt < i){
+    prtCinv <- chol2inv_ii(sLc, Z = prtCinv)
+  }
+  grMod$Cinv_ii[sLc@perm + as.integer(1)] <- prtCinv@x[attr(prtCinv, "Zdiagp")]
     
   ## AI
-  if(grMod$algit[i] != "AI"){
+  if(grMod$sdit[i] != "AI"){
     if(lambda){
       AI <- ai(nuv, skel, thetaG,
 	     grMod$modMats, grMod$W, sLc, grMod$sln, grMod$r,
