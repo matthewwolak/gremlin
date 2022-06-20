@@ -12,8 +12,7 @@ gremlinControl(
   h = .Machine$double.eps^(1/3),
   lambda = FALSE,
   algorithm = NULL,
-  algArgs = list(),
-  rfxCinv = FALSE
+  algArgs = list()
 )
 }
 \arguments{
@@ -40,9 +39,6 @@ subsequent parameters in the REML iterations.}
 
 \item{algArgs}{A \code{list} of function arguments to be given to functions
 named in the \code{algorithm} argument.}
-
-\item{rfxCinv}{A \code{logical} indicating whether the sampling variances
-of the random effects (i.e., BLUPS) should be calculated.}
 }
 \value{
 A \code{list} of class \code{gremlinControl} to be used by
