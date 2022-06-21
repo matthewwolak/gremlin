@@ -331,8 +331,17 @@ remlIt.gremlinR <- function(grMod, ...){
     # 5d Determine next (co)variance parameters to evaluate:
     ## if any algorithms need the diagonals of Cinv, calculate for this iteration
     if(grMod$fdit[i] == "tr" | grMod$algit[i] == "EM"){	
+      if(grMod$v > 1 && vitout == 0) cat("\n\tcreate partial Cinv: chol2cinv_ii")
       prtCinv <- chol2inv_ii(expand(sLc)$L, Z = prtCinv)
-      prtCinvIt <- i
+        prtCinvIt <- i
+      # Calculate trace and u_g'u_g (tugug) terms needed in EM and "tr"/gradFun
+      ## only do this if no variance components besides residual
+      if(length(thetaG) > 0){
+        if(grMod$v > 1 && vitout == 0) cat("\n\tcalculate tugug(s) & trace(s)")
+        tugug_tr_out <- tugug_trace(thetaG, grMod$modMats$nb, grMod$rfxlvls,
+              grMod$modMats$listGeninv, prtCinv, grMod$sln,
+              pinv = sLc@perm + as.integer(1)) 
+      }
     }
 
     ############################
@@ -340,9 +349,9 @@ remlIt.gremlinR <- function(grMod, ...){
     ############################
     if(grMod$algit[i] == "EM" && !all(cc, na.rm = TRUE)){
       if(grMod$v > 1 && vitout == 0) cat("\n\tEM to find next nu")
-      emOut <- em(nuv, thetaG, thetaR, conv,
-          grMod$modMats, grMod$nminffx, sLc, grMod$ndgeninv, grMod$sln, grMod$r)
-        nuvout <- emOut$nuv
+      nuvout <- em(nuv, thetaG, thetaR, conv,
+          grMod$rfxlvls, tugug_tr_out$tugug, tugug_tr_out$trace,
+          grMod$modMats$y, grMod$r, grMod$nminffx)
     }
 
 
@@ -350,7 +359,7 @@ remlIt.gremlinR <- function(grMod, ...){
     #    AI with either analytical or
     ##  finite difference first derivatives
     ########################################
-    if(grMod$sdit[i] == "AI"){
+    if(grMod$algit[i] != "EM" && grMod$sdit[i] == "AI"){
       if(grMod$v > 1 && vitout == 0) cat("\n\tAI to find next nu")
 #FIXME Currently, only allow when not: 
 if(nrow(theta[[thetaR]]) != 1){
@@ -375,7 +384,8 @@ if(nrow(theta[[thetaR]]) != 1){
   	      thetaR = NULL,
 	      sigma2e)  #<-- NULL if lambda==FALSE
 	if(grMod$fdit[i] == "tr"){  #<-- analytical first derivatives      
-          dLdnu <- gradFun(nuv, thetaG, grMod$modMats, prtCinv, grMod$sln,
+          dLdnu <- gradFun(nuv, thetaG, grMod$rfxlvls, grMod$sln,
+          	      tugug_tr_out$tugug, tugug_tr_out$trace,
 	    	      sigma2e = sigma2e, r = NULL, nminfrfx = NULL)
         } #<-- end analytical first derivative choice
           
@@ -386,8 +396,9 @@ if(nrow(theta[[thetaR]]) != 1){
 	        sigma2e = NULL)
 
 	  if(grMod$fdit[i] == "tr"){  #<-- analytical first derivatives      
-	    dLdnu <- gradFun(nuv, thetaG, grMod$modMats, prtCinv, grMod$sln,
-  	      sigma2e = NULL, grMod$r, grMod$nminfrfx)
+	    dLdnu <- gradFun(nuv, thetaG, grMod$rfxlvls, grMod$sln,
+          	        tugug_tr_out$tugug, tugug_tr_out$trace,
+  	      	        sigma2e = NULL, grMod$r, grMod$nminfrfx)
 
           } #<-- end analytical first derivative choice
         }
@@ -440,9 +451,9 @@ if(nrow(theta[[thetaR]]) != 1){
 	    "\n\t   Hessian may be singular - switching to EM algorithm")
         }  #<-- end `if v>1`
         if(grMod$v > 1 && vitout == 0) cat("\n\tEM to find next nu")
-          emOut <- em(nuv, thetaG, thetaR, conv,
-            grMod$modMats, grMod$nminffx, sLc, grMod$ndgeninv, grMod$sln, grMod$r)
-          nuvout <- emOut$nuv
+          nuvout <- em(nuv, thetaG, thetaR, conv,
+            grMod$rfxlvls, tugug_tr_out$tugug, tugug_tr_out$trace,
+            grMod$modMats$y, grMod$r, grMod$nminffx)
           grMod$algit[i] <- "EM"
           grMod$fdit[i] <- "dfree"
           grMod$sdit[i] <- NA
@@ -648,7 +659,7 @@ stop(cat("\nNot allowing `NR` right now"))
   grMod$Cinv_ii[sLc@perm + as.integer(1)] <- prtCinv@x[attr(prtCinv, "Zdiagp")]
     
   ## AI
-  if(grMod$sdit[i] != "AI"){
+  if(grMod$sdit[i] != "AI" | is.na(grMod$sdit[i])){
     if(lambda){
       AI <- ai(nuv, skel, thetaG,
 	     grMod$modMats, grMod$W, sLc, grMod$sln, grMod$r,
