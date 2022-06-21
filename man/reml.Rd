@@ -5,6 +5,7 @@
 \alias{ai}
 \alias{em}
 \alias{gradFun}
+\alias{tugug_trace}
 \alias{gradFun_fd}
 \title{REML optimization algorithms for mixed-effect models.}
 \usage{
@@ -25,16 +26,30 @@ reml(
   RHS = NULL
 )
 
-em(nuvin, thetaG, thetaR, conv, modMats, nminffx, sLc, ndgeninv, sln, r)
+em(
+  nuvin,
+  thetaG,
+  thetaR,
+  conv,
+  rfxlvls,
+  tugug,
+  trace,
+  y = NULL,
+  r = NULL,
+  nminffx = NULL
+)
 
 ai(nuvin, skel, thetaG, modMats, W, sLc, sln, r, thetaR = NULL, sigma2e = NULL)
+
+tugug_trace(thetaG, nb, rfxlvls, listGeninv, Cinv, sln, pinv = NULL)
 
 gradFun(
   nuvin,
   thetaG,
-  modMats,
-  Cinv,
+  rfxlvls,
   sln,
+  tugug,
+  trace,
   sigma2e = NULL,
   r = NULL,
   nminfrfx = NULL
@@ -78,9 +93,6 @@ Mixed Model Equations.}
 
 \item{conv}{A \code{character} vector of (co)variance parameter constraints.}
 
-\item{ndgeninv}{A \code{logical} vector indicating if each random term is
-associated with a generalized inverse (\code{ginverse}).}
-
 \item{sln, r}{Sparse \code{Matrices} containing the solutions or residuals
 of the Mixed Model Equations.}
 
@@ -91,6 +103,9 @@ Equations, thus converting the (co)variance components to ratios
 
 \item{Cinv}{A sparse \code{Matrix} containing the inverse of the Coefficient
 matrix to the Mixed Model Equations.}
+
+\item{ndgeninv}{A \code{logical} vector indicating if each random term is
+associated with a generalized inverse (\code{ginverse}).}
 }
 \value{
 A \code{list} or \code{matrix} containing any of the previous
