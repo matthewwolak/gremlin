@@ -31,11 +31,11 @@ Conduct REML iterations to estimate (co)variance parameters of a linear
 }
 \section{Methods (by class)}{
 \itemize{
-\item \code{default}: Default method
+\item \code{remlIt(default)}: Default method
 
-\item \code{gremlinR}: gremlinR method
+\item \code{remlIt(gremlinR)}: gremlinR method
+
 }}
-
 \examples{
   grSsetp <- gremlinSetup(WWG11 ~ sex - 1, random = ~ sire, data = Mrode11)
   grS <- remlIt(grSsetp)

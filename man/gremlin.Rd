@@ -284,9 +284,9 @@ Fit and setup functions for linear mixed-effect model (Gaussian responses).
 }
 \section{Functions}{
 \itemize{
-\item \code{mkModMats}: Generates model matrices.
-}}
+\item \code{mkModMats()}: Generates model matrices.
 
+}}
 \examples{
   grSire <- gremlin(WWG11 ~ sex, random = ~ sire, data = Mrode11)
   # Now drop sire random effects and use the `anova` method to compare models

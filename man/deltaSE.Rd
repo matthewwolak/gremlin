@@ -54,13 +54,13 @@ Though \code{deltaSE} can calculate standard errors for non-linear functions
 }
 \section{Methods (by class)}{
 \itemize{
-\item \code{default}: Default method
+\item \code{deltaSE(default)}: Default method
 
-\item \code{formula}: Formula method
+\item \code{deltaSE(formula)}: Formula method
 
-\item \code{list}: List method
+\item \code{deltaSE(list)}: List method
+
 }}
-
 \examples{
   # Calculate the sum of the variance components 
     grS <- gremlin(WWG11 ~ sex - 1, random = ~ sire, data = Mrode11)

@@ -3,7 +3,6 @@
 \docType{package}
 \name{gremlin-package}
 \alias{gremlin-package}
-\alias{_PACKAGE}
 \title{Mixed-Effects REML Incorporating Generalized Inverses}
 \description{
 Fit linear mixed-effects models using restricted (or residual) maximum

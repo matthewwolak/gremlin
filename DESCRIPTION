@@ -20,4 +20,4 @@ Description: Fit linear mixed-effects models using restricted (or residual)
     available.
 License: GPL-3 | file LICENSE
 Encoding: UTF-8
-RoxygenNote: 7.2.0
+RoxygenNote: 7.3.2

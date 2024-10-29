@@ -28,13 +28,13 @@ Methods to efficiently calculate a matrix trace depending on the class of matrix
 }
 \section{Methods (by class)}{
 \itemize{
-\item \code{default}: Default method
+\item \code{tr(default)}: Default method
 
-\item \code{dgCMatrix}: Method for matrix \code{X} of class Matrix:::dgCMatrix
+\item \code{tr(dgCMatrix)}: Method for matrix \code{X} of class Matrix:::dgCMatrix
 
-\item \code{dsCMatrix}: Method for matrix \code{X} of class Matrix:::dsCMatrix
+\item \code{tr(dsCMatrix)}: Method for matrix \code{X} of class Matrix:::dsCMatrix
+
 }}
-
 \author{
 \email{matthewwolak@gmail.com}
 }
