@@ -1,6 +1,6 @@
 # gremlin 
-[![](http://www.r-pkg.org/badges/version/gremlin)](https://cran.r-project.org/package=gremlin)
-[![](http://cranlogs.r-pkg.org/badges/grand-total/gremlin)](http://cranlogs.r-pkg.org/badges/grand-total/gremlin)
+[![](https://www.r-pkg.org/badges/version/gremlin)](https://cran.r-project.org/package=gremlin)
+[![](https://cranlogs.r-pkg.org/badges/grand-total/gremlin)](https://cranlogs.r-pkg.org/badges/grand-total/gremlin)
 [![DOI](https://zenodo.org/badge/87194564.svg)](https://zenodo.org/badge/latestdoi/87194564)
 
 

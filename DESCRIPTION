@@ -3,8 +3,8 @@ Type: Package
 Title: Mixed-Effects REML Incorporating Generalized Inverses
 Version: 1.1.0
 Authors@R: person("Matthew", "Wolak", email = "matthewwolak@gmail.com", role = c("cre", "aut"), comment = c(ORCID="0000-0002-7962-0071"))
-URL: http://github.com/matthewwolak/gremlin
-BugReports: http://github.com/matthewwolak/gremlin/issues
+URL: https://github.com/matthewwolak/gremlin
+BugReports: https://github.com/matthewwolak/gremlin/issues
 Depends:
     Matrix
 Imports:

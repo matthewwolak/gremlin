@@ -67,8 +67,8 @@ Henderson, C.R. 1973. Sire evaluation and genetic trends. Journal of Animal
 \seealso{
 Useful links:
 \itemize{
-  \item \url{http://github.com/matthewwolak/gremlin}
-  \item Report bugs at \url{http://github.com/matthewwolak/gremlin/issues}
+  \item \url{https://github.com/matthewwolak/gremlin}
+  \item Report bugs at \url{https://github.com/matthewwolak/gremlin/issues}
 }
 
 }
