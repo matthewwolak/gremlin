@@ -19,7 +19,6 @@ cs *cs_omega(cs **KGinv, int nG, cs *pvB){
     C = cs_spalloc (cn, cn, cnz, 1, 0) ;	 /* allocate result */
 
     if (!C ) return (cs_done (C, NULL, NULL, 0));  
-//      if (!C) error("cs_omega out of memory"); 
 
     Cp = C->p ; Ci = C->i ; Cx = C->x;
    

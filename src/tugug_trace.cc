@@ -53,7 +53,7 @@ csi tugugFun(double *tugug, double *w, csi nG, csi *rfxlvls, csi *con,
     if(ndgeninv[g] > 0){
       // Non-diagonal generalized inverses
       // crossproduct of BLUXs[si:ei] with geninv (t(BLUXs) %*% geninv %*% BLUXs)
-      if(!CS_CSC(geninv[g])) error("geninv[%i] not CSC matrix\n", g);
+      if(!CS_CSC(geninv[g])) Rf_error("geninv[%i] not CSC matrix\n", g);
       for(i = 0; i < geninv[g]->n; i++) w[i] = 0.0;  // clear w
       // Johnson & Thompson 1995 eqn 9a
       for(k = 0; k < geninv[g]->n; k++){
