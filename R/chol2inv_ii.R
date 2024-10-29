@@ -84,7 +84,7 @@ chol2inv_ii <- function(L, Z = NULL){
       Zp <- Z@p + as.integer(1)
       Zdiagp <- attr(Z, "Zdiagp") #<-- location of diagonals in Zi
       if(is.null(Zdiagp)){
-        error("'Z' in chol2inv_ii() must have non-NULL 'Zdiagp' attribute")
+        stop("'Z' in chol2inv_ii() must have non-NULL 'Zdiagp' attribute")
       }
     }
   ###############################
