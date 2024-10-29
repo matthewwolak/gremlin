@@ -1,7 +1,7 @@
 bibentry(bibtype = "Article",
   title        = "{gremlin}: {R} package for mixed-effects model REML
                  incorporating Generalized Inverses",
-  author       = c(person(given = "Matthew", "E."),
+  author       = c(person(given = c("Matthew", "E."),
   			 family = "Wolak")),
   journal      = "Zenodo",
   year         = "2020",
@@ -16,6 +16,6 @@ bibentry(bibtype = "Article",
         "gremlin: R package for mixed-effects model REML incorporating
           Generalized Inverses.",
         "Zenodo.",
-        "doi.org/10.5281/zenodo.3908463")
+        "doi.org/10.5281/zenodo.1476565")
 )
 
