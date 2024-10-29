@@ -27,7 +27,7 @@
    then select your favorite [CRAN mirror](https://CRAN.R-project.org/)
 
   - From GitHub:
-    - install the latest versions directly in R using the `devtools` package [https://github.com/hadley/devtools](https://github.com/hadley/devtools):
+    - install the latest versions directly in R using the `devtools` package [https://github.com/r-lib/devtools](https://github.com/r-lib/devtools):
 
    ```
 
