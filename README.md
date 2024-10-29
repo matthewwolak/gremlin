@@ -27,17 +27,15 @@
    then select your favorite [CRAN mirror](https://CRAN.R-project.org/)
 
   - From GitHub:
-    - install the latest versions directly in R using the `devtools` package [https://github.com/r-lib/devtools](https://github.com/r-lib/devtools):
+    - install the latest versions directly in R using the `remotes` package [https://github.com/r-lib/remotes](https://github.com/r-lib/remotes):
 
    ```
 
-   library(devtools)
-
    # Install `master` branch
-   install_github("matthewwolak/gremlin")
+   remotes::install_github("matthewwolak/gremlin")
    
    # Install `devel` branch
-   install_github("matthewwolak/gremlin", ref = "devel")
+   remotes::install_github("matthewwolak/gremlin", ref = "devel")
 
    ```
 
