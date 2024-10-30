@@ -85,7 +85,7 @@ Converts lists of (co)variance parameters either between \code{list} and
   \code{vector} format or between the theta and nu scales.
 }
 \details{
-\itemize{
+\describe{
   \item{\code{stTrans} }{Transform start parameters into lower triangle
     matrices of class \code{dsCMatrix}.}
   \item{\code{conTrans} }{Transformation of starting constraints to correct

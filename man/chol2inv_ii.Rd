@@ -9,7 +9,7 @@ chol2inv_ii(L, Z = NULL)
 \arguments{
 \item{L}{A lower-triangle Cholesky factorization (L L' = C).}
 
-\item{Z}{A sparse matrix containing the partial inverse of /code{L L'} from a
+\item{Z}{A sparse matrix containing the partial inverse of \code{L L'} from a
 previous call to the function. Must contain the \dQuote{Zdiagp} attribute.}
 }
 \value{
