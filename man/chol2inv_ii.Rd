@@ -7,24 +7,25 @@
 chol2inv_ii(L, Z = NULL)
 }
 \arguments{
-\item{L}{A lower-triangle Cholesky factorization (L L' = C).}
+\item{L}{A lower-triangle Cholesky factorization ($\strong{L L'} = \strong{C}$).}
 
-\item{Z}{A sparse matrix containing the partial inverse of \code{L L'} from a
-previous call to the function. Must contain the \dQuote{Zdiagp} attribute.}
+\item{Z}{A sparse matrix containing the partial inverse of $\strong{L L'}$
+from a previous call to the function. Must contain the \dQuote{Zdiagp}
+attribute.}
 }
 \value{
-A sparse matrix containing the partial inverse of C (=L L') along with
-  attribute \dQuote{Zdiagp} indicating the location for diagonals of Z in
-  \code{Z@x}.
+A sparse matrix containing the partial inverse of C ($\strong{L L'}$)
+  along with attribute \dQuote{Zdiagp} indicating the location for diagonals
+  of Z in \code{slot x} of the object \code{Z}.
 }
 \description{
 Only calculate values of a sparse matrix inverse corresponding to non-zero
   locations for the Cholesky factorization.
 }
 \details{
-If L L' = C, function efficiently gives `diag(Cinv)` by only calculating
-  elements of Cinv based on non-zero elements of L and L'. Follows the method
-  and equations by Takahashi et al. (1973).
+If $\strong{L L'} = \strong{C}$, function efficiently gives diag(Cinv) by only
+  calculating elements of Cinv based on non-zero elements of $\strong{L}$ and
+  $\strong{L}$. Follows the method and equations by Takahashi et al. (1973).
 }
 \references{
 Takahashi, Fagan, & Chin. 1973. Formation of a sparse bus impedance matrix

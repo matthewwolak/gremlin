@@ -3,18 +3,19 @@
 #' Only calculate values of a sparse matrix inverse corresponding to non-zero
 #'   locations for the Cholesky factorization. 
 #'
-#' If L L' = C, function efficiently gives `diag(Cinv)` by only calculating
-#'   elements of Cinv based on non-zero elements of L and L'. Follows the method
-#'   and equations by Takahashi et al. (1973).
+#' If $\strong{L L'} = \strong{C}$, function efficiently gives diag(Cinv) by only
+#'   calculating elements of Cinv based on non-zero elements of $\strong{L}$ and
+#'   $\strong{L}$. Follows the method and equations by Takahashi et al. (1973).
 #'
 #' @aliases chol2inv_ii
-#' @param L A lower-triangle Cholesky factorization (L L' = C).
-#' @param Z A sparse matrix containing the partial inverse of \code{L L'} from a
-#'   previous call to the function. Must contain the \dQuote{Zdiagp} attribute.
+#' @param L A lower-triangle Cholesky factorization ($\strong{L L'} = \strong{C}$).
+#' @param Z A sparse matrix containing the partial inverse of $\strong{L L'}$
+#'   from a previous call to the function. Must contain the \dQuote{Zdiagp}
+#'   attribute.
 #'
-#' @return A sparse matrix containing the partial inverse of C (=L L') along with
-#'   attribute \dQuote{Zdiagp} indicating the location for diagonals of Z in
-#'   \code{Z@x}.
+#' @return A sparse matrix containing the partial inverse of C ($\strong{L L'}$)
+#'   along with attribute \dQuote{Zdiagp} indicating the location for diagonals
+#'   of Z in \code{slot x} of the object \code{Z}.
 #'
 #' @author \email{matthewwolak@@gmail.com}
 #' @references
