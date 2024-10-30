@@ -9,7 +9,7 @@
 #'
 #' @aliases chol2inv_ii
 #' @param L A lower-triangle Cholesky factorization (L L' = C).
-#' @param Z A sparse matrix containing the partial inverse of /code{L L'} from a
+#' @param Z A sparse matrix containing the partial inverse of \code{L L'} from a
 #'   previous call to the function. Must contain the \dQuote{Zdiagp} attribute.
 #'
 #' @return A sparse matrix containing the partial inverse of C (=L L') along with
