@@ -150,7 +150,7 @@ if(ncy > 1) stop("gremlin isn't old enough to play with multivariate models") #F
 #        }
       #TODO: Now, check/turn ginverse list into sparse matrix (so that can allow ginverse elements to be triplet form
         #XXX For now, make sure ginverse is "dgCMatrix" - consider dsCMatrix to save space?
-        if(class(ginverse[[i]]) != "dgCMatrix"){
+        if(!inherits(ginverse[[i]], "dgCMatrix")){
           stop(paste(names(ginverse)[i], "ginverse of", class(ginverse[[i]]), "must be a 'dgCMatrix' class"))
         }
       ## Need to decide on "dgCMatrix" or "dsCMatrix"...

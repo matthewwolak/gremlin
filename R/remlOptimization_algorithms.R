@@ -357,7 +357,7 @@ tugug_trace <- function(thetaG, nb, rfxlvls, listGeninv, Cinv, sln, pinv = NULL)
     ei <- si - 1 + qi
 #TODO XXX for using covariance matrices, see Johnson & Thompson 1995 eqn 11a
     ## Johnson & Thompson 1995 equations 9 & 10
-    if(class(listGeninv[[g]]) == "ddiMatrix"){
+    if(inherits(listGeninv[[g]], "ddiMatrix")){
     ### No generalized inverse associated with the random effects
     ### Johnson & Thompson 1995 eqn 10a
       #### 3rd term in the equation
