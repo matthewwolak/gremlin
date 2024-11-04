@@ -456,7 +456,7 @@ gradFun <- function(nuvin, thetaG, rfxlvls, sln,
 #' @param grObj An list of class \code{grMod}.
 #' @param lL A numeric value for REML log-likelihood value.
 #' @param fd A character indicating whether forward, combined, or backward finite
-#'   differences (dQuote{fdiff}, \dQuote{cdiff}, or \dQuote{bdiff}, respectively)
+#'   differences (\dQuote{fdiff}, \dQuote{cdiff}, or \dQuote{bdiff}, respectively)
 #'   are to be calculated.
 #' @export
 gradFun_fd <- function(nuvin, grObj, lL, fd = c("fdiff", "cdiff", "bdiff")){

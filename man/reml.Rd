@@ -124,7 +124,7 @@ matrix to the Mixed Model Equations.}
 \item{lL}{A numeric value for REML log-likelihood value.}
 
 \item{fd}{A character indicating whether forward, combined, or backward finite
-differences (dQuote{fdiff}, \dQuote{cdiff}, or \dQuote{bdiff}, respectively)
+differences (\dQuote{fdiff}, \dQuote{cdiff}, or \dQuote{bdiff}, respectively)
 are to be calculated.}
 }
 \value{
