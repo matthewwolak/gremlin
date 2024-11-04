@@ -88,8 +88,10 @@
 #'   ## use to demonstrate alternative way to do same calculation of inverse
 #'   ## Average Information matrix of theta scale parameters when lambda = TRUE
 #'   ### what is done inside gremlin::nuVar2thetaVar_lambda 
-#'     dOut <- deltaSE(thetaV1 ~ V1*V2, grS, "nu")  #<-- V2 is sigma2e
-#'     aiFnOut <- nuVar2thetaVar_lambda(grS)[1]  #<-- variance (do sqrt below)
+#'     grSlambda <- gremlin(WWG11 ~ sex - 1, random = ~ sire, data = Mrode11,
+#'       control = gremlinControl(lambda = TRUE))
+#'     dOut <- deltaSE(thetaV1 ~ V1*V2, grSlambda, "nu")  #<-- V2 is sigma2e
+#'     aiFnOut <- nuVar2thetaVar_lambda(grSlambda)[1] #<--variance (sqrt below)
 #'     stopifnot(abs(dOut[, "Std. Error"] - sqrt(aiFnOut)) < 1e-10)
 #'
 #' @export
