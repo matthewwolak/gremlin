@@ -8,8 +8,6 @@
 \alias{update}
 \alias{getCall.gremlin}
 \alias{update.gremlin}
-\alias{is.gremlin}
-\alias{is.grMod}
 \title{Mixed-effect modeling functions.}
 \usage{
 gremlin(
@@ -72,10 +70,6 @@ gremlinSetup(
   control = gremlinControl(),
   ...
 )
-
-\method{is}{gremlin}(x)
-
-\method{is}{grMod}(x)
 
 mkModMats(
   formula,
