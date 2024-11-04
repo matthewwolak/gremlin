@@ -35,7 +35,6 @@
 #' @param rfxIncContrib2loglik A \code{numeric} indicating the sum of constraint
 #'   contributions to the log-likelihood across all terms in the random effects
 #'   that have non-diagonal generalized inverse matrices (\code{ginverse}).
-#' @param ndgeninv A \code{logical} vector indicating if each random term is
 #'   associated with a generalized inverse (\code{ginverse}).
 #' @param RHS A sparse \code{Matrix} containing the Right-Hand Side to the 
 #'   Mixed Model Equations.
@@ -211,6 +210,11 @@ reml <- function(nu, skel, thetaG, sLc,
 ## note Hofer eqn 12 has no sigma2e in last term of non-residual formula
 ### ?mistake? in Mrode 2005 (p. 241-245), which does include sigma2e
 #' @rdname reml
+#' @param tugug A list of numeric values for the $u_g' u_g$ products of the
+#'   solution vector for each of the \code{g} variance parameters. 
+#' @param trace A list of traces of the inverse coefficient matrix for each of
+#'   of the \code{g} variance paremeters.
+#' @param y The response vector.
 #' @export
 em <- function(nuvin, thetaG, thetaR, conv,
 	rfxlvls, tugug, trace, y = NULL, r = NULL, nminffx = NULL){
@@ -335,6 +339,9 @@ ai <- function(nuvin, skel, thetaG,
 
 ################################################################################
 #' @rdname reml
+#' @param nb The number of columns in X.
+#' @param listGeninv A list of generalized inverse matrices.
+#' @param pinv An integer vector of the matrix permutation.
 #' @export
 tugug_trace <- function(thetaG, nb, rfxlvls, listGeninv, Cinv, sln, pinv = NULL){
 
@@ -446,6 +453,11 @@ gradFun <- function(nuvin, thetaG, rfxlvls, sln,
 
 ################################################################################
 #' @rdname reml
+#' @param grObj An list of class \code{grMod}.
+#' @param lL A numeric value for REML log-likelihood value.
+#' @param fd A character indicating whether forward, combined, or backward finite
+#'   differences (dQuote{fdiff}, \dQuote{cdiff}, or \dQuote{bdiff}, respectively)
+#'   are to be calculated.
 #' @export
 gradFun_fd <- function(nuvin, grObj, lL, fd = c("fdiff", "cdiff", "bdiff")){
 
