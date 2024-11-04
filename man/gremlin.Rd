@@ -125,7 +125,12 @@ iterations.}
 
 \item{algit}{A \code{character} vector of length 1 or more or an expression
 to be evaluated that specifies the algorithm to use for proposing
-(co)variances in the next likelihood iteration.}
+(co)variances in the next likelihood iteration. Mainly used to switch
+between Expectation Maximization (\code{"EM"}), or Average Information
+second derivatives with either (1) analytical first derivatives
+(specifically \code{"AItr"}) or (2) first derivatives using a finite
+difference method (backward \code{"AIbfd"}, central \code{"AIcfd"}, or
+forward \code{"AIffd"} finite differences).}
 
 \item{vit}{An \code{integer} value specifying the verbosity of screen output
 on each iteration. A value of zero gives no iteration specific output and
@@ -180,7 +185,7 @@ A \code{list} containing an object of class \code{grMod} and, if a
       (co)variance matrices to be estimated that have been factored out).}
     \item{ndgeninv }{A \code{logical} indicating which terms in the random
       formula have generalized inverses associated with them (non-diagonal 
-      matrices in the Kronecker product.}
+      matrices in the Kronecker product).}
     \item{dimsZg, nminffx, rfxlvls, nminfrfx }{\code{Numeric} vectors or scalars
       describing the numbers of random effects or some function of random and
       fixed effects.}
@@ -238,10 +243,16 @@ A \code{list} containing an object of class \code{grMod} and, if a
     \item{maxit }{See the parameter described above.}
     \item{algit }{A \code{character} vector of REML algorithms to use in each
       iteration.}
+    \item{fdit }{A \code{character} vector of which first derivative/gradient
+      algorithm to use each iteration (if first derivatives of the likelihood
+      function are to be calculated).}
+    \item{sdit }{A \code{character} vector of which second derivative/hessian
+      algorithm to use each iteration (if second derivatives of the likelihood
+      function are to be calculated).}
     \item{vit }{See the parameter described above.}
     \item{v }{See the parameter described above.}
     \item{cctol }{A \code{numeric} vector of convergence criteria thresholds.
-      See \code{\link{gremlinControl}} for more details.}
+      See \code{\link{gremlinControl}} and \code{\link{ccFun}} for details.}
     \item{ezero, einf }{\code{numeric} values for the effective numbers to
       use as \dQuote{zero} and maximum negative or positive numbers. Values
       less than \code{ezero} are treated as zero and fixed to this value.
@@ -250,6 +261,8 @@ A \code{list} containing an object of class \code{grMod} and, if a
       details.}
     \item{step }{A \code{numeric} value indicating the step-reduction to use.
       See \code{\link{gremlinControl}} for more details.}
+    \item{h }{A \code{numeric} value indicating the increment used in the
+      first derivative (gradient) finite difference method.}
 
     \item{itMat }{A \code{matrix} of details about each iteration. Rows
       indicate each REML iteration (rownames reflect the REML algorithm used)
@@ -271,9 +284,9 @@ Fit and setup functions for linear mixed-effect model (Gaussian responses).
 }
 \section{Functions}{
 \itemize{
-\item \code{mkModMats}: Generates model matrices.
-}}
+\item \code{mkModMats()}: Generates model matrices.
 
+}}
 \examples{
   grSire <- gremlin(WWG11 ~ sex, random = ~ sire, data = Mrode11)
   # Now drop sire random effects and use the `anova` method to compare models
@@ -293,7 +306,8 @@ Fit and setup functions for linear mixed-effect model (Gaussian responses).
 \dontrun{
   # Following the example from Mrode 2005, chapter 11.
   library(nadiv)  #<-- to construct inverse of the numerator relatedness matrix
-  Ainv <- makeAinv(Mrode11[, 1:3])$Ainv
+  pedMrode11 <- prepPed(Mrode11[, 1:3])
+  Ainv <- makeAinv(pedMrode11)$Ainv
 
   gr11lmm <- gremlin(WWG11 ~ sex - 1,
 random = ~ calf,

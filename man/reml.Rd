@@ -5,6 +5,8 @@
 \alias{ai}
 \alias{em}
 \alias{gradFun}
+\alias{tugug_trace}
+\alias{gradFun_fd}
 \title{REML optimization algorithms for mixed-effect models.}
 \usage{
 reml(
@@ -24,20 +26,36 @@ reml(
   RHS = NULL
 )
 
-em(nuvin, thetaG, thetaR, conv, modMats, nminffx, sLc, ndgeninv, sln, r)
+em(
+  nuvin,
+  thetaG,
+  thetaR,
+  conv,
+  rfxlvls,
+  tugug,
+  trace,
+  y = NULL,
+  r = NULL,
+  nminffx = NULL
+)
 
 ai(nuvin, skel, thetaG, modMats, W, sLc, sln, r, thetaR = NULL, sigma2e = NULL)
+
+tugug_trace(thetaG, nb, rfxlvls, listGeninv, Cinv, sln, pinv = NULL)
 
 gradFun(
   nuvin,
   thetaG,
-  modMats,
-  Cinv,
+  rfxlvls,
   sln,
+  tugug,
+  trace,
   sigma2e = NULL,
   r = NULL,
   nminfrfx = NULL
 )
+
+gradFun_fd(nuvin, grObj, lL, fd = c("fdiff", "cdiff", "bdiff"))
 }
 \arguments{
 \item{nu, nuvin}{A \code{list} or \code{vector} of (co)variance parameters to
@@ -68,15 +86,21 @@ random effects.}
 
 \item{rfxIncContrib2loglik}{A \code{numeric} indicating the sum of constraint
 contributions to the log-likelihood across all terms in the random effects
-that have non-diagonal generalized inverse matrices (\code{ginverse}).}
+that have non-diagonal generalized inverse matrices (\code{ginverse}).
+associated with a generalized inverse (\code{ginverse}).}
 
 \item{RHS}{A sparse \code{Matrix} containing the Right-Hand Side to the 
 Mixed Model Equations.}
 
 \item{conv}{A \code{character} vector of (co)variance parameter constraints.}
 
-\item{ndgeninv}{A \code{logical} vector indicating if each random term is
-associated with a generalized inverse (\code{ginverse}).}
+\item{tugug}{A list of numeric values for the $u_g' u_g$ products of the
+solution vector for each of the \code{g} variance parameters.}
+
+\item{trace}{A list of traces of the inverse coefficient matrix for each of
+of the \code{g} variance paremeters.}
+
+\item{y}{The response vector.}
 
 \item{sln, r}{Sparse \code{Matrices} containing the solutions or residuals
 of the Mixed Model Equations.}
@@ -86,8 +110,22 @@ when it has been factored out of the Coefficient matrix of the Mixed Model
 Equations, thus converting the (co)variance components to ratios
 (represented by the variable lambda).}
 
+\item{nb}{The number of columns in X.}
+
+\item{listGeninv}{A list of generalized inverse matrices.}
+
 \item{Cinv}{A sparse \code{Matrix} containing the inverse of the Coefficient
 matrix to the Mixed Model Equations.}
+
+\item{pinv}{An integer vector of the matrix permutation.}
+
+\item{grObj}{An list of class \code{grMod}.}
+
+\item{lL}{A numeric value for REML log-likelihood value.}
+
+\item{fd}{A character indicating whether forward, combined, or backward finite
+differences (\dQuote{fdiff}, \dQuote{cdiff}, or \dQuote{bdiff}, respectively)
+are to be calculated.}
 }
 \value{
 A \code{list} or \code{matrix} containing any of the previous

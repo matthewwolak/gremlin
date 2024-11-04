@@ -8,10 +8,6 @@ void cs_kroneckerAupdate(const cs *G, const cs *A, const cs *C){
     an = A->n ; Ap = A->p ;  Ax = A->x ;
     gn = G->n ; Gx = G->x ;
 
-    // MEW 2020 02 17: cn and cnz set but not used
-    // int cn, cnz, anz, gnz, 
-    // cn = an*gn; 
-    // anz = A->nzmax; gnz = G->nzmax; cnz = anz*gnz;
     cnt = 0;	
     for (i = 0 ; i < gn ; i++){
       for (j = 0 ; j < an ; j++){    

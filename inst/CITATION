@@ -1,0 +1,21 @@
+bibentry(bibtype = "Article",
+  title        = "{gremlin}: {R} package for mixed-effects model REML
+                 incorporating Generalized Inverses",
+  author       = c(person(given = c("Matthew", "E."),
+  			 family = "Wolak")),
+  journal      = "Zenodo",
+  year         = "2020",
+#  volume       = "3",
+#  number       = "5",
+#  pages        = "792-796",
+  url          = "https://doi.org/10.5281/zenodo.3908463",
+
+  header	= "To cite gremlin in publications use:",
+  textVersion  =
+  paste("Matthew E. Wolak (2020).",
+        "gremlin: R package for mixed-effects model REML incorporating
+          Generalized Inverses.",
+        "Zenodo.",
+        "doi.org/10.5281/zenodo.1476565")
+)
+

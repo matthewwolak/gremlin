@@ -3,7 +3,6 @@
 \docType{package}
 \name{gremlin-package}
 \alias{gremlin-package}
-\alias{_PACKAGE}
 \title{Mixed-Effects REML Incorporating Generalized Inverses}
 \description{
 Fit linear mixed-effects models using restricted (or residual) maximum
@@ -22,7 +21,8 @@ potentially make model fitting very efficient.
 \dontrun{
   # Following the example from Mrode 2005, chapter 11.
   library(nadiv)  #<-- to construct inverse of the numerator relatedness matrix
-  Ainv <- makeAinv(Mrode11[, 1:3])$Ainv
+  pedMrode11 <- prepPed(Mrode11[, 1:3])
+  Ainv <- makeAinv(pedMrode11)$Ainv
 
   gr11lmm <- gremlin(WWG11 ~ sex - 1,
 random = ~ calf,
@@ -67,8 +67,8 @@ Henderson, C.R. 1973. Sire evaluation and genetic trends. Journal of Animal
 \seealso{
 Useful links:
 \itemize{
-  \item \url{http://github.com/matthewwolak/gremlin}
-  \item Report bugs at \url{http://github.com/matthewwolak/gremlin/issues}
+  \item \url{https://github.com/matthewwolak/gremlin}
+  \item Report bugs at \url{https://github.com/matthewwolak/gremlin/issues}
 }
 
 }

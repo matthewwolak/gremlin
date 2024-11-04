@@ -3,12 +3,16 @@
 #' Change default settings for gremlin models.
 #'
 #' @aliases gremlinControl
-#' @param cctol Convergence criteria tolerances (Meyer 2007, 2019).
+#' @param cctol Convergence criteria tolerances (Meyer 2007, 2019). See details
+#'   about the convergence checks in \code{\link[gremlin]{ccFun}}.
 #' @param ezero Effective zero to be used, values less than this number are
 #'   treated as zero and fixed to this value.
 #' @param einf Effective infinite value to be used, values are limited to a
 #'   to this variable as a maximum.
 #' @param step A \code{numeric} value for scaling the proposed parameter updates.
+#' @param h A \code{numeric} value for finite difference algorithm of partial
+#'   first derivatives for the likelihood function. Specifies the amount to add
+#'   to parameter value to calculate the change in log-likelihood.
 #' @param lambda A \code{logical} indicating whether a residual variance should
 #'   be factored out of the mixed model equations.
 #' @param algorithm A \code{character} naming the function to use to decide
@@ -30,14 +34,15 @@
 #'   str(gremlinControl())
 #'
 #' @export
-gremlinControl <- function(cctol = c(5e-4, 1e-8, 1e-3, NULL),
-	ezero = 1e-8, einf = 1e30, step = 0.3, lambda = TRUE,
+gremlinControl <- function(cctol = c(5e-4, 1e-5, 1e-2, NULL),
+	ezero = 1e-8, einf = 1e30, step = 0.3, h = .Machine$double.eps^(1/3),
+	lambda = FALSE,
 	algorithm = NULL, algArgs = list()){
 
   stopifnot(is.list(algArgs))
 
  return(structure(list(cctol = cctol, ezero = ezero, einf = einf, step = step,
-		lambda = lambda,
+		h = h, lambda = lambda,
 		algorithm = algorithm, algArgs = algArgs),
 	class = c("gremlinControl")))
 }  #<-- end `gremlinControl()`

@@ -14,7 +14,6 @@ cs *cs_directsum(cs **KGinv, int nG, int nGR){
     C = cs_spalloc (cn, cn, cnz, 1, 0) ;	 /* allocate result */
 
     if (!C ) return (cs_done (C, NULL, NULL, 0));   
-//     if (!C ) error("cs_directsum out of memory");  
 
     Cp = C->p ; Ci = C->i ; Cx = C->x;
    
@@ -22,7 +21,8 @@ cs *cs_directsum(cs **KGinv, int nG, int nGR){
 
         if (!CS_CSC (KGinv[i])) return (NULL); 
                         
-        an = KGinv[i]->n ; anz = KGinv[i]->nzmax; Ap = KGinv[i]->p; Ai = KGinv[i]->i; Ax = KGinv[i]->x;
+        an = KGinv[i]->n ; anz = KGinv[i]->nzmax;
+        Ap = KGinv[i]->p; Ai = KGinv[i]->i; Ax = KGinv[i]->x;
 
         for (j = 0 ; j < an; j++){
           Cp[cnt] = cnt2+Ap[j];
@@ -39,7 +39,7 @@ cs *cs_directsum(cs **KGinv, int nG, int nGR){
     }
     Cp[cn]=cnz;
     cs_sprealloc (C, 0) ;		// remove extra space from C 
-    return (cs_done (C, NULL, NULL, 1)) ;	/* success; free workspace, return C */
+    return (cs_done (C, NULL, NULL, 1)) ;  /* success; free workspace, return C */
 }
 
 

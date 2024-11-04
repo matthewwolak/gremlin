@@ -11,28 +11,60 @@ extern "C" {
 
 
 
+/* returns log-likelihood if successful, 0 if not
+   Replaces all objects that are updated based on changed `nu` values */
+csn *reml(csi n, csi *dimZWG, csi nG, csi p, double *y,
+	cs *Bpinv, cs *W, cs *tW, csi *rfxlvls, double rfxlL,
+	cs *R, cs *Rinv, cs **G, cs  **Ginv, csi *ndgeninv, cs **geninv,
+	cs *KRinv, cs **KGinv, cs *tWKRinv, cs *tWKRinvW, cs *Ctmp,
+	cs *RHS, cs *tmpBLUXs, cs *BLUXs, double *res,
+	css *sLc,
+	double *tyPy, double *logDetC, double *sigma2e,
+	double tyRinvy, // lambda=TRUE same every iteration else 0.0 when FALSE
+	int nminffx, // lambda=TRUE else 0
+	double *loglik,
+	csi i, csi v, csi vitout, csi lmbda);
+
+
 /* Average Information Algorithm:
-    returns 1 if successful, 0 if not:  H->x replaced */
-csi cs_ai(const cs *H, const cs *BLUXs, cs **Ginv,
-        const cs *R, const cs *KRinv, const cs *tWKRinv,
+    returns replaces AI */
+cs *ai(cs *BLUXs, cs **Ginv,
+        cs *R, cs *KRinv, cs *tWKRinv,
         double *rory,  // residuals if lambda=FALSE else y if lambda=TRUE
-        const cs *W, const cs *tW, csi n, csi p, csi nG, csi *rfxlvls, csi nb,
-	const cs *Lc, const csi *Pinv,
+        cs *W, cs *tW, csi n, csi p, csi nG, csi *rfxlvls, csi nb,
+	cs *Lc, csi *Pinv,
 	csi thetaR,       // 0 if lambda=TRUE
         double sigma2e);    // 1.0 if lambda=FALSE
 
 
  
-/* Gradient/Score (first derivative) function
+/* Analytical Gradient/Score (first derivative) function
      return 1 if successful else returns 0
-     dLdnu overwritten with output
-     Cinv_ii overwritten with diag(Cinv) */
-csi cs_gradFun(double *nu, double *dLdnu, 
+     dLdnu overwritten with output */
+csi gradFun(double *nu, double *dLdnu, 
         double *tugug, double *trace, csi *con,
 	csi n, csi nG, csi *rfxlvls, csi nb,
 	double sigma2e,    // 1.0 if lambda=FALSE
 	csi thetaR, double *r);      // 0 if lambda=TRUE
 
+
+/* Finite difference Gradient/Score (first derivative) function
+     return 1 if successful else returns 0
+     dLdnu overwritten with output
+fd = 0; backwards finite differences
+fd = 1; central (both backwards and forward finite differences)
+fd = 2; forward finite differences       
+      */
+csi gradFun_fd(double *nu, csi fd, double h,
+	double *dLdnu, double lL, csi *con, double *bound, int v,
+	csi n, csi *dimZWG, csi nG, csi p, double *y,
+	cs *Bpinv, cs *W, cs *tW, csi *rfxlvls, double rfxlL,
+	csi *ndgeninv, cs **geninv, cs *KRinv,
+	cs *Ctmp, cs *RHS, cs *tmpBLUXs, cs *BLUXs,
+	css *sLc, 
+	double tyRinvy, // lambda=TRUE same every iteration else 0.0 when FALSE
+	int nminffx, // lambda=TRUE else 0
+	int *nnzGRs, int *dimGRs, int *iGRs, csi lmbda);
 
 /* solve Ax=k where Lx=b, L'b=k, and x, b, and k are dense.
    x=b on input, solution on output. */
@@ -43,7 +75,8 @@ csi gr_cs_lltsolve (const cs *L, double *x, csi k);
 
 // replaces elements in Cinv_ii inverse diagonals as double
 //// Returns 1=success else 0
-csi cs_chol2inv_ii(const cs *L, const csi *Pinv, double *Cinv_ii, int r);  
+csi chol2inv_ii(const cs *L, const csi *Pinv,
+	cs *Z, int *Zdiagp, double *Cinv_ii, int itErr);  
 
 
 /* return 1 if successful else returns 0
@@ -57,13 +90,18 @@ csi tugugFun(double *tugug, double *w, csi nG, csi *rfxlvls, csi *con,
 /* return 1 if successful else returns 0
        trace overwritten with output
 */
-csi traceFun(double *trace, double *w,
+csi traceFun(double *trace,
 	csi nG, csi *rfxlvls, csi nb, csi *ndgeninv, cs **geninv,
-	csi nsln, const cs *Lc, const csi *Pinv);
+	csi nsln, const cs *Cinv, const csi *Pinv, double *Cinv_ii);
+
 
 /* B  returned = the reduced matrix of A according to drop */
 cs *cs_droprowcol(const cs *A, csi *drop);
 
+
+/* inverted matrix returned if successful else NULL */
+cs *cs_inv_withDiagMod(const cs *A, csi *con, csi *wchBd,
+	double *ezero, csi v);
 
 /* 1 returned if successful, else NULL
    `newnu` replaced with next set of nu parameters   */
@@ -74,8 +112,6 @@ csi qNewtRhap(double *nu, double *newnu, double *dLdnu, const cs *A,
 /*******************************************************************/
 /* Below are functions from MCMCglmm-2.25 by Jarrod Hadfield       */
 /*******************************************************************/
-cs *cs_cbind(const cs *A, const cs *B);
-/* Returns the two matrices A and B column bound*/
 void cs_cov2cor(const cs *A);
 /* transforms a dense covariance matrix A into a correlation matrix  */
 cs *cs_directsum(cs **KGinv, int nG, int nGR);

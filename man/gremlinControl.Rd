@@ -5,17 +5,19 @@
 \title{Advanced Options for Mixed-effect modeling functions.}
 \usage{
 gremlinControl(
-  cctol = c(5e-04, 1e-08, 0.001, NULL),
+  cctol = c(5e-04, 1e-05, 0.01, NULL),
   ezero = 1e-08,
   einf = 1e+30,
   step = 0.3,
-  lambda = TRUE,
+  h = .Machine$double.eps^(1/3),
+  lambda = FALSE,
   algorithm = NULL,
   algArgs = list()
 )
 }
 \arguments{
-\item{cctol}{Convergence criteria tolerances (Meyer 2007, 2019).}
+\item{cctol}{Convergence criteria tolerances (Meyer 2007, 2019). See details
+about the convergence checks in \code{\link[gremlin]{ccFun}}.}
 
 \item{ezero}{Effective zero to be used, values less than this number are
 treated as zero and fixed to this value.}
@@ -24,6 +26,10 @@ treated as zero and fixed to this value.}
 to this variable as a maximum.}
 
 \item{step}{A \code{numeric} value for scaling the proposed parameter updates.}
+
+\item{h}{A \code{numeric} value for finite difference algorithm of partial
+first derivatives for the likelihood function. Specifies the amount to add
+to parameter value to calculate the change in log-likelihood.}
 
 \item{lambda}{A \code{logical} indicating whether a residual variance should
 be factored out of the mixed model equations.}

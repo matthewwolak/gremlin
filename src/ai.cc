@@ -1,12 +1,12 @@
 #include "gremlin.h"
 
 
-/* returns 1 if successful, 0 if not:    H->x replaced */
-csi cs_ai(const cs *H, const cs *BLUXs, cs **Ginv,
-        const cs *R, const cs *KRinv, const cs *tWKRinv,
+/* replaces AI */
+cs *ai(cs *BLUXs, cs **Ginv,
+        cs *R, cs *KRinv, cs *tWKRinv,
         double *rory,  // residuals if lambda=FALSE else y if lambda=TRUE
-        const cs *W, const cs *tW, csi n, csi p, csi nG, csi *rfxlvls, csi nb,
-	const cs *Lc, const csi *Pinv,
+        cs *W, cs *tW, csi n, csi p, csi nG, csi *rfxlvls, csi nb,
+	cs *Lc, csi *Pinv,
 	csi thetaR,       // 0 if lambda=TRUE
         double sigma2e    // 1.0 if lambda=FALSE
 ){
@@ -26,7 +26,7 @@ csi cs_ai(const cs *H, const cs *BLUXs, cs **Ginv,
     delete [] Scol;
     return (0);
   }
- 
+
   if(thetaR != 0 && fabs(sigma2e - 1.00) < DBL_EPSILON) lambda = 0; else lambda = 1;
 
   if(lambda == 1){
@@ -96,7 +96,6 @@ csi cs_ai(const cs *H, const cs *BLUXs, cs **Ginv,
   }
   tB = cs_transpose(B, 1);
 
-
   
   // Set up modified MME like the MMA of Meyer 1997 eqn. 23
   //// Substitute `B` instead of `y`
@@ -144,6 +143,7 @@ csi cs_ai(const cs *H, const cs *BLUXs, cs **Ginv,
       }
       Scol[i] = 0.0;
     }  // end for i
+    
     cs_lsolve(Lc, p_sln);                         // x = L\x 
     cs_ltsolve(Lc, p_sln);		          // x = L'\x 
     cs_pvec(Pinv, p_sln, Scol, BRHS->m);          // b = P'*x 
@@ -168,8 +168,6 @@ csi cs_ai(const cs *H, const cs *BLUXs, cs **Ginv,
   for(i = 0; i < AI->p[AI->n]; i++) AI->x[i] *= 0.5;
   if(lambda == 1) for(i = 0; i < AI->p[AI->n]; i++) AI->x[i] /= sigma2e;
   //////////////////////////////////////////////////////////////////////////////
-  // Unpack result (AI->x) into `H`
-  for(i = 0; i < AI->p[ AI->n ]; i++) H->x[i] = AI->x[i];
 
   cs_spfree(tSBRHS);
   cs_spfree(tBRinvB);  
@@ -179,12 +177,11 @@ csi cs_ai(const cs *H, const cs *BLUXs, cs **Ginv,
   cs_spfree(tB);
   cs_spfree(B);
   cs_spfree(Rinv);
-  cs_spfree(AI);
 
   delete [] p_sln;
   delete [] Scol;
 
- return (1);
+ return (AI);
 }
 
 

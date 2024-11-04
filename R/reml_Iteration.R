@@ -42,14 +42,17 @@ remlIt.default <- function(grMod, ...){
   gnu <- lapply(grMod$nu, FUN = as, "dgCMatrix") #FIXME do this directly to begin with or just use dense matrices (class="matrix")
   nuv <- matlist2vech(grMod$nu)
   # convert algorithms for each iteration into integers
-  intfacalgit <- as.integer(factor(grMod$algit[1:grMod$maxit],
-    levels = c("EM", "AI"), ordered = TRUE))
-    ## Check that all are implemented in cpp (currently only AI or EM)
+  ## Below also checks that all are implemented in cpp (if nomatch <--> NA)
+  ### (currently only EM (1) or AItr/AIfd (2))
+  intfacalgit <- rep(NA, grMod$maxit)
+    intfacalgit[which(grMod$algit[1:grMod$maxit] == "EM")] <- 1
+    intfacalgit[which(grMod$sdit[1:grMod$maxit] == "AI")] <- 2
     if(any(is.na(intfacalgit))){
       stop(cat("Algorithm", grMod$algit[which(is.na(intfacalgit))],
 	"not implemented in c++, try", sQuote('gremlinR()'), "\n"))
     }
-
+  intfacfdit <- as.integer(grMod$fdit)
+  
   nnzWG <- with(grMod, c(length(W@x),		# No. nonzero W
     sapply(seq_len(length(thetaG)),
 	    FUN = function(g){length(modMats$listGeninv[[g]]@x)}))) # No. nz geninvs
@@ -68,14 +71,17 @@ remlIt.default <- function(grMod, ...){
   } else{
       dimZWG <- c(dimZWG, 0)
       geninv_i <- geninv_p <- geninv_x <- 0
-    cat("\n\n\t\t\t **NOTE:**",
-       "\ngremlin's c++ code is far too sophisticated for such a simple model.\n",
-       "\tRe-fitting with the", sQuote('gremlinR()'), "function instead\n\n")
+      if(grMod$v > 0){  
+        cat("\n\n\t\t\t **NOTE:**",
+        "\ngremlin's c++ code is far too sophisticated for such a simple model.\n",
+        "\tRe-fitting with the", sQuote('gremlinR()'), "function instead\n\n")
+      }
       return(remlIt.gremlinR(grMod))
     }
 
-  bound <- grMod$bound
-    bound[is.na(bound)] <- 0  # Replace NAs with 0
+  bounds <- grMod$bounds
+    bounds[is.na(bounds)] <- 0  # Replace NAs with 0
+
 
   Cout <- .C("ugremlin", PACKAGE = "gremlin",
 	as.double(grMod$modMats$y),
@@ -85,15 +91,14 @@ remlIt.default <- function(grMod, ...){
 	as.integer(c(grMod$dimsZg)),
 	as.integer(dimZWG), 			# Z, W, and geninv Dims
 	as.integer(nnzWG), 			# No. nnz in W and geninvs
-	as.integer(grMod$W@i), 					     #W
+	as.integer(grMod$W@i), 			#W
 	as.integer(grMod$W@p),
 	as.double(grMod$W@x),
-	as.integer(geninv_i), #geninv (generalized inverses)
-
+	as.integer(geninv_i), 			#geninv (generalized inverses)
 	as.integer(geninv_p),
 	as.double(geninv_x),
-	as.double(grMod$rfxIncContrib2loglik),		# Random Fx contribution to log-Likelihood
-        as.integer(grMod$lambda),		# TRUE/FALSE lambda (variance ratio?)
+	as.double(grMod$rfxIncContrib2loglik),	# Random Fx contribution to log-Likelihood
+        as.integer(grMod$lambda),	# TRUE/FALSE lambda (variance ratio?)
 	as.integer(grMod$p),				#p=No. nu params
 	as.integer(c(length(grMod$thetaG), length(grMod$thetaR))), #No. G and R nus
 	as.integer(unlist(lapply(gnu, FUN = function(g) g@Dim[[1L]]))),#dim GRs
@@ -101,9 +106,9 @@ remlIt.default <- function(grMod, ...){
 	as.integer(unlist(lapply(gnu, FUN = function(g) g@p))),	      #p GRs
 	as.integer(unlist(lapply(gnu, FUN = function(g) length(g@x)))), #no. non-zero GRs
 	as.double(unlist(lapply(gnu, FUN = function(g) g@x))),	#nu vector
-        as.integer(as.integer(grMod$conv)-1),   # constraint codes (F=0)
-        as.double(c(bound)),			#boundaries (1:p=LB | p+1:2p=UB
-	as.integer(length(grMod$Bpinv@x)),		#Bpinv (fixed fx prior inverse)
+        as.integer(as.integer(grMod$conv)-1),   	# constraint codes (F=0)
+        as.double(c(bounds)),			#boundaries (1:p=LB | p+1:2p=UB
+	as.integer(length(grMod$Bpinv@x)),	#Bpinv (fixed fx prior inverse)
 	as.integer(grMod$Bpinv@i),
 	as.integer(grMod$Bpinv@p),
 	as.double(grMod$Bpinv@x),
@@ -113,18 +118,19 @@ remlIt.default <- function(grMod, ...){
         as.double(c(grMod$Cinv_ii)),			#empty diag(Cinv)
 	as.double(c(grMod$r)),				#empty resdiuals
 	as.double(rep(0, grMod$maxit*(grMod$p+5))),	#itMat
-	as.integer(intfacalgit -1), 			#algorithm for each iteration
+	as.integer(intfacalgit - 1), 			#algorithm for each iteration
+	as.integer(intfacfdit - 1),			#first deriv. algorithm
 	as.integer(grMod$maxit),			#max it./n algit
 	as.double(grMod$step),			#init./default step-halving value
 	as.double(grMod$cctol),				#convergence tol.
 	as.double(grMod$ezero),				#effective 0
         as.double(grMod$einf),				#effective +/- max. values
-#uni?
 	as.integer(grMod$v),				#verbosity
 	as.integer(grMod$vit),				#when to output status
+	as.double(grMod$h),				#finite difference h value
 	as.integer(rep(0, length(grMod$sln))))		#empty sLc->pinv
 
-  i <- Cout[[36]]  #<-- index from c++ always increments +1 at end of for `i`
+  i <- Cout[[37]]  #<-- index from c++ always increments +1 at end of for `i`
 
   grMod$nu[] <- vech2matlist(Cout[[22]], attr(grMod$thetav, "skel"))
   grMod$dLdnu[] <- Cout[[29]]
@@ -139,12 +145,28 @@ remlIt.default <- function(grMod, ...){
   grMod$r[] <- Cout[[33]]
   #TODO Will definitely need R vs. c++ methods for `update.gremlin()`
   #### can directly use R's `grMod$sLc`, but will need to figure out how to give c++'s `cs_schol()` a pinv (need to reconstruct `sLc` in c++ around pinv (see old code on how I may have done this when I made sLc from sLm)
-  grMod$sLcPinv <- Cout[[43]]
+  grMod$sLcPinv <- Cout[[45]]
 
+  intfacalgitOut <- Cout[[35]][1:i] + 1
+  if(any(intfacalgitOut > 2)) warning("unrecognized algorithm outputted")
+  intfacfditOut <- Cout[[36]][1:i] + 1
+  if(any(intfacfditOut > 5)){
+    warning("unrecognized first derivative algorithm outputted")
+  }
+    intfacalgitEM <- which(intfacalgitOut == 1) #<-- index used several times
+    intfacalgitAI <- which(intfacalgitOut == 2) #<-- index used several times
+    # change second derivative values to NA for iterations AI fail, switch to EM
+    grMod$sdit[1:i][intfacalgitEM] <- NA
+    # change first derivative values for iterations AI fail, switch to EM
+    grMod$fdit[1:i][intfacalgitEM] <- levels(grMod$fdit)[5]
+    # remake algit values
+    grMod$algit[1:i][intfacalgitEM] <- "EM"
+    grMod$algit[1:i][intfacalgitAI] <- with(grMod,
+      paste0(sdit[1:i][intfacalgitAI], fdit[1:i][intfacalgitAI]))
+      
   itMat <- matrix(Cout[[34]][1:(i*(grMod$p+5))], nrow = i, ncol = grMod$p+5,
            byrow = TRUE)
-    dimnames(itMat) <- list(paste(seq(i), c("EM", "AI")[Cout[[35]][1:i] + 1],
-                sep = "-"),
+    dimnames(itMat) <- list(paste(seq(i), grMod$algit[1:i], sep = "-"),
 	    c(paste0(names(nuv), "_nu"), "sigma2e",
                "tyPy", "logDetC", "loglik", "itTime"))
 
@@ -224,8 +246,8 @@ remlIt.gremlinR <- function(grMod, ...){
     colnames(itMat) <- c(paste0(names(thetav), "_nu"),
 	paste0(names(thetav), "_theta"),
 	"sigma2e", "tyPy", "logDetC", "loglik", "itTime")
-  Ic <- Diagonal(x = 1, n = nrow(grMod$Cinv_ii))
-
+  prtCinv <- NULL
+  prtCinvIt <- 0  #<-- keep latest iteration in which prtCinv was calculated
 
   ############################################
   # 5d determine next varcomps to evaluate
@@ -297,71 +319,88 @@ remlIt.gremlinR <- function(grMod, ...){
 
     #################################
     # 5c check convergence criteria
-    ## Knight 2008 (ch. 6) says Searle et al. 1992 and Longford 1993 discuss diff types of converg. crit.
-    ## See Appendix 2 of WOMBAT help manual for 4 convergence criteria used
     cc <- rep(NA, 4)
     if(i > 1){
-      # wombat 1
-      cc[1] <- diff(itMat[c(i-1, i), "loglik"]) < grMod$cctol[1]
-      # wombat 2 (eqn. A.1) (also Knight 2008 (eqn. 6.1) criteria
-      cc[2] <- sqrt(sum((itMat[i, 1:p] - itMat[(i-1), 1:p])^2) / sum(itMat[i, 1:p]^2)) < grMod$cctol[2]
+      cc[1] <- ccFun1()   
+      cc[2] <- ccFun2()
     } else cc[1] <- FALSE  #<-- ensures one of the EM/AI/etc algorithms used if i==1
 
 
 
     #################################
     # 5d Determine next (co)variance parameters to evaluate:
+    ## if any algorithms need the diagonals of Cinv, calculate for this iteration
+    if(grMod$fdit[i] == "tr" | grMod$algit[i] == "EM"){	
+      if(grMod$v > 1 && vitout == 0) cat("\n\tcreate partial Cinv: chol2cinv_ii")
+      prtCinv <- chol2inv_ii(expand(sLc)$L, Z = prtCinv)
+        prtCinvIt <- i
+      # Calculate trace and u_g'u_g (tugug) terms needed in EM and "tr"/gradFun
+      ## only do this if no variance components besides residual
+      if(length(thetaG) > 0){
+        if(grMod$v > 1 && vitout == 0) cat("\n\tcalculate tugug(s) & trace(s)")
+        tugug_tr_out <- tugug_trace(thetaG, grMod$modMats$nb, grMod$rfxlvls,
+              grMod$modMats$listGeninv, prtCinv, grMod$sln,
+              pinv = sLc@perm + as.integer(1)) 
+      }
+    }
 
     ############################
     #    EM
     ############################
     if(grMod$algit[i] == "EM" && !all(cc, na.rm = TRUE)){
       if(grMod$v > 1 && vitout == 0) cat("\n\tEM to find next nu")
-      emOut <- em(nuv, thetaG, thetaR, conv,
-          grMod$modMats, grMod$nminffx, sLc, grMod$ndgeninv, grMod$sln, grMod$r)
-        nuvout <- emOut$nuv
+      nuvout <- em(nuv, thetaG, thetaR, conv,
+          grMod$rfxlvls, tugug_tr_out$tugug, tugug_tr_out$trace,
+          grMod$modMats$y, grMod$r, grMod$nminffx)
     }
 
 
-    ############################
-    #    AI
-    ############################
-    if(grMod$algit[i] == "AI"){
+    ########################################
+    #    AI with either analytical or
+    ##  finite difference first derivatives
+    ########################################
+    if(grMod$algit[i] != "EM" && grMod$sdit[i] == "AI"){
       if(grMod$v > 1 && vitout == 0) cat("\n\tAI to find next nu")
 #FIXME Currently, only allow when not: 
 if(nrow(theta[[thetaR]]) != 1){
   stop(cat("\nAI algorithm currently only works for a single residual variance"))
 }
-      Cinv <- solve(a = sLc, b = Ic, system = "A")
+
+      if(grMod$fdit[i] != "tr"){
+        # finite difference algorithm for first derivatives
+        #TODO instead interface next line with gremlinControl$algArgs
+        if(grMod$fdit[i] == "cfd"){
+          fd_in <- "cdiff"
+        } else{
+            fd_in <- ifelse(grMod$fdit[i] == "bfd", "bdiff", "fdiff")
+          }  
+        dLdnu <- gradFun_fd(nuvin = nuv, grObj = grMod,
+          lL = remlOut$loglik, fd = fd_in)
+      }  #<-- end finite difference first derivative choice
 
       if(lambda){
         AI <- ai(nuv, skel, thetaG,
              grMod$modMats, grMod$W, sLc, grMod$sln, grMod$r,
   	      thetaR = NULL,
 	      sigma2e)  #<-- NULL if lambda==FALSE
-        dLdnu <- gradFun(nuv, thetaG, grMod$modMats, Cinv, grMod$sln,
+	if(grMod$fdit[i] == "tr"){  #<-- analytical first derivatives      
+          dLdnu <- gradFun(nuv, thetaG, grMod$rfxlvls, grMod$sln,
+          	      tugug_tr_out$tugug, tugug_tr_out$trace,
 	    	      sigma2e = sigma2e, r = NULL, nminfrfx = NULL)
-#          dLdnu_TEST <- gradFun_TEST(nuv, thetaG,
-#	  	      grMod$modMats, sLc, grMod$ndgeninv, grMod$sln,	
-#		      sigma2e = sigma2e,   #<-- NULL if lambda==FALSE
-#		      thetaR = NULL, r = NULL, nminfrfx = NULL)  #<-- NULL if lambda==TRUE
-#          dLdnu_TEST2 <- gradFun_TEST2(nuv, thetaG,
-#	  	      grMod$modMats, sLc, grMod$ndgeninv, grMod$sln,	
-#		      sigma2e = sigma2e,   #<-- NULL if lambda==FALSE
-#		      thetaR = NULL, r = NULL, nminfrfx = NULL)  #<-- NULL if lambda==TRUE
+        } #<-- end analytical first derivative choice
+          
       } else{
           AI <- ai(nuv, skel, thetaG,
         	grMod$modMats, grMod$W, sLc, grMod$sln, grMod$r,
                 thetaR,   #<-- NULL if lambda==TRUE
 	        sigma2e = NULL)
 
-	  dLdnu <- gradFun(nuv, thetaG, grMod$modMats, Cinv, grMod$sln,
-  	      sigma2e = NULL, grMod$r, grMod$nminfrfx)
+	  if(grMod$fdit[i] == "tr"){  #<-- analytical first derivatives      
+	    dLdnu <- gradFun(nuv, thetaG, grMod$rfxlvls, grMod$sln,
+          	        tugug_tr_out$tugug, tugug_tr_out$trace,
+  	      	        sigma2e = NULL, grMod$r, grMod$nminfrfx)
 
-#	   dLdnu_TEST2 <- gradFun_TEST2(nuv, thetaG,
-#	  	      grMod$modMats, sLc, grMod$ndgeninv, grMod$sln,	
-#		      sigma2e = NULL,   #<-- NULL if lambda==FALSE
-#		      thetaR = thetaR, r = grMod$r, nminfrfx = grMod$nminfrfx) #<-- NULL if lambda==TRUE
+          } #<-- end analytical first derivative choice
         }
 
       ## Find next set of parameters using a quasi-Newton method/algorithm
@@ -412,10 +451,12 @@ if(nrow(theta[[thetaR]]) != 1){
 	    "\n\t   Hessian may be singular - switching to EM algorithm")
         }  #<-- end `if v>1`
         if(grMod$v > 1 && vitout == 0) cat("\n\tEM to find next nu")
-          emOut <- em(nuv, thetaG, thetaR, conv,
-            grMod$modMats, grMod$nminffx, sLc, grMod$ndgeninv, grMod$sln, grMod$r)
-          nuvout <- emOut$nuv
+          nuvout <- em(nuv, thetaG, thetaR, conv,
+            grMod$rfxlvls, tugug_tr_out$tugug, tugug_tr_out$trace,
+            grMod$modMats$y, grMod$r, grMod$nminffx)
           grMod$algit[i] <- "EM"
+          grMod$fdit[i] <- "dfree"
+          grMod$sdit[i] <- NA
 
       } else{  #<-- end if Hessian cannot be inverted
           Hinv <- solve(H)
@@ -502,14 +543,8 @@ if(nrow(theta[[thetaR]]) != 1){
               }  #<-- end if/else indecent proposals
 
             # CONVERGENCE checks for AI
-            ## See Appendix 2 of WOMBAT help manual for convergence criteria
-            # wombat 3 (eqn. A.2): Norm of the gradient vector
-            cc[3] <- sqrt(sum(dLdnu_con * dLdnu_con)) < grMod$cctol[3]
-            # wombat 4 (eqn A.3): Newton decrement
-            ## (see Boyd & Vandenberghe 2004 cited in wombat)
-            # AI only
-            #TODO: figure it whether to use "_con" versions or not
-#            cc[4] <- -1 * c(crossprod(dLdnu_con, H_con) %*% dLdnu_con)
+            cc[3] <- ccFun3()
+#            cc[4] <- ccFun4()
 
         }  #<-- end if/else Hessian can be inverted
 
@@ -576,17 +611,20 @@ stop(cat("\nNot allowing `NR` right now"))
     nu <- sapply(nuout, FUN = stTrans)
     itTime <- Sys.time() - stItTime
     if(grMod$v > 0 && vitout == 0){
-      if(grMod$v > 2 && grMod$algit[i] == "AI"){
-        sgd <- matrix(NA, nrow = p, ncol = p+2)  #<-- `sgd` is summary.gremlinDeriv 
-          dimnames(sgd) <- list(row.names(dLdnu),
-            c("gradient", "", "AI", rep("", p-1)))
-        sgd[, 1] <- dLdnu
-        for(rc in 1:p) sgd[rc, 3:(p+2)] <- AI[rc, ]
-        cat("\tstep reduction:", step, "\n")
-        cat("\tH modification", round(f, 3), "\n")
-        print(as.table(sgd), digits = 3, na.print = " | ", zero.print = ".")
-        cat("\n")
-      } 
+      if(grMod$v > 2){
+        if(grMod$algit[i] != "EM"){
+          sgd <- matrix(NA, nrow = p, ncol = p+2)  #<--`sgd` = summary.gremlinDeriv 
+            dimnames(sgd) <- list(row.names(dLdnu),
+              c("gradient", "", "AI", rep("", p-1)))
+          sgd[, 1] <- dLdnu
+#FIXME if get Hessian another way then need if statement about sdit          
+          for(rc in 1:p) sgd[rc, 3:(p+2)] <- AI[rc, ]
+          cat("\tstep reduction:", step, "\n")
+          cat("\tH modification", round(f, 3), "\n")
+          print(as.table(sgd), digits = 3, na.print = " | ", zero.print = ".")
+          cat("\n")
+        } 
+      }  
       cat("\t\ttook ", round(itTime, 2), units(itTime), "\n")
     }
     units(itTime) <- "secs"
@@ -602,7 +640,7 @@ stop(cat("\nNot allowing `NR` right now"))
 
   }  # END log-likelihood iterations
   #################################### 
-
+  
   itMat <- itMat[1:i, , drop = FALSE]
     rownames(itMat) <- paste(seq(i), grMod$algit[1:i], sep = "-")
   if(lambda){
@@ -614,10 +652,14 @@ stop(cat("\nNot allowing `NR` right now"))
 
 
   # Calculate Cinv_ii and AI for last set of parameters
-  grMod$Cinv_ii <- matrix(diag(solve(a = sLc, b = Ic, system = "A")), ncol = 1)
-
+  ## Cinv_ii only if didn't calculate prtCinv for last iteration
+  if(prtCinvIt < i){
+    prtCinv <- chol2inv_ii(sLc, Z = prtCinv)
+  }
+  grMod$Cinv_ii[sLc@perm + as.integer(1)] <- prtCinv@x[attr(prtCinv, "Zdiagp")]
+    
   ## AI
-  if(grMod$algit[i] != "AI"){
+  if(grMod$sdit[i] != "AI" | is.na(grMod$sdit[i])){
     if(lambda){
       AI <- ai(nuv, skel, thetaG,
 	     grMod$modMats, grMod$W, sLc, grMod$sln, grMod$r,

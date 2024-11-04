@@ -1,4 +1,5 @@
 #include "gremlincc.h"
+
 /*******************************************************************/
 /* 2 clock functions from SuiteSparse 5.1.0 by Tim Davis           */
 /* -------------------------------------------------------------------------- */
@@ -44,7 +45,6 @@ double simple_toc           /* returns time since last simple_tic */
 
 
 
-
 extern "C"{  
 void ugremlin(
 /*1 */	double *y,		// response
@@ -82,26 +82,29 @@ void ugremlin(
 /*33*/	double *res,		// residual vector
 /*34*/	double *itMat,		// parameter information at each iteration
 /*35*/	int *algit,		// algorithm for optimization at each iteration
-/*36*/	int *maxit,		// maximum No. iterations
-/*37*/  double *step,		// initial/default step-halving value
-/*38*/	double *cctol,		// convergence criteria tolerances
-/*39*/	double *ezero,		// effective zero
-/*40*/  double *einf,           // effective +/- max values
-/*41*/	int *v,			// verbosity level of  output messages
-/*42*/	int *vit,		// at what iterations to output messages
-/*43*/  int *sLcPinv		// empty Cholesky permutation vector
+/*36*/  int *fdit,		// First derivative algorithm at each iteration
+/*37*/	int *maxit,		// maximum No. iterations
+/*38*/  double *step,		// initial/default step-halving value
+/*39*/	double *cctol,		// convergence criteria tolerances
+/*40*/	double *ezero,		// effective zero
+/*41*/  double *einf,           // effective +/- max values
+/*42*/	int *v,			// verbosity level of  output messages
+/*43*/	int *vit,		// at what iterations to output messages
+/*44*/  double *finDiffH,	// finite differencing h-value
+/*45*/  int *sLcPinv		// empty Cholesky permutation vector
 		
 ){
 
   cs	 *Bpinv, *W, *tW,
-	 *R, *Rinv, *KRinv, *tyRinv, *tWKRinv, *tWKRinvW, *ttWKRinvW,
-	 *Ctmp, *C,
+	 *R, *Rinv, *KRinv, *tWKRinv, *tWKRinvW, *ttWKRinvW,
+	 *Ctmp, *C, *prtCinv,
 	 *RHS, *tmpBLUXs, *BLUXs,
 	 *AI;
+	 //TODO when implement Newton Decrement method need *invAI;
 
   css    *sLc;
   csn    *Lc;
-
+  
   int    nG = nGR[0];
 
   cs*    *geninv = new cs*[nG];
@@ -109,16 +112,16 @@ void ugremlin(
   cs*    *Ginv = new cs*[nG];
   cs* 	 *KGinv = new cs*[nG];
 
-  double t[2], T[2], took, dsLc, tyRinvy, tyPy, logDetC, sigma2e = 1.0,
-         loglik, d, cc2, cc2d, f, stpVal;
+  double t[2], T[2], took, tyPy, tyRinvy, logDetC, sigma2e,
+         loglik, d, cc2, cc2d, f, stpVal, h;
 
-  int 	 g, i, k, rw, si, si2, vitout,
+  int 	 g, i, k, si, si2, vitout,
 	 itc = 0,
-         dimM,      // GENERIC dimension of a matrix variable to be REUSED
-	 nr = dimZWG[1],
+	 errOrIntrpt = 0,  // logical if an error or interrupt signal
+         dimM,             // GENERIC matrix dimension variable to be REUSED 
 	 nffx,
-	 nminfrfx,
-	 bd;  
+	 bd,
+	 CinvX = 0;	  // logical if non-zeroes/X slot of prtCinv filled  
 
   int	 *rfxlvls = new int[nG];
 
@@ -128,10 +131,12 @@ void ugremlin(
     for(k = 0; k < p[0]; k++) con[k] = conv[k];  // to retain original values
 
   // first p[0]=Lwr. Bounds, second p[0]=Upr. Bounds
-  int    *wchBd = new int[2*p[0]];  
+  int    *wchBd = new int[ 2*p[0] ];  
     for(k = 0; k < 2*p[0]; k++) wchBd[k] = 0;  // initialize entire vector
 
-  double  *w = new double[dimZWG[3]];
+  int    *Zdiagp = new int[ dimZWG[3] ];  // location of diagonals in prtCinv
+
+  double  *w = new double[ dimZWG[3] ];  // length=ncol(W) = BLUXs->m
 
   g = (lambda[0]) ? nG : nG+1;
     double  *tugug = new double[g];  // includes crossprod(residual) when !lambda
@@ -144,9 +149,12 @@ void ugremlin(
 
 if(v[0] > 3) simple_tic(t);
 
+  sigma2e = (lambda[0]) ? 0.0 : 1.0;
 
   d = 0.0;    // temporary for calculating change in nu (cc2) and EM residual
 
+  h = finDiffH[0];  // finite differencing h value
+  
   // Setup all ginverse (geninv) matrices
   //// (leave elements for diagonal/I matrices alone)
   si = 0; si2 = 0;
@@ -183,52 +191,6 @@ if(v[0] > 3) simple_tic(t);
 
 
 
-  // setup R matrix
-  //// Assumes, just 1 R matrix 
-  si = 0; for(g = 0; g < nG; g++) si += nnzGRs[g];
-  dimM = dimGRs[nG];
-  R = cs_spalloc(dimM, dimM, nnzGRs[nG], true, false);
-  for(k = 0; k < nnzGRs[nG]; k++){
-    R->i[k] = iGRs[si+k];
-    R->x[k] = nu[si+k];
-  }
-  for(k = 0; k <= dimM; k++){
-    R->p[k] = k*dimM;
-  }
-
-  Rinv = cs_inv(R);
-/* 
-could do a check to make sure R was inverted correctly:
-  if(Rinv == NULL){
-    error("R-structure %i starting value(s) is/are improperly specified: check that all eigenvalues (`eigen(R)$values`) > 0 and that the cholesky decomposition can be formed (`chol(R)`)\n", nR);
-  }
-*/
-
-
-
-
-
-  // setup G matrices
-  si = 0;
-  for(g = 0; g < nG; g++){
-    dimM = dimGRs[g];
-    G[g] = cs_spalloc(dimM, dimM, nnzGRs[g], true, false);
-    for (k = 0; k < nnzGRs[g]; k++){        
-      G[g]->i[k] = iGRs[si+k];
-      G[g]->x[k] = nu[si+k];
-    }
-    si += nnzGRs[g];
-    for(k = 0; k<= dimM; k++){
-      G[g]->p[k] = k*dimM;
-    }
-    Ginv[g] = cs_inv(G[g]);
-  }
-
-
-
-
-
-
   //////////////////////////////////////////////////////////////////////////////
   // 1 Setup to create coefficient matrix of MME (C)
   // initialize W=[X Z]
@@ -243,15 +205,12 @@ could do a check to make sure R was inverted correctly:
   tW = cs_transpose(W, true);
 
 
-
-
-
   // setup 0 initialized RHS 1-column matrix
   //// keep explicit 0s for cs_gaxpy to work in forming RHS
   RHS = cs_spalloc(dimZWG[3], 1, dimZWG[3], true, false);
     // since will be iterating over same dimensions, set up Solution matrices
     //// XXX KEEP explicit 0s for BLUXs cholesky/triangular solve to work
-    tmpBLUXs = cs_spalloc(dimZWG[3], 1, dimZWG[3], true, false);  // *sln matrix
+    tmpBLUXs = cs_spalloc(dimZWG[3], 1, dimZWG[3], true, false);  // sln matrix
     BLUXs = cs_spalloc(dimZWG[3], 1, dimZWG[3], true, false);  // sln matrix
   for(k = 0; k < dimZWG[3]; k++){
     RHS->i[k] = k;
@@ -266,145 +225,36 @@ could do a check to make sure R was inverted correctly:
   BLUXs->p[0] = 0; BLUXs->p[1] = dimZWG[3];
 
 
-
-  // lambda: (co)variance ratios
-  if(lambda[0] == 1){
-    tWKRinvW = cs_multiply(tW, W);
-    // Fill in RHS
-    cs_gaxpy(tW, y, RHS->x);  // y = A*x+y XXX my `y` is cs_gaxpy's `x` 
-    // form tyy (crossprod(y)), but call it tyRinvy for conciseness
-    tyRinvy = 0.0;
-    for(k = 0; k < ny[0]; k++){
-      tyRinvy += y[k] * y[k];
-    }
-
-  //// NOT lambda: Straight (co)variances
-  }else{
-    // Rinv Kronecker with Diagonal/I
-    //// Make sure ORDER is correct
-    ////// (determine if want traits w/in individs or individs w/in traits)
-    KRinv = cs_kroneckerI(Rinv, dimZWG[2]); 
-    // setup tyRinv [t(y) %*% KRinv] to receive output from cs_gaxpy
-    tyRinv = cs_spalloc(1, dimZWG[2], dimZWG[2], true, false);
-      for(k = 0; k < dimZWG[2]; k++){
-        tyRinv->i[k] = 0;
-        tyRinv->p[k] = k;
-        tyRinv->x[k] = 0.0;
-      }
-      tyRinv->p[dimZWG[2]] = dimZWG[2];
-    // ASSUME cs_gaxpy does KRinv %*% y, which gives correct values for tyRinv@x
-    cs_gaxpy(KRinv, y, tyRinv->x);  // y = A*x+y XXX my `y` is cs_gaxpy's `x` 
-    tyRinvy = 0.0;   
-    for(k = 0; k < ny[0]; k++){
-      tyRinvy += tyRinv->x[k] * y[k];  
-    }
-    
-
-
-
-    // Components of Meyer 1989 eqn 2
-    tWKRinv = cs_multiply(tW, KRinv);
-    tWKRinvW = cs_multiply(tWKRinv, W);
-    // Next creates RHS
-    //// Meyer '97 eqn 11
-    //// (Note different order of RHS from Meyer '89 eqn 6; Meyer '91 eqn 4)
-    cs_gaxpy(tWKRinv, y, RHS->x);  // y = A*x+y XXX my `y` is cs_gaxpy's `x` 
-
-  }    // end if lambda=FALSE
-
-  // Now take transpose of transpose to correctly order (don't ask why)
-  ttWKRinvW = cs_transpose(tWKRinvW, true);
-  cs_spfree(tWKRinvW);
-  tWKRinvW = cs_transpose(ttWKRinvW, true);
-  cs_spfree(ttWKRinvW);
-
-
-
-
-
-  // 1c Now make coefficient matrix of MME
-  //// form Kronecker products for each G and ginverse element (i.e., I or geninv)
-  for(g = 0; g < nG; g++){
-    if(ndgeninv[g] == 0){   // Diagonal matrix kronecker product: Ginv %x% I
-      KGinv[g] = cs_kroneckerI(Ginv[g], dimZWG[4+g]);
-    }else{  // generalized inverse kronecker product: Ginv %x% geninv
-      KGinv[g] = cs_kroneckerA(Ginv[g], geninv[g]);
-    }
-  }
-  //// Construct C
-  if(nG > 0){
-    Ctmp = cs_omega(KGinv, nG, Bpinv);
-    C = cs_add(tWKRinvW, Ctmp, 1.0, 1.0);
-  }else{
-    C = cs_add(tWKRinvW, Bpinv, 1.0, 1.0);
-  }
-
-
-
-
-if(v[0] > 3){
-  took = simple_toc(t); 
-  Rprintf("%6.4f sec.: initial cpp setup (to get C)\n", took);
-  simple_tic(t);
-}
-
-
-
-
-
-
-  //1d Find best order of C pivots!
-  //// Graser et al. 1987 (p1363) when singular C, |C| not invariant to order
-  //// of C, therefore same order (of pivots) must be used in each loglik iteration
-  //// Hadfield (2010, MCMCglmm paper App B): details on chol, ordering, and updating
-  
-  //// TODO Supernodal decomposition??? Can do it with Csparse? Need something else?
-  // Symbolic Cholesky factorization of C
-  sLc = cs_schol(1, C);
-  if(sLc == NULL){
-    error("FAILED: symbolic Cholesky factorization of Coefficient matrix (`C`)\n");
-  }
-
-
-if(v[0] > 3){
-  took = simple_toc(t);
-  Rprintf("  %6.4f sec.: initial cpp cs_schol(C)\n", took);
-  simple_tic(t); 
-}
-
-
-
-
-
   // Create variables needed for log-likelihood calculations
   // Used for log(|R|) and log(|G|) <-- Meyer 1989 (univar.) & 1991 (multivar.)
   for(g = 0; g < nG; g++){
     rfxlvls[g] = dimZgs[2*g+1];
   }
-  nminfrfx = nminffx[0] - nr; 
 
-
+  // initialize to zero: will change for lambda=TRUE else always be passed to reml
+  //// as 0.0 to be calculated within reml() for each G/R
+  tyRinvy = 0.0;
+  if(lambda[0] == 1){
+    // below don't change between REML iterations for lambda=TRUE
+    tWKRinvW = cs_multiply(tW, W);
+    // Fill in RHS
+    cs_gaxpy(tW, y, RHS->x);  // y = A*x+y XXX my `y` is cs_gaxpy's `x` 
+    // form tyy (crossprod(y)), but call it tyRinvy for conciseness
+    //// either non-zero for all iterations or 0.0 passed in when lambda=FALSE
+    for(k = 0; k < ny[0]; k++){
+      tyRinvy += y[k] * y[k];
+    }
+  }  // end if lambda=TRUE
 
 
   // setup empty AI matrix
   AI = cs_spalloc(p[0], p[0], p[0]*p[0], true, false);
-  si = 0;
-  for(k = 0; k < p[0]; k++){
-    AI->p[k] = si;
-    for(g = 0; g < p[0]; g++){
-      AI->i[si] = g;
-      AI->x[si] = 1.0;
-      si++;
-    }
-  }
-  AI->p[ p[0] ] = si;
-
 
 
 
 if(v[0] > 3){
   took = simple_toc(t);
-  Rprintf("  %6.4f sec.: rest of initial cpp setup\n", took);
+  Rprintf("  %6.4f sec.: initial cpp setup\n", took);
 }
 
 
@@ -416,14 +266,19 @@ if(v[0] > 3){
 
   //////////////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
-  //XXX									     XXX
-  /*		REML ITERATIONS			REML ITERATIONS		      */
-  //XXX									     XXX
+  //XXX									   XXX
+  //XXX									   XXX
+  //XXX									   XXX
+  /*		REML ITERATIONS			REML ITERATIONS		    */
+  //XXX									   XXX
+  //XXX									   XXX
+  //XXX									   XXX
   //////////////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
+
+
   for(i = 0; i < maxit[0]; i++){
     simple_tic(T);
-    simple_tic(t);
     if(i == 0){vitout = 0;}else{vitout = (i+1)%vit[0];}  // always do first iteration
     if(v[0] > 0 && vitout == 0){
       Rprintf("  %i of max %i\t", i+1, maxit[0]);//TODO TIME of DAY format as remlIt
@@ -446,10 +301,6 @@ if(v[0] > 3){
     }  // end v>0
 
 
-
-
-
-
     // For ALL iterations i=1 and greater
     if(i > 0){
       cs_spfree(R); cs_spfree(Rinv);
@@ -457,289 +308,168 @@ if(v[0] > 3){
         cs_spfree(G[g]);
         cs_spfree(Ginv[g]);
       }
-      cs_spfree(C);
       cs_nfree(Lc);
-
-
-
-      // setup R matrix
-      //// Assumes, just 1 R matrix 
-      si = 0; for(g = 0; g < nG; g++) si += nnzGRs[g];
-      dimM = dimGRs[nG];
-      R = cs_spalloc(dimM, dimM, nnzGRs[nG], true, false);
-      for(k = 0; k < nnzGRs[nG]; k++){
-        R->i[k] = iGRs[si+k];
-        R->x[k] = nu[si+k];
+      
+      if(lambda[0] == 0){
+        cs_spfree(tWKRinv);
+        cs_spfree(tWKRinvW);
       }
-      for(k = 0; k <= dimM; k++){
-        R->p[k] = k*dimM;
-      }
+      
+    }  // End if i>0
 
-      Rinv = cs_inv(R);
+    // setup R matrix
+    //// Assumes, just 1 R matrix 
+    si = 0; for(g = 0; g < nG; g++) si += nnzGRs[g];
+    dimM = dimGRs[nG];
+    R = cs_spalloc(dimM, dimM, nnzGRs[nG], true, false);
+    for(k = 0; k < nnzGRs[nG]; k++){
+      R->i[k] = iGRs[si+k];
+      R->x[k] = nu[si+k];
+    }
+    for(k = 0; k <= dimM; k++){
+      R->p[k] = k*dimM;
+    }
+
+    Rinv = cs_inv(R);
 /* 
 could do a check to make sure R was inverted correctly:
   if(Rinv == NULL){
-    error("R-structure %i starting value(s) is/are improperly specified: check that all eigenvalues (`eigen(R)$values`) > 0 and that the cholesky decomposition can be formed (`chol(R)`)\n", nR);
+    Rprintf("R-structure %i starting value(s) is/are improperly specified: check that all eigenvalues (`eigen(R)$values`) > 0 and that the cholesky decomposition can be formed (`chol(R)`)\n", nR);
+    errOrIntrpt = 1;
+    break;
   }
 */
 
 
-
-      // setup G matrices
-      si = 0;
-      for(g = 0; g < nG; g++){
-        dimM = dimGRs[g];
-        G[g] = cs_spalloc(dimM, dimM, nnzGRs[g], true, false);
-        for (k = 0; k < nnzGRs[g]; k++){        
-          G[g]->i[k] = iGRs[si+k];
-          G[g]->x[k] = nu[si+k];
-        }
-        si += nnzGRs[g];
-        for(k = 0; k<= dimM; k++){
-          G[g]->p[k] = k*dimM;
-        }
-        Ginv[g] = cs_inv(G[g]);
+    // setup G matrices
+    si = 0;
+    for(g = 0; g < nG; g++){
+      dimM = dimGRs[g];
+      G[g] = cs_spalloc(dimM, dimM, nnzGRs[g], true, false);
+      for (k = 0; k < nnzGRs[g]; k++){        
+        G[g]->i[k] = iGRs[si+k];
+        G[g]->x[k] = nu[si+k];
       }
-
-
-      //////////////////////////////////////////////////////////////////////////
-      // 1 Setup to create coeeficient matrix of MME (C)
-      //// only do this part for NOT lambda: straight (co)variances
-      ////// same terms under lambda model don't contain Rinv so don't change
-      if(lambda[0] == 0){
-        cs_spfree(tWKRinv);
-        cs_spfree(tWKRinvW);
-
-        // Update `KRinv` (Rinv Kronecker with Diagonal/I)
-        //// Make sure ORDER is correct
-        ////// (determine if want traits w/in individs or individs w/in traits)
-        cs_kroneckerIupdate(Rinv, dimZWG[2], KRinv);
-        // Reset tyRinv to 0.0 so cs_gaxpy works right
-        for(k = 0; k < dimZWG[2]; k++) tyRinv->x[k] = 0.0;
-        // ASSUME cs_gaxpy does KRinv %*% y, giving correct values for tyRinv@x
-        cs_gaxpy(KRinv, y, tyRinv->x);  // y = A*x+y XXX my `y` is cs_gaxpy's `x`
- 
-        tyRinvy = 0.0;   
-        for(k = 0; k < ny[0]; k++){
-          tyRinvy += tyRinv->x[k] * y[k];  
-        }
-
-        // Components of Meyer 1989 eqn 2
-        tWKRinv = cs_multiply(tW, KRinv);
-        tWKRinvW = cs_multiply(tWKRinv, W);
-        // Next creates RHS
-        //// Meyer '97 eqn 11
-        //// (Note different order of RHS from Meyer '89 eqn 6; Meyer '91 eqn 4)
-        // Reset RHS to 0.0 so cs_gaxpy works right
-        for(k = 0; k < dimZWG[3]; k++) RHS->x[k] = 0.0;
-        cs_gaxpy(tWKRinv, y, RHS->x);  // y = A*x+y XXX my `y` is cs_gaxpy's `x` 
-
-      }    // end if lambda=FALSE
-
-      // Now take transpose of transpose to correctly order (don't ask why)
-      ttWKRinvW = cs_transpose(tWKRinvW, true);
-      cs_spfree(tWKRinvW);
-      tWKRinvW = cs_transpose(ttWKRinvW, true);
-      cs_spfree(ttWKRinvW);
+      si += nnzGRs[g];
+      for(k = 0; k<= dimM; k++){
+        G[g]->p[k] = k*dimM;
+      }
+      Ginv[g] = cs_inv(G[g]);
+    }
 
 
 
+    // need to set up sLc once and not again
+    //// just construct matrices needed to make C
+    if(lambda[0] == 0){
+      // NOT lambda: Straight (co)variances
+      // Rinv Kronecker with Diagonal/I
+      //// Make sure ORDER is correct
+      ////// (determine if want traits w/in individs or individs w/in traits)
+      if(i == 0){
+        KRinv = cs_kroneckerI(Rinv, dimZWG[2]); 
+      } else cs_kroneckerIupdate(Rinv, dimZWG[2], KRinv);
 
-      // 1c Now make coefficient matrix of MME
-      //// form Kronecker products for each G and ginverse element (i.e., I or geninv)
+      // Components of Meyer 1989 eqn 2
+      tWKRinv = cs_multiply(tW, KRinv);
+      tWKRinvW = cs_multiply(tWKRinv, W);
+    }
+     
+    // Now take transpose of transpose to correctly order
+    //// (cs_transpose sorts, do twice so end with column ordered matrix)
+    ttWKRinvW = cs_transpose(tWKRinvW, true);
+    cs_spfree(tWKRinvW);
+    tWKRinvW = cs_transpose(ttWKRinvW, true);
+    cs_spfree(ttWKRinvW);
+    
+    
+    // 1c Now make coefficient matrix of MME
+    if(i == 0){   
+      // form Kronecker products for each G and ginverse element (i.e., I or geninv)
       for(g = 0; g < nG; g++){
         if(ndgeninv[g] == 0){   // Diagonal matrix kronecker product: Ginv %x% I
-          cs_kroneckerIupdate(Ginv[g], dimZWG[4+g], KGinv[g]);
+          KGinv[g] = cs_kroneckerI(Ginv[g], dimZWG[4+g]);
         }else{  // generalized inverse kronecker product: Ginv %x% geninv
-          cs_kroneckerAupdate(Ginv[g], geninv[g], KGinv[g]);
+          KGinv[g] = cs_kroneckerA(Ginv[g], geninv[g]);
         }
       }
       //// Construct C
       if(nG > 0){
-        cs_omegaupdate(KGinv, nG, Bpinv, Ctmp); 
+        Ctmp = cs_omega(KGinv, nG, Bpinv);
         C = cs_add(tWKRinvW, Ctmp, 1.0, 1.0);
       }else{
         C = cs_add(tWKRinvW, Bpinv, 1.0, 1.0);
       }
 
 
-    }  // End if i>0
-
-
-
-
-
 if(v[0] > 3){
   took = simple_toc(t); 
-  Rprintf("\n  %6.4f sec.: cpp REML i=%i setup", took, i);
+  Rprintf("%6.4f sec.: initial cpp setup (to get C)\n", took);
   simple_tic(t);
 }
 
 
-
-
-
-
-    // Update Cholesky factorization of C
-    Lc = cs_chol(C, sLc);  //TODO update when i>0? (cs_updown)
-    if(Lc == NULL){
-      error("\nMixed Model Coefficient matrix (C) singular: possibly caused by a bad combination of G and R (co)variance parameters");
-    }
-
-
-
-
+      //1d Find best order of C pivots!
+      //// Graser et al. 1987 (p1363) when singular C, |C| not invariant to order
+      //// of C, therefore same order (of pivots) must be used in each loglik iteration
+      //// Hadfield (2010, MCMCglmm paper App B): details on chol, ordering, and updating
+  
+      //// TODO Supernodal decomposition??? Can do it with Csparse? Need something else?
+      // Symbolic Cholesky factorization of C
+      sLc = cs_schol(1, C);
+if(sLc == NULL){
+  Rprintf("FAILED symbolic Cholesky factorization of Coefficient matrix (`C`)\n");
+  errOrIntrpt = 1;
+  break;
+}
+      cs_spfree(C);  // make inside reml() so don't need again here 
 
 if(v[0] > 3){
   took = simple_toc(t);
-  Rprintf("\n    %6.4f sec.: cpp REML i=%i cs_chol(C)", took, i);
-  simple_tic(t);
+  Rprintf("  %6.4f sec.: initial cpp cs_schol(C)\n", took);
+  simple_tic(t); 
 }
 
 
-
-
-
-
-
-
-    ////////////////////////////////////////////////////////////////////////////
-    // solve MME for BLUEs/BLUPs
-    //// Do now, because need solutions as part of log-likelihood calc. (for tyPy)
-    //XXX tmpBLUXs must have EXPLICIT 0s, else triangular solve = incorrect answer
-    cs_ipvec(sLc->pinv, RHS->x, tmpBLUXs->x, C->n) ;   /* x = P*b */
-    cs_lsolve(Lc->L, tmpBLUXs->x) ;                    /* x = L\x */
-    cs_ltsolve(Lc->L, tmpBLUXs->x) ;                   /* x = L'\x */
-    cs_pvec(sLc->pinv, tmpBLUXs->x, BLUXs->x, C->n) ;  /* b = P'*x */
-
-
-if(v[0] > 3){
-  took = simple_toc(t); 
-  Rprintf("\n\t    %6.4f sec.: cpp REML i=%i sln forward/back solve with chol(C)", took, i);
-  simple_tic(t);
-}
-
-
-
-    // calculate residuals as r = y - W %*% sln
-    // put y in r to be over-written
-    for(k = 0; k < ny[0]; k++){
-      res[k] = -1.0 * y[k];
-    }
-    //// below rearranges to -r = W %*% sln - y
-    cs_gaxpy(W, BLUXs->x, res);   //  y = A*x+y
-    for(k = 0; k < ny[0]; k++){
-      res[k] *= -1.0;
-    }
-
-
-
-
-if(v[0] > 3){
-  took = simple_toc(t);
-  Rprintf("\n    %6.4f sec.: cpp REML i=%i sln/r calc.", took, i);
-  simple_tic(t);
-}
-
-
-
-
-
-
-
-
-
-    ////////////////////////////////////////////////////////////////////////////
-    // 5 record log-likelihood, check convergence, & determine next varcomps  
-    //// 5a determine log(|C|) and y'Py
-    // Boldman and Van Vleck 1991 eqn. 6 (tyPy) and 7 (log|C|)    
-    // Meyer 1997 eqn. 13 (tyPy)
-
-    // set diagonal sum of Lc, tyPy, and loglik back to 0/starting values
-    tyPy = tyRinvy;
-    dsLc = 0.0; loglik = 0.0;  
-    // 'by hand' calculate `tyPy = tyRinvy -  crossprod(BLUXs, RHS)`
-    for(k = 0; k < dimZWG[3]; k++){
-      tyPy -= BLUXs->x[k] * RHS->x[k];
-    }
     
-    // calculate logDetC from diagonals of Lc
-    for(k = 0; k < C->n; k++){
-      rw = Lc->L->p[k];
-      dsLc += log(Lc->L->x[rw]);
-    }
-    logDetC = 2.0 * dsLc;
-
-    // Factored out residual variance (only for lambda scale)
-    if(lambda[0] == 1) sigma2e = tyPy / nminffx[0];
-
-
-    // V=2 LEVEL of OUTPUT
-    if(v[0] > 2 && vitout == 0){
-      Rprintf("\n\tsigma2e\ttyPy\tlogDetC\n");
-      Rprintf("\t-------\t----\t--------\n");
-      Rprintf("\t%6.4f\t%6.4f\t%6.4f\n", sigma2e, tyPy, logDetC);
-    }  // end v > 2
-
-
-
-    // Construct the log-likelihood (Meyer 1997 eqn. 8)
-    //// (firt put together as `-2 log-likelihood`)
-    // `log(|R|)`
-    if(lambda[0] == 1){
-      loglik += nminfrfx * log(sigma2e);
-    }else{
-      loglik += ny[0] * log(nu[p[0]-1]);  //FIXME won't work when R (co)variances
-    }
-    if(v[0] > 3) Rprintf("\n\t log|R|=%6.4f", loglik);
-
-    // `log(|G|)`
-    //// Meyer 1997 eqn. 9 for lambda=FALSE equation
-    //// NOTE: setting `sigma2e=1.0` above (when lambda=FALSE) means 1 line below
-    //// FIXME only works for independent random effects
-    if(nG > 0){
-      for(g = 0; g < nG; g++){
-        //FIXME below assumes only one entry in a G[g]
-        loglik += rfxlvls[g] * log(G[g]->x[0] * sigma2e);
-      }
-    }
-      if(v[0] > 3) Rprintf("\n\t log|G| added=%6.4f", loglik);
-    loglik += rfxlL[0];    // rfxIncContrib2loglik
-      if(v[0] > 3) Rprintf("\n\t\t log|G| rfxlL(%6.4f) added=%6.4f", rfxlL[0], loglik);
-
-    // log(|C|) + tyPy
-    //// if lambda=TRUE then nminffx=tyPy/sigma2e simplified below
-    ////// (because sigma2e=tyPy/nminffx)
-    if(lambda[0] == 1){
-      loglik += logDetC + nminffx[0];
-    }else{
-      loglik += logDetC + tyPy;
-    }
-      if(v[0] > 3) Rprintf("\n\t log|C|+tyPy added=%6.4f", loglik);
+    } // end setup if first iteration (i == 0)  
     
-    // Multiply by -0.5 to calculate `loglik` from `-2loglik`
-    loglik *= -0.5;
-      if(v[0] > 3) Rprintf("\n\t multiplied by -0.5=%6.4f", loglik);
 
 
-
-
-if(v[0] > 3){
-  took = simple_toc(t);
-  Rprintf("\n    %6.4f sec.: cpp REML i=%i log-likelihood calc.", took, i);
-  simple_tic(t);
+    Lc = reml(ny[0], dimZWG, nG, p[0], y,
+        Bpinv, W, tW, rfxlvls, rfxlL[0],
+        R, Rinv, G, Ginv, ndgeninv, geninv,
+        KRinv, KGinv, tWKRinv, tWKRinvW, Ctmp,
+        RHS, tmpBLUXs, BLUXs, res,
+        sLc, 
+        &tyPy, &logDetC, &sigma2e,
+        tyRinvy,
+        nminffx[0],
+        &loglik,
+        i, v[0], vitout, lambda[0]); 
+if(loglik == 0.0){
+  Rprintf("\nUnsuccessful REML calculation: iteration %i", i);
+  errOrIntrpt = 1;
+  break;
 }
-
 
 
 
     //XXX	**** END LOG-LIKELIHOOD CALCULATION **** 		XXX
-    //XXX	**** END LOG-LIKELIHOOD CALCULATION **** 		XXX
-    /**************************************************************************/
-    /**************************************************************************/
     /**************************************************************************/
 
 
+
+
+
+    simple_tic(t);
+    if(i == 0){ 
+      // setup partial inverse of C (placeholder object) (need Lc first)
+      //// allocate enough space for twice size of L (include diagonals twice)
+      k = 2 * Lc->L->p[ dimZWG[3] ];
+      prtCinv = cs_spalloc(dimZWG[3], dimZWG[3], k, true, false);
+
+    }  // end if i=0 setup of prtCinv
 
 
 
@@ -809,79 +539,185 @@ if(v[0] > 3){
       f = 0.0;  // initialize to a default/no alteration of Hessian
 
 
-      if(!tugugFun(tugug, w, nG, rfxlvls, con,
+      // Gradient via Analytical/trace calculation (vs. Finite Difference)
+      if(fdit[i] == 3){  
+
+        if(!tugugFun(tugug, w, nG, rfxlvls, con,
 	    nffx, ndgeninv, geninv, BLUXs)){
-        error("\nUnsuccessful tugug calculation: AI algorithm in iteration %i", i);
-      }
+          if((v[0] > 1) && (vitout == 0)){
+            Rprintf("\nUnsuccessful tugug calculation iteration %i", i);
+              Rprintf("\n\tSwitching to finite difference algorithm");
+          }
+          fdit[i] = 1;  // switch algorithm to central finite difference method
+        }  // end if tugugFun unsuccessful
+        
 if(v[0] > 3){
   took = simple_toc(t);
   Rprintf("\n\t    %6.6f sec.: calculate tugug(s)", took);
   simple_tic(t);
 }
-
-      if(!traceFun(trace, w, nG, rfxlvls,
-	    nffx, ndgeninv, geninv, BLUXs->m, Lc->L, sLc->pinv)){
-        error("\nUnsuccessful trace calculation: AI algorithm in iteration %i", i);
-      }
+      }  // end fdit=3 analytical gradients
+      
+ 
+      
+      if(fdit[i] == 3){  // keep checking in case error above and switched to FD 
+      
+        if(!chol2inv_ii(Lc->L, sLc->pinv, prtCinv, Zdiagp, Cinv_ii, CinvX)){
+          if((v[0] > 1) && (vitout == 0)){
+            Rprintf("\nValue not >0 on diagonal of Cholesky: iteration %i", i);
+              Rprintf("\n\tSwitching to finite difference algorithm");
+          }
+          fdit[i] = 1;  // switch algorithm to central finite difference method
+        } else CinvX++ ;
+     
 if(v[0] > 3){
   took = simple_toc(t);
-  Rprintf("\n\t    %6.6f sec.: calculate trace(s)", took);
+  Rprintf("\n\t    %6.6f sec.: chol2inv_ii", took);
   simple_tic(t);
 }
 
+      }  // end fdit=3 analytical gradients
+
+
+        
+      if(fdit[i] == 3){  // keep checking in case error above and switched to FD 
+      
+        if(!traceFun(trace, nG, rfxlvls,
+	    nffx, ndgeninv, geninv, BLUXs->m,
+	    prtCinv, sLc->pinv, Cinv_ii)){
+          if((v[0] > 1) && (vitout == 0)){
+            Rprintf("\nUnsuccessful trace calculation iteration %i", i);
+              Rprintf("\n\tSwitching to finite difference algorithm");
+          }
+          fdit[i] = 1;  // switch algorithm to central finite difference method
+        }  // end if traceFun unsuccessful
+        
+if(v[0] > 3){
+  took = simple_toc(t);
+  Rprintf("\n\t    %6.6f sec.: traceFun calculate trace(s)", took);
+  simple_tic(t);
+}
+
+      }  // end fdit=3 analytical gradients
+      
+      
+           
       if(lambda[0] == 1){
-        if(cs_ai(AI, BLUXs, Ginv, R, 0, 0,
+        cs_spfree(AI);  //TODO how pass if not initialized
+        AI = ai(BLUXs, Ginv, R, 0, 0,
 	      y, W, tW, ny[0], p[0], nG, rfxlvls, nffx, Lc->L, sLc->pinv,
-	      0, sigma2e) == 0){
-          error("\nUnsuccessful AI algorithm in iteration %i", i);
-        }
+	      0, sigma2e);
+	if(AI == 0){
+	  if((v[0] > 1) && (vitout == 0)){
+            Rprintf("\nUnsuccessful AI algorithm in iteration %i", i);
+              Rprintf("\n\tSwitching to EM algorithm");
+          }
+          algit[i] = 0;  // switch algorithm to EM
+        }  // end if AI 0
 if(v[0] > 3){
   took = simple_toc(t);
   Rprintf("\n\t    %6.6f sec.: calculate AI matrix", took);
   simple_tic(t);
 }
 
-        if(!cs_gradFun(nu, dLdnu,
+
+        // fdit 3 is trace/analytical gradient calculation
+        if(fdit[i] == 3){
+          if(!gradFun(nu, dLdnu,
 	      tugug, trace, con,
 	      ny[0], nG, rfxlvls, nffx,
               sigma2e,    // 1.0 if lambda=FALSE
 	      0, res)){      // 0 if lambda=TRUE
 	      
-          error("\nUnsuccessful gradient calculation in iteration %i", i);
-        }  // end if cs_gradFun
+            if((v[0] > 1) && (vitout == 0)){
+              Rprintf("\nUnsuccessful gradient calculation iteration %i", i);
+                Rprintf("\n\tSwitching to EM algorithm");
+            }
+              algit[i] = 0;  // switch algorithm to EM
+          }  // end if gradFun
 if(v[0] > 3){
   took = simple_toc(t);
   Rprintf("\n\t    %6.4f sec.: calculate gradient", took);
   simple_tic(t);
 }
+        }  // end if fdit=3
+               
 
       } else{
-        // when lambda = FALSE
-        if(cs_ai(AI, BLUXs, Ginv, R, KRinv, tWKRinv,
+          // when lambda = FALSE
+          cs_spfree(AI);
+          AI = ai(BLUXs, Ginv, R, KRinv, tWKRinv,
 	      res, W, tW, ny[0], p[0], nG, rfxlvls, nffx, Lc->L, sLc->pinv,
-	      nG, 1.0) == 0){
-          error("\nUnsuccessful AI algorithm in iteration %i", i);
-        }
+	      nG, 1.0);
+	  if(AI == NULL){
+	    if((v[0] > 1) && (vitout == 0)){
+              Rprintf("\nUnsuccessful AI algorithm in iteration %i", i);
+                Rprintf("\n\tSwitching to EM algorithm");
+            }
+            algit[i] = 0;  // switch algorithm to EM
+          }  // end if AI NULL
+
 if(v[0] > 3){
   took = simple_toc(t);
   Rprintf("\n\t    %6.6f sec.: calculate AI matrix", took);
   simple_tic(t);
 }
 
-        if(!cs_gradFun(nu, dLdnu,
+
+          // fdit 3 is trace/analytical gradient calculation
+          if(fdit[i] == 3){
+            if(!gradFun(nu, dLdnu,
 	      tugug, trace, con,
 	      ny[0], nG, rfxlvls, nffx,
               1.0,    // 1.0 if lambda=FALSE
 	      nG, res)){      // 0 if lambda=TRUE
-          error("\nUnsuccessful gradient calculation in iteration %i", i);
-        }  // end if cs_gradFun
+            if((v[0] > 1) && (vitout == 0)){
+              Rprintf("\nUnsuccessful gradient calculation iteration %i", i);
+                Rprintf("\n\tSwitching to EM algorithm");
+            }
+              algit[i] = 0;  // switch algorithm to EM
+            }  // end if gradFun
+
 if(v[0] > 3){
   took = simple_toc(t);
   Rprintf("\n\t    %6.4f sec.: calculate gradient", took);
   simple_tic(t);
 }
+          }  // end if fdit=3    
 
-      }  // end if/else lambda
+        }  // end if/else lambda
+
+
+
+
+
+      // fdit=0-2 is finite differences for the gradient calculation
+      //// specify 1 way regardless of lambda
+      if(fdit[i] < 3){
+        if(!gradFun_fd(nu, fdit[i], h,
+            dLdnu, loglik, con, bound, v[0],
+            ny[0], dimZWG, nG, p[0], y,
+            Bpinv, W, tW, rfxlvls, rfxlL[0],
+            ndgeninv, geninv, KRinv,
+            Ctmp, RHS, tmpBLUXs, BLUXs,
+            sLc,
+            tyRinvy,
+            nminffx[0],
+            nnzGRs, dimGRs, iGRs, lambda[0])){      // 0 if lambda=TRUE
+    if((v[0] > 1) && (vitout == 0)){
+      Rprintf("\nUnsuccessful finite difference gradient calculation iteration %i",
+        i);
+        Rprintf("\n\tSwitching to EM algorithm");
+    }
+          algit[i] = 0;  // switch algorithm to EM
+        }  // end if gradFun_fd
+
+if(v[0] > 3){
+  took = simple_toc(t);
+  Rprintf("\n\t    %6.4f sec.: calculate gradient", took);
+  simple_tic(t);
+}
+      }  // end if fdit=0-2
 
 
 
@@ -895,15 +731,18 @@ if(v[0] > 3){
       //////(though gremlin uses `+` instead of J & T '95 `-` because
       ////// gremlin multiplies gradient by -0.5 in `gradFun()`)
 
-      for(k = 0; k < p[0]; k++) newnu[k] = 0.0;  // clear
+      if(algit[i] > 0){  // maybe switched to EM because bad AI/gradient above
+        for(k = 0; k < p[0]; k++) newnu[k] = 0.0;  // clear
 
-      if(!qNewtRhap(nu, newnu, dLdnu, AI,
+        if(!qNewtRhap(nu, newnu, dLdnu, AI,
 		p[0], con, wchBd, f, ezero, v[0])){
-        // AI algorithm failed: do EM
-        if(v[0] > 1 && vitout == 0) Rprintf("\n\t\tAI failed, switching to EM");
-        algit[i] = 0;  // switch algorithm to EM
-      } 
-
+          // AI algorithm failed: do EM
+          if((v[0] > 1) && (vitout == 0)){
+            Rprintf("\n\t\tAI failed, switching to EM");
+          }
+          algit[i] = 0;  // switch algorithm to EM
+        }  // end if !qNewtRhap()
+      }  // end if AI
 
       // if AI working so far
       // calculate `dnu` - proposed change in nu parameters (`Hinv %*% grad`)
@@ -914,7 +753,7 @@ if(v[0] > 3){
       si2 = 0;  // Keep track (avoid infinite loops): 
                 //// get as many tries as numbers of parameters
       bd = 1;  // initialize so enters while loop
-      while(algit[i] == 1 && bd == 1 && si2 < p[0]){
+      while(algit[i] > 0 && bd == 1 && si2 < p[0]){
         si = 0;
         stpVal = 1.0;
         for(k = 0; k < p[0]; k++){
@@ -981,7 +820,9 @@ if(v[0] > 3){
           if(!qNewtRhap(nu, newnu, dLdnu, AI,
      		        p[0], con, wchBd, f, ezero, v[0])){ 
             // AI algorithm failed: do EM
-            if(v[0] > 1 && vitout == 0) Rprintf("\n\t\tAI failed, switching to EM");
+            if((v[0] > 1) && (vitout == 0)){
+              Rprintf("\n\t\tAI failed, switching to EM");
+            }
             algit[i] = 0;  // switch algorithm to EM
           } 
 
@@ -993,7 +834,7 @@ if(v[0] > 3){
       }  // end while AI and bd
 
 
-      if(algit[i] == 1){
+      if(algit[i] > 0){
         // CONVERGENCE CRITERIA 3 and 4
         //// Appendix 2 of WOMBAT help manual for 4 criteria specified
         // Norm of gradient vector: wombt eqn. A.2
@@ -1005,10 +846,17 @@ if(v[0] > 3){
         cc[2] += (sqrt(d) < cctol[2]);
           cc[4] += cc[2];
         // Newton decrement: wombat eqn A.3 and Boyd & Vandenberghe 2004
-        //TODO
-        //cc[4] += cc[3];
-
-
+        /* TODO: determine `cctol` value - FIXME truned off for now 
+        invAI = cs_inv_withDiagMod(AI, con, wchBd, ezero, v[0]);
+        d = 0.0;
+        for(g = 0; g < p[0]; g++){
+          for(k = invAI->p[g]; k < invAI->p[g+1]; k++){
+            d += dLdnu[ invAI->i[k] ] * dLdnu[g] * invAI->x[ invAI->i[k] ];
+          }  // end for kth row
+        }  // end for gth column 
+        cc[3] += (-1 * d) < cctol[3];
+          cc[4] += cc[3];
+        */
 
         // unpack newnu into nu
         si = 0;
@@ -1044,18 +892,32 @@ if(v[0] > 3){
     /////////////////////////////
     // Expectation Maximization
     /////////////////////////////
-    // Place after AI: if AI fails, change value of algit[i] and will do EM here
+    // Place after AI: if AI fails, value of algit[i] changed so will do EM here
     if(algit[i] == 0 && cc[4] < 2){
       if(v[0] > 1 && vitout == 0) Rprintf("\n\tEM to find next nu");
 
       if(!tugugFun(tugug, w, nG, rfxlvls, con,
 	    nffx, ndgeninv, geninv, BLUXs)){
-        error("\nUnsuccessful tugug calculation: EM algorithm in iteration %i", i);
+        Rprintf("\nUnsuccessful tugug calculation: EM algorithm in iteration %i", i);
+        errOrIntrpt = 1;
+        break;
       }
 
-      if(!traceFun(trace, w, nG, rfxlvls,
-	    nffx, ndgeninv, geninv, BLUXs->m, Lc->L, sLc->pinv)){
-        error("\nUnsuccessful trace calculation: EM algorithm in iteration %i", i);
+
+      //TODO/FIXME: think of way to catch prtCinv already made in this iteration
+      if(!chol2inv_ii(Lc->L, sLc->pinv, prtCinv, Zdiagp, Cinv_ii, CinvX)){
+        Rprintf("\nValue not >0 on diagonal of Cholesky: EM in iteration %i", i);
+        errOrIntrpt = 1;
+        break;
+      } else CinvX++ ;
+
+      
+      if(!traceFun(trace, nG, rfxlvls,
+           nffx, ndgeninv, geninv, BLUXs->m,
+	   prtCinv, sLc->pinv, Cinv_ii)){
+        Rprintf("\nUnsuccessful trace calculation: EM in iteration %i", i);
+        errOrIntrpt = 1;
+        break;
       }
 
       // calculate EM for G (co)variances:
@@ -1112,7 +974,7 @@ if(v[0] > 3){
       if(v[0] > 1 && vitout == 0){ 
         // V=3 LEVEL of OUTPUT
         if(v[0] > 2){
-          if(algit[i] == 1){
+          if(algit[i] > 0){
             // output step-size modification
             Rprintf("\tgradient | AI\n");
             Rprintf("\t-------- |--------\n");
@@ -1135,7 +997,7 @@ if(v[0] > 3){
     }  // end if v > 0
 
 
-    itMat[itc] += round(took*10) / 10;              // gives 1 decimal place
+    itMat[itc] += round(took*100) / 100;              // gives 3 decimal places
     itc++;
  
 
@@ -1149,12 +1011,12 @@ if(v[0] > 3){
     if(algit[i] == 0) cc[4]++;  
     if(cc[4] > 2){
       if(v[0] > 0) Rprintf("\n***  REML converged  ***\n\n"); 
-      i++;     
+      maxit[0] = i + 1;    // record number of iterations
       break;
     }
 
   }  // end i for loop
-  maxit[0] = i;    // record number of iterations
+  
 
   //////////////////////////////////////////////////////////////////////////////
   //XXX									     XXX
@@ -1163,45 +1025,60 @@ if(v[0] > 3){
   //////////////////////////////////////////////////////////////////////////////
 
 
+  // only do if:
+  //// entire REML for loop proceeded without error/interruption
+  //// AND
+  //// AI+finite difference (first derivatives) used in last iteration
+  ////// (no Cinv_ii calculated from last parameter values)
 
-  // Calculate Cinv_ii and AI
-  cs_chol2inv_ii(Lc->L, sLc->pinv, Cinv_ii, 0);
+  // Calculate Cinv_ii
+  if((errOrIntrpt == 0) && (fdit[ maxit[0]-1 ] < 3)){
+    CinvX = chol2inv_ii(Lc->L, sLc->pinv, prtCinv, Zdiagp, Cinv_ii, CinvX);     
 if(v[0] > 3){
   took = simple_toc(t); 
-  Rprintf("\n\t    %6.4f sec.: calculate Cinv_ii", took);
+  Rprintf("\n\t    %6.4f sec.: post REML iterations calculate Cinv_ii", took);
   simple_tic(t); 
 }
-
-  //// Average Information
-  ////// only need to do if did NOT do AI
-  if(algit[i] != 1){  
+  }  // end no errors/interrupts and finite difference algorithm
+  
+  
+  // Average Information
+  //// only need to do if did NOT do AI
+  if((errOrIntrpt == 0) && (algit[ maxit[0]-1 ] != 1)){
     if(lambda[0] == 1){
-      if(cs_ai(AI, BLUXs, Ginv, R, 0, 0,
-	  y, W, tW, ny[0], p[0], nG, rfxlvls, nffx, Lc->L, sLc->pinv,
-	  0, sigma2e) == 0){
-        error("Unsuccessful AI algorithm at convergence %i\n", i);
-      }
+      cs_spfree(AI);  //TODO how pass if not initialized
+      AI = ai(BLUXs, Ginv, R, 0, 0,
+          y, W, tW, ny[0], p[0], nG, rfxlvls, nffx, Lc->L, sLc->pinv,
+          0, sigma2e);
+        if(AI == NULL){
+          Rprintf("\nUnsuccessful final AI calculation");
+        }
 if(v[0] > 3){
   took = simple_toc(t);
   Rprintf("\n\t    %6.4f sec.: calculate AI", took);
   simple_tic(t);
 }
        
-
-    }else{
-      if(cs_ai(AI, BLUXs, Ginv, R, KRinv, tWKRinv,
-          res, W, tW, ny[0], p[0], nG, rfxlvls, nffx, Lc->L, sLc->pinv,
-	  nG, 1.0) == 0){
-        error("Unsuccessful AI algorithm  at convergence %i\n", i);
-      }
+    } else{  // when lambda=0
+        cs_spfree(AI);  //TODO how pass if not initialized
+          AI = ai(BLUXs, Ginv, R, KRinv, tWKRinv,
+            res, W, tW, ny[0], p[0], nG, rfxlvls, nffx, Lc->L, sLc->pinv,
+	    nG, 1.0);
+	  if(AI == NULL){
+            Rprintf("\nUnsuccessful final AI calculation");
+          }
 if(v[0] > 3){
   took = simple_toc(t); 
   Rprintf("\n\t    %6.4f sec.: calculate AI", took);
   simple_tic(t); 
 }
 
-    }  // end if/else lambda
-  }  // end if algit!=AI
+      }  // end if/else lambda
+  }  // end if NO errors/interrupts and algit!=AI
+
+
+
+
 
 
 if(v[0] > 3) simple_tic(t);
@@ -1212,23 +1089,26 @@ if(v[0] > 3) simple_tic(t);
 
 
   //// return AI
-  if(CS_CSC(AI)){
+  if((CS_CSC(AI) && errOrIntrpt == 0)){
     for(k = 0; k < p[0]; k++){
       for(g = AI->p[k]; g < AI->p[k+1]; g++){
         i = AI->i[g];
         AIvec[k*p[0]+i] += AI->x[g];
       }
     }
-    cs_spfree(AI);
-  }  // end if AI NOT NULL
-
+  }
+  if(CS_CSC(AI)) cs_spfree(AI);
+  // end if AI NOT NULL
+  
+  
   // return constraint codes from final iteration
   for(k = 0; k < p[0]; k++) conv[k] = con[k];  // to retain original values
 
 
   // return permutation matrix of symbolic Cholesky factorization of C
-  for(k = 0; k < C->m; k++) sLcPinv[k] += sLc->pinv[k];
-
+  if(sLc != NULL){
+    for(k = 0; k < BLUXs->m; k++) sLcPinv[k] += sLc->pinv[k];
+  }
 
   //////////////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
@@ -1248,10 +1128,12 @@ if(v[0] > 3) simple_tic(t);
   cs_spfree(W); cs_spfree(tW);
   cs_spfree(R); cs_spfree(Rinv); 
   if(lambda[0] == 0){
-    cs_spfree(KRinv); cs_spfree(tWKRinv); cs_spfree(tyRinv);
+    cs_spfree(KRinv); cs_spfree(tWKRinv);
   }
   cs_spfree(tWKRinvW);
-  cs_spfree(Ctmp); cs_spfree(C);
+  // ttWKRinvW freed just after it is made so do not free here
+  //free C just after making it/sLc - have room for a C in reml()
+  cs_spfree(Ctmp); cs_spfree(prtCinv);
   cs_spfree(RHS); cs_spfree(tmpBLUXs); cs_spfree(BLUXs);
 
   cs_sfree(sLc);
@@ -1277,6 +1159,7 @@ if(v[0] > 3) simple_tic(t);
   delete [] con;
   delete [] cc;
   delete [] rfxlvls;
+  delete [] Zdiagp;
 
 
 if(v[0] > 3){

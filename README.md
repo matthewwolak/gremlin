@@ -1,6 +1,6 @@
 # gremlin 
-[![](http://www.r-pkg.org/badges/version/gremlin)](https://cran.r-project.org/package=gremlin)
-[![](http://cranlogs.r-pkg.org/badges/grand-total/gremlin)](http://cranlogs.r-pkg.org/badges/grand-total/gremlin)
+[![](https://www.r-pkg.org/badges/version/gremlin)](https://cran.r-project.org/package=gremlin)
+[![](https://cranlogs.r-pkg.org/badges/grand-total/gremlin)](https://cranlogs.r-pkg.org/badges/grand-total/gremlin)
 [![DOI](https://zenodo.org/badge/87194564.svg)](https://zenodo.org/badge/latestdoi/87194564)
 
 
@@ -27,17 +27,15 @@
    then select your favorite [CRAN mirror](https://CRAN.R-project.org/)
 
   - From GitHub:
-    - install the latest versions directly in R using the `devtools` package [https://github.com/hadley/devtools](https://github.com/hadley/devtools):
+    - install the latest versions directly in R using the `remotes` package [https://github.com/r-lib/remotes](https://github.com/r-lib/remotes):
 
    ```
 
-   library(devtools)
-
    # Install `master` branch
-   install_github("matthewwolak/gremlin")
+   remotes::install_github("matthewwolak/gremlin")
    
    # Install `devel` branch
-   install_github("matthewwolak/gremlin", ref = "devel")
+   remotes::install_github("matthewwolak/gremlin", ref = "devel")
 
    ```
 
