@@ -213,7 +213,7 @@ reml <- function(nu, skel, thetaG, sLc,
 #' @param tugug A list of numeric values for the $u_g' u_g$ products of the
 #'   solution vector for each of the \code{g} variance parameters. 
 #' @param trace A list of traces of the inverse coefficient matrix for each of
-#'   of the \code{g} variance paremeters.
+#'   of the \code{g} variance parameters.
 #' @param y The response vector.
 #' @export
 em <- function(nuvin, thetaG, thetaR, conv,
