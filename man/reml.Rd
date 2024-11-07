@@ -98,7 +98,7 @@ Mixed Model Equations.}
 solution vector for each of the \code{g} variance parameters.}
 
 \item{trace}{A list of traces of the inverse coefficient matrix for each of
-of the \code{g} variance paremeters.}
+of the \code{g} variance parameters.}
 
 \item{y}{The response vector.}
 

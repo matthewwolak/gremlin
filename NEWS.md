@@ -1,4 +1,4 @@
-# 1.1.0
+# 1.1.0 Released to CRAN 2024 November 4
 ## NEW
   - added c++ (and R) code to use the Takahashi et al. algorithm for obtaining the partial inverse of the coefficient matrix
     - This switch means almost a 20-fold speedup (for c++ routines) when using analytical first derivatives (i.e., need to calculate "trace" terms)
