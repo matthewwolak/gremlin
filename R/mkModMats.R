@@ -40,11 +40,9 @@ mkModMats <- function(formula, random = NULL, rcov = ~ units,
   ## 1) allow model.frame to update the terms object before saving it.
   ft <- attr(ff, "terms") 
   resp <- model.response(ff, "numeric")
-    if(is.null(ncol(resp))) ncy <- 1 else ncy <- ncol(resp)  #<--number of traits
-if(ncy > 1) stop("gremlin isn't old enough to play with multivariate models") #FIXME!!!
   #TODO: if multivar; order y as traits within individs (Meyer 1991, just b4 eqn 5)
   y <- matrix(resp, ncol = 1)
-  if(ncy == 1) ny <- nrow(y) else ny <- NULL #FIXME  # <-- sample size if univariate
+  ny <- nrow(y)
 
   ## 2) retrieve the weights and offset from the model frame so
   ## they can be functions of columns in arg data.
@@ -238,7 +236,7 @@ if(any(nrowZi != ny)){
     }
 
 
- structure(list(y = y, ny = ny, ncy = ncy,
+ structure(list(y = y, ny = ny,
 	X = X, nb = ncol(X),
 	Zr = Zr,
 	Zg = Zg, nG = nG, listGeninv = listGeninv, logDetG = logDetG),

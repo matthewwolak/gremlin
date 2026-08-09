@@ -142,7 +142,6 @@
 #'       mixed model equations.}
 #'       \item{y }{The response vector.}
 #'       \item{ny }{The number of responses.}
-#'       \item{ncy }{The number of columns of the original response.}
 #'       \item{X }{ The fixed effects design matrix.}
 #'       \item{nb }{The number of columns in X.}
 #'       \item{Zr }{The residual design matrix.}
@@ -183,7 +182,6 @@
 #'       estimated.}
 #'     \item{lambda }{A \code{logical} indicating whether the \sQuote{lambda}
 #'       scale parameterization has been used.}
-#'     \item{uni }{A \code{logical} to indicate if the model is univariate or not.}
 #'     \item{W, tWW, RHS, Bpinv }{Sparse matrices of class \code{Matrix} that 
 #'       form the mixed model equations and do not change between iterations of
 #'       REML. These are the column bound \sQuote{X} and \sQuote{Z} design
@@ -747,15 +745,6 @@ gremlinSetup <- function(formula, random = NULL, rcov = ~ units,
 
 
 
-
-
-#TODO put `uni` in `mkModMats()`
-  if(modMats$ncy == 1) uni <- TRUE
-    else stop("gremlin isn't old enough to play with multivariate models")
-
-
-
-
 #FIXME: change G to cholesky of G with log(diagonals)
 ## e.g., parameterisation to ensure postive-definiteness
 ### when to do cholesky factorization of G?
@@ -838,7 +827,7 @@ gremlinSetup <- function(formula, random = NULL, rcov = ~ units,
 		thetaG = thetaSt$thetaG, thetaR = thetaSt$thetaR,
 		nu = nu,
 		sigma2e = sigma2e,
-		p = p, lambda = lambda, uni = uni,
+		p = p, lambda = lambda,
 		W = W, tWW = tWW, RHS = RHS, Bpinv = Bpinv,
 		sLc = sLc,
 		sln = sln, Cinv_ii = Cinv_ii, r = r,
