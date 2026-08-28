@@ -2,7 +2,7 @@
 ## NEW
 
 ## Minor Changes
-
+  - corrected `anova.gremlin()` so now uses the number of freely varying parameters (those that are estimated) instead of total number of parameters as the degrees of freedom for a model.
 
 # 1.1.0 Released to CRAN 2024 November 4
 ## NEW
