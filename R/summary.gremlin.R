@@ -219,7 +219,9 @@ anova.gremlin <- function(object, ..., model.names = NULL){
   ###########
   lls <- lapply(mods, logLik)
   ## Order models by increasing degrees of freedom
-  llo <- order(Df <- vapply(lls, FUN = attr, FUN.VALUE = numeric(1), "df"))
+  ## extract number of free varying parameters
+  llo <- order(Df <- vapply(lapply(lls, FUN = attr, "df"),
+                       FUN = attr, FUN.VALUE = numeric(1), "n.fxd")
   mods <- mods[llo]
   lls <- lls[llo]
   Df <- Df[llo]
